@@ -11,6 +11,7 @@ mod phasor_hero;
 mod phazor_panel;
 mod raf;
 mod sigil;
+mod substrate;
 mod trace;
 
 use leptos::prelude::*;
@@ -30,6 +31,7 @@ fn main() {
 fn App() -> impl IntoView {
     view! {
         <Router>
+            <substrate::Substrate />
             <nav class="topbar">
                 <A href="/" attr:class="brand">
                     <sigil::Sigil size=26 />
@@ -59,9 +61,13 @@ fn App() -> impl IntoView {
 fn Home() -> impl IntoView {
     view! {
         <main class="hero">
-            <phasor_hero::PhasorHero />
-            // the name is an instrument: each letter strikes a phazor note
-            <h1 class="wordmark playable">
+            // the mark: sigil behind, playable name in front, .sh dangling
+            <div class="mark-stack">
+                <div class="mark-sigil">
+                    <sigil::Sigil size=240 />
+                </div>
+                // the name is an instrument: each letter strikes a phazor note
+                <h1 class="wordmark playable">
                 {"phunction"
                     .chars()
                     .enumerate()
@@ -71,6 +77,7 @@ fn Home() -> impl IntoView {
                         view! {
                             <button
                                 class="key"
+                                class:ph=i < 2
                                 style=("--kh", format!("{}", 10 + i * 39))
                                 on:click=move |_| phazor_panel::wiring::play_note(note)
                             >
@@ -79,7 +86,9 @@ fn Home() -> impl IntoView {
                         }
                     })
                     .collect_view()}
-            </h1>
+                    <span class="tld">".sh"</span>
+                </h1>
+            </div>
             <p class="theorem">
                 <span class="thm-label">"Theorem "</span>
                 "(phunction). "
@@ -89,6 +98,8 @@ fn Home() -> impl IntoView {
                 "Press power. "
                 <span class="qed">"∎"</span>
             </p>
+            <phasor_hero::PhasorHero />
+            <fun::Aphorism />
             <nav class="figs">
                 <A href="/phazor" attr:class="fig hot">
                     <span class="fig-glyph">"∿"</span>

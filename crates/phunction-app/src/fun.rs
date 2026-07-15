@@ -29,6 +29,40 @@ const FORTUNES: [&str; 7] = [
     "handle with clean hands and dirty synths",
 ];
 
+/// Tilted scholarly pull-quotes with suspicious attributions. Click for
+/// the next citation.
+const APHORISMS: [(&str, &str); 4] = [
+    (
+        "Description is revelation. The world is the description, & the description is the world.",
+        "W. STEVENS, ALT.",
+    ),
+    (
+        "The map is the territory, if you render it at native resolution.",
+        "A. KORZYBSKI, REV.",
+    ),
+    (
+        "Any sufficiently rigorous magic is indistinguishable from mathematics.",
+        "A. C. CLARKE, CONV.",
+    ),
+    (
+        "God made the integers; all else is a shader.",
+        "L. KRONECKER, APOCR.",
+    ),
+];
+
+/// One tilted, stamped aphorism.
+#[component]
+pub fn Aphorism() -> impl IntoView {
+    let ix = RwSignal::new(0usize);
+    view! {
+        <figure class="aphor" on:click=move |_| ix.update(|i| *i = (*i + 1) % APHORISMS.len())>
+            <span class="aphor-glyph" aria-hidden="true">"✶"</span>
+            <blockquote class="aphor-q">{move || APHORISMS[ix.get()].0}</blockquote>
+            <figcaption class="aphor-by">{move || format!("— {}", APHORISMS[ix.get()].1)}</figcaption>
+        </figure>
+    }
+}
+
 /// The slow strip of weird text under the header.
 #[component]
 pub fn Transmission() -> impl IntoView {

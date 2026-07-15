@@ -387,3 +387,67 @@ html.fnord body { animation: fnord-storm 4s ease-in-out; }
   html.ignite body, html.fnord body { animation: none; }
   .comet-dot { display: none; }
 }
+
+/* ---- the substrate: the field every page floats on ---- */
+.substrate {
+  position: fixed; inset: 0; z-index: 0; pointer-events: none;
+  width: 100%; height: 100%;
+}
+
+/* ---- the mark: sigil behind, playable name, .sh dangling ---- */
+@font-face {
+  font-family: "Redaction 20";
+  src: url("/fonts/redaction-20-latin-400-italic.woff2") format("woff2");
+  font-weight: 400; font-style: italic; font-display: swap;
+}
+.mark-stack { position: relative; padding: 2.6rem 0 0.5rem; }
+.mark-sigil {
+  position: absolute; left: -3.2rem; top: -1.6rem;
+  opacity: 0.5; filter: drop-shadow(0 0 22px oklch(70% 0.17 280 / 0.5));
+  pointer-events: none;
+}
+.wordmark.playable { align-items: baseline; }
+.wordmark .key.ph {
+  font-style: italic;
+  color: oklch(72% 0.19 300);
+  text-shadow: 0 0 26px oklch(70% 0.17 280 / 0.75);
+}
+.wordmark .tld {
+  font-family: var(--term); font-size: 0.32em;
+  color: var(--aether);
+  align-self: flex-end; margin-left: 0.18em; padding-bottom: 0.22em;
+}
+.wordmark .tld::before { content: "·"; margin-right: 0.2em; color: var(--faint); }
+
+/* ---- aphorism: a stamped, tilted citation ---- */
+.aphor {
+  position: relative;
+  max-width: 36rem;
+  margin: 3.2rem 0 3.4rem;
+  padding: 1.2rem 0.4rem;
+  transform: rotate(-1.2deg);
+  cursor: pointer;
+  border-top: 1px solid;
+  border-bottom: 1px solid;
+  border-image: linear-gradient(90deg, var(--sigil), var(--verdigris), transparent) 1;
+  user-select: none;
+}
+.aphor:hover { border-image: linear-gradient(90deg, var(--philtre), var(--phosphor), transparent) 1; }
+.aphor-glyph {
+  position: absolute; top: -0.85rem; left: -0.3rem;
+  color: var(--phosphor); font-size: 1.1rem;
+  background: var(--plane); padding: 0 0.3rem;
+}
+.aphor-q {
+  margin: 0; font-family: var(--prose); font-size: 1.3rem; line-height: 1.45;
+  color: var(--ink);
+}
+.aphor-by {
+  margin-top: 0.55rem;
+  font-family: var(--term); font-size: 0.72rem; letter-spacing: 0.14em;
+  color: var(--faint);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aphor { transform: none; }
+}

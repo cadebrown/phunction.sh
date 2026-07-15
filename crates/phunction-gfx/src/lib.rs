@@ -42,3 +42,10 @@ pub static REGISTRY: &[PhunctorDef] = &[PhunctorDef {
 pub fn find(id: &str) -> Option<&'static PhunctorDef> {
     REGISTRY.iter().find(|d| d.meta.id == id)
 }
+
+/// The site substrate: the domain-colored field every page floats on.
+/// Not a lab exhibit — it's the weather.
+#[must_use]
+pub fn substrate(gfx: &GfxContext) -> ShaderPhunctor {
+    ShaderPhunctor::new(gfx, include_str!("../shaders/substrate.wgsl"))
+}
