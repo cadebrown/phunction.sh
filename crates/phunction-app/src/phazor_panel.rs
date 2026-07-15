@@ -179,6 +179,8 @@ pub fn PhazorPage() -> impl IntoView {
                             view! {
                                 <button
                                     class="step"
+                                    // Each step wears the hue of its phase angle (2πi/16).
+                                    style=("--i", i.to_string())
                                     class:on=move || steps.get()[i]
                                     class:now=move || playhead() == Some(i)
                                     on:click=move |_| toggle_step(i)

@@ -9,28 +9,34 @@ use leptos_router::components::A;
 use leptos_router::hooks::use_params_map;
 use phunction_gfx::REGISTRY;
 
-/// `/lab` — the index grid.
+/// `/lab` — the index: numbered figures, like the paper they belong in.
 #[component]
 pub fn LabIndex() -> impl IntoView {
     view! {
-        <main class="hero">
-            <h1>"the lab"</h1>
-            <p class="tagline">"⟨ one URL, one visual — plug into a projector and leave it running ⟩"</p>
-            <div class="portals">
+        <main>
+            <header class="lab-head">
+                <h1>"the lab"</h1>
+                <p class="tagline">"one URL, one visual — plug into a projector and leave it running"</p>
+            </header>
+            <nav class="figs lab-figs">
                 {REGISTRY
                     .iter()
-                    .map(|def| {
+                    .enumerate()
+                    .map(|(i, def)| {
                         let m = def.meta;
+                        // Accent cycles through the cube roots of unity.
+                        let class = ["fig warm", "fig", "fig hot"][i % 3];
                         view! {
-                            <A href=format!("/lab/{}", m.id) attr:class="portal">
-                                <span class="portal-glyph">{m.glyph}</span>
-                                <span class="portal-name">{m.name}</span>
-                                <span class="portal-desc">{m.tagline}</span>
+                            <A href=format!("/lab/{}", m.id) attr:class=class>
+                                <span class="fig-glyph">{m.glyph}</span>
+                                <span class="fig-label">{format!("fig. {}", i + 1)}</span>
+                                <span class="fig-name">{m.name}</span>
+                                <span class="fig-desc">{m.tagline}</span>
                             </A>
                         }
                     })
                     .collect_view()}
-            </div>
+            </nav>
         </main>
     }
 }

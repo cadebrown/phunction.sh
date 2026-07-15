@@ -7,6 +7,7 @@ assets), MIT licensed, and used live on stage where nobody can stop to debug.
 
 This file is the map and the non-negotiables. Detail lives in `docs/`:
 
+- [`docs/aesthetic.md`](docs/aesthetic.md) — the design canon: *color is phase*. Read before touching any UI
 - [`docs/architecture.md`](docs/architecture.md) — crates, threading model, realtime budgets
 - [`docs/audio-engine.md`](docs/audio-engine.md) — phazor: engine, worklet bootstrap, rings
 - [`docs/gfx.md`](docs/gfx.md) — the phunctor harness; how to add a visual

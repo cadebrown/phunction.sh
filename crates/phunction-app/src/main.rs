@@ -5,6 +5,7 @@
 
 mod hud;
 mod lab;
+mod phasor_hero;
 mod phazor_panel;
 mod raf;
 mod trace;
@@ -44,26 +45,47 @@ fn App() -> impl IntoView {
     }
 }
 
-/// Landing page.
+/// Landing page: the thesis, drawn then stated.
 #[component]
 fn Home() -> impl IntoView {
     view! {
         <main class="hero">
-            <h1 class="glitch">"phunction"</h1>
-            <p class="tagline">"⟨ psychedelic code futurism · math you can hear · shaders you can play ⟩"</p>
-            <div class="portals">
-                <A href="/phazor" attr:class="portal">
-                    <span class="portal-glyph">"∿"</span>
-                    <span class="portal-name">"phazor"</span>
-                    <span class="portal-desc">"the browser DAW — a Rust engine threaded into your AudioWorklet"</span>
+            <phasor_hero::PhasorHero />
+            <h1 class="wordmark">"phunction"</h1>
+            <p class="theorem">
+                <span class="thm-label">"Theorem "</span>
+                "(phunction). "
+                <em>"Any browser is a synthesizer; any screen, a canvas."</em>
+                <br />
+                <span class="thm-label">"Proof. "</span>
+                "Press power. "
+                <span class="qed">"∎"</span>
+            </p>
+            <nav class="figs">
+                <A href="/phazor" attr:class="fig hot">
+                    <span class="fig-glyph">"∿"</span>
+                    <span class="fig-label">"fig. 1"</span>
+                    <span class="fig-name">"phazor"</span>
+                    <span class="fig-desc">
+                        "a DAW whose engine runs as a thread inside your audio driver. sixteen steps, sixteen phases."
+                    </span>
                 </A>
-                <A href="/lab" attr:class="portal">
-                    <span class="portal-glyph">"⌬"</span>
-                    <span class="portal-name">"the lab"</span>
-                    <span class="portal-desc">"fullscreen shader experiments — plug into a projector and go"</span>
+                <A href="/lab" attr:class="fig">
+                    <span class="fig-glyph">"ℂ"</span>
+                    <span class="fig-label">"fig. 2"</span>
+                    <span class="fig-name">"the lab"</span>
+                    <span class="fig-desc">
+                        "shader experiments on the complex plane. one URL each — feed them a projector."
+                    </span>
                 </A>
-            </div>
-            <p class="fine">"all Rust · all open · runs on anything with a browser"</p>
+            </nav>
+            <footer class="colophon">
+                "written in rust · compiled to wasm · served flat · MIT · "
+                <a href="https://github.com/cadebrown/phunction.sh" target="_blank" rel="noopener">
+                    "read the source"
+                </a>
+                " — it's part of the art"
+            </footer>
         </main>
     }
 }
@@ -72,9 +94,9 @@ fn Home() -> impl IntoView {
 #[component]
 fn NotFound() -> impl IntoView {
     view! {
-        <main class="hero">
-            <h1>"∅"</h1>
-            <p class="tagline">"this address does not converge"</p>
+        <main class="nothing">
+            <h1>"∄"</h1>
+            <p>"no route satisfies this address"</p>
         </main>
     }
 }

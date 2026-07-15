@@ -1,17 +1,69 @@
-/* phunction.sh — v0 surface.
-   Vibe targets: CRT terminal ∩ blacklight poster. Everything must stay
-   legible on a screenshare at 1080p — contrast is a feature, not a mood. */
+/* phunction.sh — the design system.
+   One rule generates everything: COLOR IS PHASE. The site is a domain-colored
+   complex plane; accents are the cube roots of unity on the OKLCH hue wheel
+   (ω⁰ amber, ω¹ cyan, ω² magenta), gradients are arcs of that wheel, and the
+   typography stages the project's central tension: the paper (Computer
+   Modern — mathematics) against the shell (Iosevka — the terminal).
+   Canon: docs/aesthetic.md. Everything legible on a 1080p screenshare. */
 
+/* ---- faces ---- */
+@font-face {
+  font-family: "Paper";
+  src: url("/fonts/KaTeX_Main-Regular.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Paper";
+  src: url("/fonts/KaTeX_Main-Bold.woff2") format("woff2");
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Paper";
+  src: url("/fonts/KaTeX_Main-Italic.woff2") format("woff2");
+  font-weight: 400; font-style: italic; font-display: swap;
+}
+@font-face {
+  font-family: "PaperMath";
+  src: url("/fonts/KaTeX_Math-Italic.woff2") format("woff2");
+  font-weight: 400; font-style: italic; font-display: swap;
+}
+@font-face {
+  font-family: "Iosevka";
+  src: url("/fonts/iosevka-latin-400-normal.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Iosevka";
+  src: url("/fonts/iosevka-latin-400-italic.woff2") format("woff2");
+  font-weight: 400; font-style: italic; font-display: swap;
+}
+@font-face {
+  font-family: "Iosevka";
+  src: url("/fonts/iosevka-latin-700-normal.woff2") format("woff2");
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+
+/* ---- tokens ---- */
 :root {
-  --bg: #06050c;
-  --bg-panel: #0c0a18;
-  --ink: #b7ffd0;        /* phosphor green */
-  --ink-dim: #5f8f74;
-  --hot: #ff4fd8;        /* magenta */
-  --cool: #59c2ff;       /* cyan */
-  --gold: #ffd75f;
-  --grid: rgba(89, 194, 255, 0.08);
-  --mono: ui-monospace, "JetBrains Mono", "Fira Code", Menlo, monospace;
+  /* the plane */
+  --plane: #0a0812;                       /* violet-black: |z| → ∞ */
+  --surface: #131020;
+  --gridline: oklch(85% 0.03 300 / 0.07);
+  --line: oklch(85% 0.03 300 / 0.18);
+  /* ink */
+  --ink: #ece5d8;                          /* chalk-warm paper white */
+  --annot: #8f8878;                        /* marginalia */
+  /* phase wheel — color = arg(z); accents are the cube roots of unity */
+  --w0: oklch(80% 0.15 85);                /* ω⁰ amber   */
+  --w1: oklch(78% 0.12 215);               /* ω¹ cyan    */
+  --w2: oklch(72% 0.19 345);               /* ω² magenta */
+  --w0-dim: oklch(80% 0.15 85 / 0.35);
+  --w1-dim: oklch(78% 0.12 215 / 0.35);
+  --w2-dim: oklch(72% 0.19 345 / 0.35);
+  /* type roles */
+  --paper: "Paper", "STIX Two Text", Georgia, serif;
+  --math: "PaperMath", "Paper", Georgia, serif;
+  --term: "Iosevka", ui-monospace, Menlo, monospace;
 }
 
 * { box-sizing: border-box; }
@@ -20,157 +72,224 @@ html, body {
   margin: 0;
   min-height: 100%;
   background:
-    linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 100% 2.2rem,
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 2.2rem 100%,
-    var(--bg);
+    linear-gradient(var(--gridline) 1px, transparent 1px) 0 0 / 100% 2.4rem,
+    linear-gradient(90deg, var(--gridline) 1px, transparent 1px) 0 0 / 2.4rem 100%,
+    var(--plane);
   color: var(--ink);
-  font-family: var(--mono);
+  font-family: var(--term);
+  font-size: 15px;
+  line-height: 1.55;
 }
 
-a { color: var(--cool); text-decoration: none; }
-a:hover { color: var(--hot); }
+a { color: var(--w1); text-decoration: none; }
+a:hover { color: var(--w2); }
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
 
 /* ---- chrome ---- */
 .topbar {
   display: flex; justify-content: space-between; align-items: baseline;
   padding: 0.8rem 1.4rem;
-  border-bottom: 1px solid rgba(183, 255, 208, 0.15);
+  border-bottom: 1px solid var(--line);
 }
-.brand { color: var(--ink); font-weight: 700; letter-spacing: 0.08em; }
-.brand:hover { color: var(--hot); text-shadow: 0 0 12px var(--hot); }
-.links { display: flex; gap: 1.2rem; }
+.brand { color: var(--ink); font-weight: 700; }
+.brand::before { content: "~/"; color: var(--annot); font-weight: 400; }
+.brand:hover { color: var(--w0); }
+.links { display: flex; gap: 1.4rem; }
 
 /* ---- landing ---- */
 .hero {
-  max-width: 60rem; margin: 0 auto; padding: 4rem 1.5rem;
-  text-align: center;
+  max-width: 64rem; margin: 0 auto; padding: 2.5rem 1.5rem 4rem;
 }
-.hero h1 {
-  font-size: clamp(2.5rem, 8vw, 5rem);
-  margin: 0 0 0.5rem;
-  letter-spacing: 0.06em;
+.wordmark {
+  font-family: var(--paper); font-style: italic; font-weight: 400;
+  font-size: clamp(3rem, 9vw, 5.5rem);
+  letter-spacing: 0.01em;
+  margin: 1.2rem 0 0.4rem;
   color: var(--ink);
-  text-shadow: 0 0 24px rgba(183, 255, 208, 0.45);
 }
-.glitch:hover {
-  animation: hue 3s linear infinite;
+.theorem {
+  font-family: var(--paper);
+  font-size: 1.2rem;
+  max-width: 42rem;
+  margin: 0 0 3rem;
 }
-@keyframes hue { to { filter: hue-rotate(360deg); } }
-.tagline { color: var(--ink-dim); }
-.fine { color: var(--ink-dim); margin-top: 3rem; font-size: 0.85rem; }
+.theorem .thm-label { font-weight: 700; }
+.theorem em { font-style: italic; }
+.theorem .qed { color: var(--w0); }
 
-.portals {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
-  gap: 1.2rem; margin-top: 3rem;
+/* the signature: a live phasor tracing its projection */
+.phasor-fig { margin: 1.5rem 0 0; }
+.phasor-fig svg { width: 100%; height: auto; display: block; }
+.phasor-fig .axis { stroke: var(--line); stroke-width: 1; }
+.phasor-fig .unit { fill: none; stroke: var(--line); stroke-width: 1.5; }
+.phasor-fig .radius {
+  stroke: oklch(78% 0.16 var(--phase, 85)); stroke-width: 2.5;
+  stroke-linecap: round;
 }
-.portal {
-  display: flex; flex-direction: column; gap: 0.4rem; align-items: center;
-  padding: 1.6rem 1.2rem;
-  border: 1px solid rgba(89, 194, 255, 0.25);
-  border-radius: 6px;
-  background: var(--bg-panel);
-  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+.phasor-fig .tip { fill: oklch(82% 0.17 var(--phase, 85)); }
+.phasor-fig .projection {
+  stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 5;
 }
-.portal:hover {
-  border-color: var(--hot);
-  box-shadow: 0 0 24px rgba(255, 79, 216, 0.25);
-  transform: translateY(-2px);
+.phasor-fig .trace {
+  fill: none; stroke: oklch(76% 0.15 var(--phase, 85));
+  stroke-width: 2; stroke-linecap: round;
 }
-.portal-glyph { font-size: 2.4rem; color: var(--gold); }
-.portal-name { font-size: 1.2rem; color: var(--ink); }
-.portal-desc { font-size: 0.8rem; color: var(--ink-dim); }
+.figcaption, .phasor-fig figcaption {
+  font-family: var(--term); font-size: 0.8rem; color: var(--annot);
+  margin-top: 0.4rem;
+}
+
+/* exhibits */
+.figs {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 1.2rem; margin: 0 0 3rem;
+}
+.fig {
+  --w: var(--w1); --w-dim: var(--w1-dim);
+  display: block;
+  border: 1px solid var(--line);
+  background: color-mix(in oklab, var(--surface) 88%, transparent);
+  padding: 1.1rem 1.2rem 1.3rem;
+  color: var(--ink);
+  transition: border-color 0.15s, transform 0.15s;
+}
+.fig:hover { border-color: var(--w); transform: translateY(-2px); color: var(--ink); }
+.fig.hot { --w: var(--w2); --w-dim: var(--w2-dim); }
+.fig.warm { --w: var(--w0); --w-dim: var(--w0-dim); }
+.fig .fig-label { font-size: 0.8rem; color: var(--annot); display: block; }
+.fig .fig-name {
+  font-family: var(--paper); font-style: italic; font-size: 1.5rem;
+  color: var(--w); display: block; margin: 0.15rem 0 0.35rem;
+}
+.fig .fig-glyph { float: right; font-size: 1.6rem; color: var(--w-dim); }
+.fig .fig-desc { color: var(--annot); font-size: 0.9rem; display: block; }
+
+.colophon {
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+  color: var(--annot); font-size: 0.8rem;
+}
 
 /* ---- phazor panel ---- */
 .panel { max-width: 62rem; margin: 0 auto; padding: 2rem 1.5rem; }
-.panel-head h1 { margin: 0; letter-spacing: 0.1em; }
-.panel-head .sub { color: var(--ink-dim); font-size: 0.85rem; }
+.panel-head h1 {
+  font-family: var(--paper); font-style: italic; font-weight: 400;
+  font-size: 2.6rem; margin: 0;
+}
+.panel-head .sub { color: var(--annot); font-size: 0.85rem; }
 
 .power {
   display: block; margin: 4rem auto;
-  padding: 1.2rem 2.6rem;
-  font: inherit; font-size: 1.3rem;
-  color: var(--bg); background: var(--ink);
-  border: none; border-radius: 4px; cursor: pointer;
-  box-shadow: 0 0 32px rgba(183, 255, 208, 0.5);
+  padding: 1.1rem 2.4rem;
+  font-family: var(--term); font-size: 1.2rem;
+  color: var(--plane); background: var(--w0);
+  border: none; cursor: pointer;
 }
-.power:hover { background: var(--hot); box-shadow: 0 0 32px rgba(255, 79, 216, 0.6); }
+.power:hover { background: var(--w2); }
 
 .transport { display: flex; gap: 0.8rem; align-items: center; margin: 1.6rem 0; flex-wrap: wrap; }
 .xport {
-  font: inherit; padding: 0.5rem 1.1rem; cursor: pointer;
-  color: var(--ink); background: var(--bg-panel);
-  border: 1px solid rgba(183, 255, 208, 0.3); border-radius: 4px;
+  font-family: var(--term); font-size: inherit;
+  padding: 0.45rem 1.1rem; cursor: pointer;
+  color: var(--ink); background: var(--surface);
+  border: 1px solid var(--line);
 }
 .xport:hover { border-color: var(--ink); }
-.xport.lit { color: var(--bg); background: var(--ink); box-shadow: 0 0 16px rgba(183, 255, 208, 0.5); }
-.xport.panic { border-color: rgba(255, 79, 216, 0.5); color: var(--hot); }
-.tempo { margin-left: auto; display: flex; gap: 0.6rem; align-items: center; color: var(--ink-dim); }
-.tempo .val { color: var(--gold); min-width: 3ch; }
+.xport.lit { color: var(--plane); background: var(--w0); border-color: var(--w0); }
+.xport.panic { border-color: var(--w2-dim); color: var(--w2); }
+.tempo { margin-left: auto; display: flex; gap: 0.6rem; align-items: center; color: var(--annot); }
+.tempo .val { color: var(--w0); min-width: 3ch; }
 
+/* the step row is the unit circle unrolled: step i sounds at phase
+   2πi/16, and wears that hue when armed. --i is set inline per button. */
 .steps {
   display: grid; grid-template-columns: repeat(16, 1fr); gap: 0.35rem;
   margin: 1.4rem 0;
 }
 .step {
   aspect-ratio: 1 / 1.4; cursor: pointer; position: relative;
-  background: var(--bg-panel);
-  border: 1px solid rgba(89, 194, 255, 0.25); border-radius: 3px;
+  background: var(--surface);
+  border: 1px solid var(--line);
   color: transparent;
+  font-family: var(--term);
 }
-.step:nth-child(4n + 1) { border-color: rgba(89, 194, 255, 0.55); }
-.step:hover { border-color: var(--cool); }
-.step.on { background: var(--cool); box-shadow: 0 0 14px rgba(89, 194, 255, 0.5); color: var(--bg); }
+.step:nth-child(4n + 1) { border-color: color-mix(in oklab, var(--line) 40%, var(--ink)); }
+.step:hover { border-color: var(--ink); }
+.step.on {
+  background: oklch(74% 0.15 calc(85deg + var(--i) * 22.5deg));
+  border-color: transparent;
+  color: var(--plane);
+}
 .step.on .note { font-size: 0.7rem; }
-.step.now { outline: 2px solid var(--gold); outline-offset: 1px; }
-.step.on.now { background: var(--gold); box-shadow: 0 0 18px rgba(255, 215, 95, 0.7); }
+.step.now { outline: 2px solid var(--ink); outline-offset: 1px; }
 
 .knobs { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1rem; margin: 1.6rem 0; }
 .param { display: grid; grid-template-columns: 6.5rem 1fr 5.5rem; gap: 0.6rem; align-items: center; }
-.param .name { color: var(--ink-dim); }
-.param .val { color: var(--gold); font-size: 0.85rem; text-align: right; }
+.param .name { color: var(--annot); }
+.param .val { color: var(--w0); font-size: 0.85rem; text-align: right; font-variant-numeric: tabular-nums; }
 
-input[type="range"] { accent-color: var(--hot); width: 100%; }
+input[type="range"] { accent-color: var(--w2); width: 100%; }
 
 .readout { display: flex; gap: 1.4rem; align-items: center; margin-top: 1.8rem; flex-wrap: wrap; }
 .meter { display: flex; gap: 0.5rem; align-items: center; flex: 1; min-width: 14rem; }
-.meter .ch { color: var(--ink-dim); }
+.meter .ch { color: var(--annot); }
 .meter .bar {
   position: relative; flex: 1; height: 0.7rem;
-  background: var(--bg-panel); border: 1px solid rgba(183, 255, 208, 0.2); border-radius: 2px;
+  background: var(--surface); border: 1px solid var(--line);
   overflow: hidden;
 }
-.meter .rms { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, var(--cool), var(--ink)); }
-.meter .peak { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--hot); }
-.stats { display: flex; gap: 1.2rem; color: var(--ink-dim); font-size: 0.85rem; }
-.stats .warn { color: var(--hot); }
+.meter .rms {
+  position: absolute; inset: 0 auto 0 0;
+  background: linear-gradient(90deg in oklch longer hue, var(--w1), var(--w0));
+}
+.meter .peak { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--w2); }
+.stats { display: flex; gap: 1.2rem; color: var(--annot); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.stats .warn { color: var(--w2); }
 
-/* ---- lab viewer ---- */
+/* ---- lab ---- */
+.lab-head {
+  max-width: 64rem; margin: 0 auto; padding: 2.5rem 1.5rem 0;
+}
+.lab-head h1 {
+  font-family: var(--paper); font-style: italic; font-weight: 400;
+  font-size: 2.6rem; margin: 0 0 0.2rem;
+}
+.lab-head .tagline { color: var(--annot); margin: 0 0 2rem; }
+.lab-figs { max-width: 64rem; margin: 0 auto; padding: 0 1.5rem 4rem; }
+
 .labview { position: fixed; inset: 0; background: #000; }
 .labcanvas { width: 100%; height: 100%; display: block; touch-action: none; }
 .labhud {
   position: absolute; left: 0.9rem; bottom: 0.7rem;
   display: flex; gap: 1.2rem; align-items: baseline;
-  color: var(--ink-dim); font-size: 0.8rem;
+  color: var(--annot); font-size: 0.8rem;
   text-shadow: 0 0 6px #000;
-  opacity: 0.85;
 }
 .labhud .hint { opacity: 0.7; }
 .gfx-error {
   position: absolute; top: 40%; width: 100%; text-align: center;
-  color: var(--hot); z-index: 2;
+  color: var(--w2); z-index: 2;
 }
+
+/* ---- 404 ---- */
+.nothing { text-align: center; padding: 6rem 1.5rem; }
+.nothing h1 { font-family: var(--math); font-size: 5rem; margin: 0; color: var(--w2); }
+.nothing p { color: var(--annot); }
 
 /* ---- debug HUD (ships to production, on purpose) ---- */
 .hud {
   position: fixed; right: 0.8rem; bottom: 0.8rem; z-index: 99;
   width: min(38rem, calc(100vw - 2rem)); max-height: 45vh;
   display: flex; flex-direction: column;
-  background: rgba(6, 5, 12, 0.92);
-  border: 1px solid var(--cool); border-radius: 4px;
-  box-shadow: 0 0 24px rgba(89, 194, 255, 0.3);
+  background: color-mix(in oklab, var(--plane) 94%, transparent);
+  border: 1px solid var(--w1-dim);
   font-size: 0.75rem;
 }
-.hud header { display: flex; justify-content: space-between; padding: 0.4rem 0.7rem; border-bottom: 1px solid rgba(89,194,255,0.25); color: var(--cool); }
-.hud .hud-build { color: var(--gold); }
+.hud header { display: flex; justify-content: space-between; padding: 0.4rem 0.7rem; border-bottom: 1px solid var(--line); color: var(--w1); }
+.hud .hud-build { color: var(--w0); }
 .hud .hud-log { flex: 1; overflow: auto; margin: 0; padding: 0.5rem 0.7rem; color: var(--ink); white-space: pre-wrap; }
-.hud footer { padding: 0.3rem 0.7rem; color: var(--ink-dim); border-top: 1px solid rgba(89,194,255,0.25); }
+.hud footer { padding: 0.3rem 0.7rem; color: var(--annot); border-top: 1px solid var(--line); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fig, .fig:hover { transition: none; transform: none; }
+}
