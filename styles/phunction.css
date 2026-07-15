@@ -883,3 +883,12 @@ html.fnord body { animation: fnord-storm 4s ease-in-out; }
 .textfx-glyph { color: oklch(80% 0.13 calc(var(--gh) * 1deg)); transition: color 0.12s; }
 .textfx-glyph.hot { color: oklch(88% 0.17 calc(var(--gh) * 1deg)); text-shadow: 0 0 12px oklch(80% 0.17 calc(var(--gh) * 1deg) / 0.8); }
 .textfx-knobs { display: flex; gap: 1rem; }
+
+/* ---- scene module ---- */
+.scene-canvas {
+  width: 100%; height: 15rem; display: block;
+  border: 1px solid #090612;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255, 255, 255, 0.05);
+  background: #050308;
+}
+@media (min-width: 860px) { .rack .span7 { grid-column: span 7; } }

@@ -12,10 +12,12 @@
 
 pub mod context;
 pub mod phunctor;
+pub mod scene;
 pub mod shader_phunctor;
 
 pub use context::{GfxContext, GfxError};
 pub use phunctor::{FrameInput, Phunctor, PhunctorDef, PhunctorMeta};
+pub use scene::Scene3d;
 pub use shader_phunctor::ShaderPhunctor;
 // Re-exported so hosts (the app's render loop) never need their own wgpu
 // dependency — one wgpu version, decided here.

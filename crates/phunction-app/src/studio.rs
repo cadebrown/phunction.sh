@@ -76,6 +76,94 @@ fn TextFx() -> impl IntoView {
     }
 }
 
+/// The 3D scene module: the φ-solid, camera flown by the bus (the same
+/// XY pad that logs to the console orbits this camera — one control, two
+/// modules, zero extra wiring).
+#[component]
+fn Scene(
+    /// Orbit input, `(yaw, pitch)` in `0..=1` — fed by the XY pad.
+    orbit: RwSignal<(f32, f32)>,
+) -> impl IntoView {
+    let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
+    let error = RwSignal::new(None::<String>);
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        use phunction_gfx::{FrameInput, GfxContext, Phunctor as _};
+        use std::cell::Cell;
+        let started = Cell::new(false);
+        Effect::new(move |_| {
+            let Some(canvas) = canvas_ref.get() else {
+                return;
+            };
+            if started.replace(true) {
+                return;
+            }
+            leptos::task::spawn_local(async move {
+                let mut ctx = match GfxContext::from_canvas(canvas.clone()).await {
+                    Ok(c) => c,
+                    Err(e) => {
+                        error.set(Some(e.to_string()));
+                        return;
+                    }
+                };
+                let mut scene = phunction_gfx::Scene3d::new(&ctx);
+                let t0 = web_time::Instant::now();
+                crate::raf::raf_loop(move || {
+                    if !canvas.is_connected() {
+                        return false;
+                    }
+                    let dpr = web_sys::window().map_or(1.0, |w| w.device_pixel_ratio());
+                    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+                    let size = (
+                        (f64::from(canvas.client_width()) * dpr) as u32,
+                        (f64::from(canvas.client_height()) * dpr) as u32,
+                    );
+                    if size.0 == 0 || size.1 == 0 {
+                        return true;
+                    }
+                    if (canvas.width(), canvas.height()) != size {
+                        canvas.set_width(size.0);
+                        canvas.set_height(size.1);
+                    }
+                    ctx.resize_if_needed(size);
+                    use phunction_gfx::wgpu::CurrentSurfaceTexture as Cst;
+                    let frame = match ctx.surface.get_current_texture() {
+                        Cst::Success(f) => f,
+                        Cst::Suboptimal(f) => {
+                            ctx.configure(ctx.size);
+                            f
+                        }
+                        _ => {
+                            ctx.configure(ctx.size);
+                            return true;
+                        }
+                    };
+                    let view = frame
+                        .texture
+                        .create_view(&phunction_gfx::wgpu::TextureViewDescriptor::default());
+                    let (x, y) = orbit.get_untracked();
+                    let input = FrameInput {
+                        time: t0.elapsed().as_secs_f32(),
+                        aspect: size.0 as f32 / size.1 as f32,
+                        mods: [x, y, 0.5, 0.5],
+                    };
+                    scene.frame(&ctx, &view, &input);
+                    ctx.queue.present(frame);
+                    true
+                });
+            });
+        });
+    }
+
+    view! {
+        <RackPanel title="scene · φ-solid" class="span7">
+            {move || error.get().map(|e| view! { <p class="gfx-error">"✗ " {e}</p> })}
+            <canvas node_ref=canvas_ref class="scene-canvas" aria-label="a phase-colored icosahedron, orbited by the morph pad"></canvas>
+        </RackPanel>
+    }
+}
+
 /// The `/studio` route.
 #[component]
 pub fn Studio() -> impl IntoView {
@@ -87,6 +175,9 @@ pub fn Studio() -> impl IntoView {
             b.truncate(4);
         });
     };
+
+    // the shared orbit channel: XY pad → console AND the 3D camera
+    let orbit = RwSignal::new((0.62f32, 0.6f32));
 
     // a synthetic LFO drives the meters so the playground breathes even
     // without the audio engine powered
@@ -121,7 +212,10 @@ pub fn Studio() -> impl IntoView {
                         label="morph"
                         hue_x=235.0
                         hue_y=325.0
-                        on_value=move |(x, y): (f32, f32)| log(format!("morph → {x:.2}, {y:.2}"))
+                        on_value=move |(x, y): (f32, f32)| {
+                            orbit.set((x, y));
+                            log(format!("morph → {x:.2}, {y:.2} → scene.orbit"));
+                        }
                     />
                     <Jack label="x" />
                     <Jack label="y" />
@@ -142,9 +236,9 @@ pub fn Studio() -> impl IntoView {
                         on_value=move |v: f32| log(format!("rate → {v:.2} Hz")) />
                 </RackPanel>
 
-                <TextFx />
+                <Scene orbit=orbit />
 
-                <RackPanel title="console">
+                <RackPanel title="console" class="span5">
                     <div class="lcd lcd-wide">
                         {move || {
                             let b = bus.get();
@@ -156,6 +250,8 @@ pub fn Studio() -> impl IntoView {
                         }}
                     </div>
                 </RackPanel>
+
+                <TextFx />
             </div>
 
             <div class="keyhints">
