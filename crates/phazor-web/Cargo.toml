@@ -1,0 +1,35 @@
+[package]
+name = "phazor-web"
+description = "Browser bootstrap for the phazor engine: AudioWorklet thread spawn, lock-free rings, Web Audio glue."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+phazor-core.workspace = true
+rtrb.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen.workspace = true
+wasm-bindgen-futures.workspace = true
+js-sys.workspace = true
+tracing.workspace = true
+web-sys = { workspace = true, features = [
+    "AudioContext",
+    "AudioContextOptions",
+    "AudioContextState",
+    "AudioDestinationNode",
+    "AudioWorklet",
+    "AudioWorkletNode",
+    "AudioWorkletNodeOptions",
+    "BaseAudioContext",
+    "Blob",
+    "BlobPropertyBag",
+    "Url",
+    "Window",
+] }
+
+[lints]
+workspace = true

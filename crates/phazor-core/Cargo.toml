@@ -1,0 +1,25 @@
+[package]
+name = "phazor-core"
+description = "The phazor audio engine: transport, sequencing, voices, DSP. Target-agnostic — no web, no I/O."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+# Deliberately tiny. This crate is pure math + state so it can be tested and
+# benched natively. See docs/crates-policy.md before adding anything here.
+heapless.workspace = true
+
+[dev-dependencies]
+approx.workspace = true
+criterion.workspace = true
+proptest.workspace = true
+
+[[bench]]
+name = "engine"
+harness = false
+
+[lints]
+workspace = true

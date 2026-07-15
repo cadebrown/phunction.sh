@@ -1,0 +1,9 @@
+# Cross-origin isolation: required for SharedArrayBuffer, which the phazor
+# audio engine needs to run as a thread in the AudioWorklet.
+# `require-corp` (not `credentialless`): Safari can throw when handing shared
+# wasm memory to a worklet under credentialless. Consequence: every external
+# subresource needs CORS/CORP opt-in, and third-party iframes won't embed.
+# That trade is accepted deliberately — the instrument comes first.
+/*
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp

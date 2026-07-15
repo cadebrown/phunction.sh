@@ -1,0 +1,15 @@
+# Trunk build config. The threaded-wasm cargo flags live in the justfile
+# (build-std needs an env var cargo can't scope here); always drive builds
+# through `just`, not bare `trunk`.
+[build]
+target = "index.html"
+dist = "dist"
+
+[tools]
+# Binaryen new enough to handle shared-memory/atomics modules cleanly.
+wasm_opt = "version_130"
+
+[serve]
+# COOP/COEP so SharedArrayBuffer (threaded audio) works in `just dev` exactly
+# like production. If audio works locally but not deployed, check _headers.
+headers = { "Cross-Origin-Opener-Policy" = "same-origin", "Cross-Origin-Embedder-Policy" = "require-corp" }

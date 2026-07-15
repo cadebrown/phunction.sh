@@ -1,0 +1,7 @@
+# Nightly is a deliberate choice, not a whim: the phazor audio engine runs as a
+# *thread* inside the AudioWorklet sharing one wasm memory with the UI, which
+# requires `-Zbuild-std` (std rebuilt with +atomics). See docs/architecture.md.
+[toolchain]
+channel = "nightly-2026-07-13"
+components = ["rustfmt", "clippy", "rust-src", "rust-analyzer"]
+targets = ["wasm32-unknown-unknown"]

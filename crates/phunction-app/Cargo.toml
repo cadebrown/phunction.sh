@@ -1,0 +1,24 @@
+[package]
+name = "phunction-app"
+description = "The phunction.sh site: Leptos shell wiring the gfx and audio engines into one instrument."
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+phazor-core.workspace = true
+phazor-web.workspace = true
+phunction-gfx.workspace = true
+leptos.workspace = true
+leptos_router.workspace = true
+console_error_panic_hook.workspace = true
+tracing.workspace = true
+
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+wasm-bindgen.workspace = true
+web-sys = { workspace = true, features = ["Window", "Document"] }
+
+[lints]
+workspace = true

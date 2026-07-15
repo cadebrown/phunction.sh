@@ -1,0 +1,18 @@
+# phunction.sh ships as a Cloudflare Worker that is nothing but static assets
+# (Pages is legacy; this is the current blessed path). `_headers` in dist/
+# carries the COOP/COEP pair that unlocks SharedArrayBuffer for the audio
+# engine — if audio breaks in prod but works in `just dev`, look there first.
+name = "phunction-sh"
+account_id = "1f6e8a09fec260d326f4af42d7868238" # Alkemical Development
+compatibility_date = "2026-07-14"
+workers_dev = true
+
+routes = [
+    { pattern = "phunction.sh", custom_domain = true },
+    { pattern = "www.phunction.sh", custom_domain = true },
+]
+
+[assets]
+directory = "./dist"
+# SPA: leptos_router owns the URL space; unknown paths get index.html.
+not_found_handling = "single-page-application"

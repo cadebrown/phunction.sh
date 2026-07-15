@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="phunction — audiovisual instrument, shader lab, browser DAW. all Rust, all yours." />
+    <title>phunction</title>
+    <!-- wasm-opt must be told about the atomics features the module uses;
+         it refuses shared-memory modules otherwise. -->
+    <link data-trunk rel="rust" href="crates/phunction-app/Cargo.toml" data-bin="phunction-app"
+          data-wasm-opt="z"
+          data-wasm-opt-params="--enable-threads --enable-bulk-memory --enable-mutable-globals" />
+    <link data-trunk rel="copy-dir" href="public" data-target-path="." />
+    <style>
+      /* Pre-wasm splash: everything else is Rust's problem. */
+      html, body { margin: 0; height: 100%; background: #06050c; color: #b7ffd0; }
+      body { font-family: ui-monospace, "JetBrains Mono", monospace; }
+    </style>
+  </head>
+  <body></body>
+</html>

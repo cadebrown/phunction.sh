@@ -1,0 +1,16 @@
+# ⚠ These target rustflags are DOCUMENTATION + best-effort fallback only.
+# A user-level `RUSTFLAGS` env var (e.g. `-C target-cpu=native` in dotfiles)
+# silently overrides target-scoped config rustflags — cargo env beats config.
+# The authoritative flags live in the justfile, which sets RUSTFLAGS
+# explicitly for every wasm build. Always build via `just`.
+#
+# Threaded wasm: atomics + shared memory (the phazor engine runs as a thread
+# inside the AudioWorklet). `-Zbuild-std` is required alongside these and is
+# also set by the justfile (CARGO_UNSTABLE_BUILD_STD).
+[target.wasm32-unknown-unknown]
+rustflags = [
+    "-C", "target-feature=+atomics,+bulk-memory,+mutable-globals",
+    # Shared memories must declare a maximum. 1 GiB headroom; growth is
+    # demand-driven. Raise deliberately if sample libraries need it.
+    "-C", "link-arg=--max-memory=1073741824",
+]

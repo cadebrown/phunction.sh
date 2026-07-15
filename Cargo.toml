@@ -1,0 +1,91 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/phazor-core",
+    "crates/phazor-web",
+    "crates/phunction-gfx",
+    "crates/phunction-app",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/cadebrown/phunction.sh"
+authors = ["phunction <brown.cade@gmail.com>"]
+
+[workspace.dependencies]
+# intra-workspace
+phazor-core = { path = "crates/phazor-core" }
+phazor-web = { path = "crates/phazor-web" }
+phunction-gfx = { path = "crates/phunction-gfx" }
+
+# reactive UI
+leptos = { version = "0.8", features = ["csr"] }
+leptos_router = { version = "0.8" }
+
+# gpu
+wgpu = { version = "30", default-features = false, features = ["webgpu", "webgl", "wgsl"] }
+
+# wasm glue
+wasm-bindgen = "0.2"
+wasm-bindgen-futures = "0.4"
+js-sys = "0.3"
+web-sys = "0.3"
+console_error_panic_hook = "0.1"
+
+# realtime plumbing
+rtrb = "0.3"
+heapless = "0.9"
+
+# diagnostics
+tracing = { version = "0.1", default-features = false }
+thiserror = "2"
+
+# misc
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+web-time = "1"
+glam = "0.30"
+
+# dev/test
+criterion = "0.8"
+proptest = "1"
+approx = "0.5"
+wasm-bindgen-test = "0.3"
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+missing_docs = "warn"
+
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+# pedantic escape hatches we actively disagree with
+module_name_repetitions = "allow"
+must_use_candidate = "allow"
+missing_panics_doc = "allow"
+cast_possible_truncation = "allow"
+cast_precision_loss = "allow"
+cast_sign_loss = "allow"
+# audio code is float-heavy; these fire constantly with no value there
+float_cmp = "allow"
+suboptimal_flops = "allow"
+
+# `release` is tuned for the *shipped wasm* — that is the product. (Trunk
+# 0.21 can't select custom cargo profiles, so release it is.)
+# panic=abort matches `-Zbuild-std=std,panic_abort`; cargo ignores the panic
+# setting for test/bench profiles, so native testing is unaffected.
+[profile.release]
+opt-level = "s"
+lto = "fat"
+codegen-units = 1
+panic = "abort"
+strip = true
+
+# Benches want speed, not size. (Cargo forces unwind here regardless of the
+# release panic setting.)
+[profile.bench]
+opt-level = 3
+lto = "thin"
+codegen-units = 16
