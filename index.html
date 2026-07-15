@@ -9,13 +9,9 @@
          it refuses shared-memory modules otherwise. -->
     <link data-trunk rel="rust" href="crates/phunction-app/Cargo.toml" data-bin="phunction-app"
           data-wasm-opt="z"
-          data-wasm-opt-params="--enable-threads --enable-bulk-memory --enable-mutable-globals" />
+          data-wasm-opt-params="--all-features" />
     <link data-trunk rel="copy-dir" href="public" data-target-path="." />
-    <style>
-      /* Pre-wasm splash: everything else is Rust's problem. */
-      html, body { margin: 0; height: 100%; background: #06050c; color: #b7ffd0; }
-      body { font-family: ui-monospace, "JetBrains Mono", monospace; }
-    </style>
+    <link data-trunk rel="css" href="styles/phunction.css" />
   </head>
   <body></body>
 </html>

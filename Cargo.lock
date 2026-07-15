@@ -1586,6 +1586,7 @@ name = "phunction-app"
 version = "0.1.0"
 dependencies = [
  "console_error_panic_hook",
+ "js-sys",
  "leptos",
  "leptos_router",
  "phazor-core",
@@ -1593,6 +1594,7 @@ dependencies = [
  "phunction-gfx",
  "tracing",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
 ]
 
