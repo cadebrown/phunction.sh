@@ -250,6 +250,8 @@ pub fn Jack(
 }
 
 /// A rack module: machined panel, engraved title, corner screws.
+/// Collapsible: the title bar is a latch — click folds the module down to
+/// its faceplate strip (TouchDesigner density rule: everything folds).
 #[component]
 pub fn RackPanel(
     /// Engraved module name.
@@ -257,17 +259,30 @@ pub fn RackPanel(
     /// Extra classes (grid spans).
     #[prop(default = "")]
     class: &'static str,
+    /// Start folded (compact workspaces).
+    #[prop(default = false)]
+    folded: bool,
     /// Module contents.
     children: Children,
 ) -> impl IntoView {
+    let folded = RwSignal::new(folded);
     view! {
-        <section class=format!("rack-panel {class}")>
+        <section class=format!("rack-panel {class}") class:folded=move || folded.get()>
             <span class="screw tl"></span>
             <span class="screw tr"></span>
             <span class="screw bl"></span>
             <span class="screw br"></span>
-            <h3 class="rack-title">{title}</h3>
-            <div class="rack-body">{children()}</div>
+            <button
+                class="rack-latch"
+                aria-expanded=move || (!folded.get()).to_string()
+                on:click=move |_| folded.update(|f| *f = !*f)
+            >
+                <span class="rack-fold" aria-hidden="true">
+                    {move || if folded.get() { "▸" } else { "▾" }}
+                </span>
+                <span class="rack-title">{title}</span>
+            </button>
+            <div class="rack-body" class:hidden=move || folded.get()>{children()}</div>
         </section>
     }
 }

@@ -474,6 +474,7 @@ html.fnord body { animation: fnord-storm 4s ease-in-out; }
   .rack .span5 { grid-column: span 5; }
 }
 .rack-title {
+  display: block;
   margin: 0 0 0.7rem;
   font-family: var(--term); font-size: 0.7rem; font-weight: 700;
   letter-spacing: 0.24em; text-transform: uppercase;
@@ -817,3 +818,18 @@ html.fnord body { animation: fnord-storm 4s ease-in-out; }
 .cable .cable-shadow { stroke: rgba(0, 0, 0, 0.5); stroke-width: 8px; vector-effect: non-scaling-stroke; }
 .cable .cable-core { stroke: oklch(52% 0.16 325); stroke-width: 6px; vector-effect: non-scaling-stroke; stroke-linecap: round; }
 .cable .cable-sheen { stroke: oklch(72% 0.14 325 / 0.5); stroke-width: 1.8px; vector-effect: non-scaling-stroke; }
+
+/* ---- toolkit: collapsible latch + compact density ---- */
+.rack-latch {
+  all: unset; cursor: pointer; display: flex; align-items: baseline; gap: 0.5rem;
+  width: 100%; position: relative; z-index: 1;
+}
+.rack-latch:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+.rack-latch .rack-title { flex: 1; }
+.rack-fold {
+  font-size: 0.7rem; color: var(--faint);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.9);
+}
+.rack-latch:hover .rack-fold { color: var(--phosphor); }
+.rack-panel.folded { padding-bottom: 0.85rem; }
+.rack-body.hidden { display: none; }
