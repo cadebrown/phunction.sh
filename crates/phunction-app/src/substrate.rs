@@ -30,6 +30,7 @@ pub fn Substrate() -> impl IntoView {
 
 #[cfg(target_arch = "wasm32")]
 mod wiring {
+    use phunction_gfx::wgpu::CurrentSurfaceTexture as Cst;
     use phunction_gfx::{FrameInput, GfxContext, Phunctor as _};
 
     pub fn run(canvas: web_sys::HtmlCanvasElement) {
@@ -76,7 +77,6 @@ mod wiring {
                 }
                 ctx.resize_if_needed(size);
 
-                use phunction_gfx::wgpu::CurrentSurfaceTexture as Cst;
                 let frame = match ctx.surface.get_current_texture() {
                     Cst::Success(f) => f,
                     Cst::Suboptimal(f) => {
