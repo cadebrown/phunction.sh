@@ -125,14 +125,32 @@ pub fn Knob(
                 // the value arc, in the parameter's station hue
                 <path class="knob-arc-bg" d=arc_path(SWEEP, 30.0)></path>
                 <path class="knob-arc" d=move || arc_path(angle(), 30.0)></path>
-                // machined body: shadow, base, knurl, cap
-                <circle class="knob-shadow" cx="41.5" cy="42.5" r="25"></circle>
+                // machined body, outside in: countersink, cast shadow, side
+                // wall, knurled skirt (28 real teeth), domed cap, specular
+                <circle class="knob-sink" cx="40" cy="40" r="27"></circle>
+                <ellipse class="knob-shadow" cx="41.5" cy="43" rx="25" ry="24"></ellipse>
                 <circle class="knob-body" cx="40" cy="40" r="25"></circle>
-                <circle class="knob-knurl" cx="40" cy="40" r="22.5"></circle>
-                <circle class="knob-cap" cx="40" cy="40" r="15"></circle>
+                <circle class="knob-wall" cx="40" cy="40" r="23.8"></circle>
+                {(0..28)
+                    .map(|i| {
+                        let a = core::f64::consts::TAU * f64::from(i) / 28.0;
+                        view! {
+                            <line
+                                class="knob-tooth"
+                                x1=40.0 + 20.6 * a.cos()
+                                y1=40.0 + 20.6 * a.sin()
+                                x2=40.0 + 24.2 * a.cos()
+                                y2=40.0 + 24.2 * a.sin()
+                            ></line>
+                        }
+                    })
+                    .collect_view()}
+                <circle class="knob-cap" cx="40" cy="40" r="16"></circle>
+                <circle class="knob-dome" cx="37.5" cy="37" r="12"></circle>
+                <path class="knob-spec" d="M27 31 A16.5 16.5 0 0 1 38 24"></path>
                 // indicator
                 <g style=("transform", move || format!("rotate({}deg)", angle())) class="knob-rotor">
-                    <line class="knob-needle" x1="40" y1="27" x2="40" y2="16"></line>
+                    <line class="knob-needle" x1="40" y1="28" x2="40" y2="17"></line>
                 </g>
             </svg>
             <span class="knob-label">{label}</span>
@@ -194,6 +212,39 @@ pub fn LedMeter(
                     .collect_view()}
             </div>
             <span class="ledmeter-label">{label}</span>
+        </div>
+    }
+}
+
+/// A 3.5mm jack socket with its hex nut — the honest Eurorack anchor.
+/// Decorative today, modulation routing tomorrow; the nut is real either way.
+#[component]
+pub fn Jack(
+    /// Engraved label under the socket.
+    label: &'static str,
+) -> impl IntoView {
+    // hex nut vertices, flat side up
+    let mut nut = String::new();
+    for i in 0..6 {
+        use core::fmt::Write as _;
+        let a = core::f64::consts::TAU * (f64::from(i) + 0.5) / 6.0;
+        let _ = write!(
+            nut,
+            "{:.2},{:.2} ",
+            20.0 + 17.0 * a.cos(),
+            20.0 + 17.0 * a.sin()
+        );
+    }
+    view! {
+        <div class="jack">
+            <svg viewBox="0 0 40 40" aria-hidden="true">
+                <polygon class="jack-nut" points=nut.trim_end().to_string()></polygon>
+                <circle class="jack-ring" cx="20" cy="20" r="12"></circle>
+                <circle class="jack-throat" cx="20" cy="20" r="9"></circle>
+                <circle class="jack-socket" cx="20" cy="20" r="6"></circle>
+                <path class="jack-glint" d="M12 15 A9.5 9.5 0 0 1 18 10.6"></path>
+            </svg>
+            <span class="jack-label">{label}</span>
         </div>
     }
 }

@@ -6,7 +6,7 @@
 //! a MIDI controller would be — which is what makes it replaceable, and
 //! what will let external controllers drive the same surface later.
 
-use crate::rack::{Knob, Led, LedMeter, RackPanel};
+use crate::rack::{Jack, Knob, Led, LedMeter, RackPanel};
 use leptos::prelude::*;
 use phazor_core::{Command, ParamId, Step, StepSequencer};
 
@@ -213,6 +213,7 @@ pub fn PhazorPage() -> impl IntoView {
                             fmt=|v| format!("{v:.0} bpm")
                             on_value=move |v: f32| wiring::send(Command::SetTempo(f64::from(v)))
                         />
+                        <Jack label="clk" />
                         <div class="lcd">
                             <span>{move || format!("beat {:>6.2}", meters.get().beats)}</span>
                             <span>{move || format!("vox {}", meters.get().voices)}</span>
@@ -223,6 +224,7 @@ pub fn PhazorPage() -> impl IntoView {
                     </RackPanel>
 
                     <RackPanel title="voice" class="span5">
+                        <Jack label="cv" />
                         <Knob
                             label="cutoff"
                             min=20.0 max=18000.0 init=9000.0 log=true hue=235.0
@@ -259,6 +261,11 @@ pub fn PhazorPage() -> impl IntoView {
                         />
                     </RackPanel>
 
+                    <svg class="cable" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                        <path class="cable-shadow" d="M26.5 57 C 29 86, 40 74, 43.5 42"></path>
+                        <path class="cable-core" d="M26.5 56 C 29 84, 40 72, 43.5 41"></path>
+                        <path class="cable-sheen" d="M26.2 55.7 C 28.7 83.5, 39.7 71.5, 43.2 40.7"></path>
+                    </svg>
                     <RackPanel title="sequence">
                         <section class="steps" style="width: 100%">
                             {(0..StepSequencer::LEN)

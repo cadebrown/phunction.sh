@@ -616,3 +616,204 @@ html.fnord body { animation: fnord-storm 4s ease-in-out; }
   box-shadow: 0 1px 0 #0d0a16;
   color: var(--annot);
 }
+
+/* ═══════ rack material pass v2 — grit, light, silkscreen ═══════
+   One light source, top-left. Every surface answers to it: bevels catch
+   it, countersinks swallow it, corners hold grime, glass streaks it. */
+
+.rack { position: relative; padding: 16px 2px; }
+/* mounting rails with threaded holes */
+.rack::before, .rack::after {
+  content: ""; position: absolute; left: -8px; right: -8px; height: 13px; z-index: 0;
+  background:
+    radial-gradient(circle 2.6px at 13px 6.5px, #0b0714 42%, #3a3154 55%, transparent 62%) repeat-x,
+    linear-gradient(180deg, #423861, #292040 45%, #171126);
+  background-size: 30px 13px, 100% 100%;
+  border: 1px solid #0a0713;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.10), 0 2px 5px rgba(0, 0, 0, 0.5);
+}
+.rack::before { top: -3px; }
+.rack::after { bottom: -3px; }
+
+.rack-panel {
+  border: 1px solid #070510;
+  border-top-color: #5b4d79;
+  background:
+    /* top sheen */
+    radial-gradient(140% 80% at 30% 0%, rgba(255, 255, 255, 0.055), transparent 42%),
+    /* floor ambient occlusion */
+    radial-gradient(120% 110% at 50% 125%, rgba(0, 0, 0, 0.55), transparent 55%),
+    /* fine brush */
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.016) 0 1px, transparent 1px 2px),
+    /* anisotropic streaks */
+    repeating-linear-gradient(88.5deg, transparent 0 17px, rgba(255, 255, 255, 0.02) 17px 18px, transparent 18px 43px),
+    linear-gradient(180deg, #2f2648, #221a36 50%, #1a142e);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    inset 1px 0 0 rgba(255, 255, 255, 0.035),
+    inset -1px 0 0 rgba(0, 0, 0, 0.4),
+    inset 0 -3px 9px rgba(0, 0, 0, 0.55),
+    0 12px 28px -8px rgba(0, 0, 0, 0.7),
+    0 2px 5px rgba(0, 0, 0, 0.55);
+}
+/* corner grime + speckle */
+.rack-panel::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(70px 45px at 0% 0%, rgba(0, 0, 0, 0.33), transparent 70%),
+    radial-gradient(70px 45px at 100% 0%, rgba(0, 0, 0, 0.28), transparent 70%),
+    radial-gradient(80px 50px at 0% 100%, rgba(0, 0, 0, 0.38), transparent 70%),
+    radial-gradient(80px 50px at 100% 100%, rgba(0, 0, 0, 0.36), transparent 70%),
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='s'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23s)' opacity='0.055'/%3E%3C/svg%3E");
+}
+/* hairline scratches, screen-blended */
+.rack-panel::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  mix-blend-mode: screen; opacity: 0.06;
+  background:
+    repeating-linear-gradient(23deg, transparent 0 47px, rgba(255, 255, 255, 0.7) 47px 47.5px, transparent 48px 111px),
+    repeating-linear-gradient(-34deg, transparent 0 83px, rgba(255, 255, 255, 0.5) 83px 83.4px, transparent 84px 167px);
+}
+.rack-title, .rack-body, .screw { position: relative; z-index: 1; }
+/* silkscreened title with rule */
+.rack-title {
+  color: #d3ccE2;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.95), 0 0 0.5px currentColor;
+}
+.rack-title::after {
+  content: ""; display: block; height: 1px; margin-top: 0.4rem;
+  background: linear-gradient(90deg, rgba(244, 242, 251, 0.22), rgba(244, 242, 251, 0.05) 70%, transparent);
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.7);
+}
+
+/* countersunk screws with cross slots */
+.screw {
+  width: 13px; height: 13px;
+  background: radial-gradient(circle at 34% 28%, #8b83a8, #4a4062 55%, #211a34 85%);
+  box-shadow:
+    0 0 0 2px #100b1d,
+    0 0 0 3px rgba(255, 255, 255, 0.05),
+    inset 0 1px 1px rgba(255, 255, 255, 0.35),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.6),
+    0 1px 2px rgba(0, 0, 0, 0.7);
+}
+.screw::before {
+  content: ""; position: absolute; left: 5.5px; top: 1.5px; width: 1.6px; bottom: 1.5px;
+  background: rgba(8, 5, 15, 0.9); transform: rotate(var(--a, 20deg));
+}
+.screw::after { top: 5.5px; left: 1.5px; right: 1.5px; height: 1.6px; }
+
+/* knob machining */
+.knob-sink { fill: #131022; stroke: #090612; stroke-width: 1; }
+.knob-shadow { fill: rgba(0, 0, 0, 0.55); }
+.knob-body { fill: #322949; stroke: #0b0816; stroke-width: 1; }
+.knob-wall { fill: none; stroke: #191330; stroke-width: 2.2; }
+.knob-tooth { stroke: #0e0a1b; stroke-width: 1.7; stroke-linecap: round; }
+.knob-cap { fill: #3d3258; stroke: rgba(0, 0, 0, 0.6); stroke-width: 0.8; }
+.knob-dome { fill: rgba(255, 255, 255, 0.05); }
+.knob-spec { fill: none; stroke: rgba(255, 255, 255, 0.3); stroke-width: 2; stroke-linecap: round; }
+.knob-knurl { display: none; }
+
+/* LED bezels + light spill */
+.led {
+  box-shadow:
+    0 0 0 2px #191330,
+    0 0 0 3px rgba(255, 255, 255, 0.06),
+    inset 0 1px 3px rgba(0, 0, 0, 0.9),
+    0 1px 1px rgba(0, 0, 0, 0.6);
+}
+.led.lit {
+  box-shadow:
+    0 0 0 2px #191330,
+    0 0 0 3px rgba(255, 255, 255, 0.07),
+    inset 0 0 2px rgba(255, 255, 255, 0.6),
+    0 0 10px oklch(78% 0.17 calc(var(--hue) * 1deg) / 0.95),
+    0 0 22px 6px oklch(78% 0.17 calc(var(--hue) * 1deg) / 0.3);
+}
+
+/* meter wells */
+.ledmeter-col {
+  border-color: #070510;
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.8),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.seg { box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.5); }
+.seg.lit { box-shadow: 0 0 7px oklch(75% 0.17 calc(var(--hue) * 1deg) / 0.9), inset 0 0 2px rgba(255, 255, 255, 0.4); }
+
+/* LCD: glass, ghost cells, streak */
+.lcd {
+  position: relative;
+  background:
+    repeating-linear-gradient(90deg, rgba(160, 220, 120, 0.028) 0 8px, rgba(160, 220, 120, 0.012) 8px 9px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.22) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #10160a, #0b1106);
+  border-color: #050803;
+  box-shadow:
+    inset 0 3px 9px rgba(0, 0, 0, 0.85),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+.lcd::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 42%, rgba(255, 255, 255, 0.055) 47%, transparent 53%);
+}
+
+/* rubber pads with LED windows */
+.step {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='60' height='60'%3E%3Cfilter id='r'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='60' height='60' filter='url(%23r)' opacity='0.05'/%3E%3C/svg%3E"),
+    linear-gradient(180deg, #2e2544, #221a36 60%, #1d1732);
+  box-shadow: 0 3px 0 #0d0a16, inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 4px 6px rgba(0, 0, 0, 0.45);
+}
+.step:active { transform: translateY(2px); box-shadow: 0 1px 0 #0d0a16, inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+.step::before {
+  content: ""; position: absolute; top: 7%; left: 16%; right: 16%; height: 9%;
+  background: #131022;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.9), 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.step.on {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent 45%),
+    linear-gradient(180deg, #2e2544, #221a36 60%, #1d1732);
+  box-shadow:
+    0 3px 0 #0d0a16,
+    inset 0 1px 0 rgba(255, 255, 255, 0.07),
+    0 0 16px oklch(70% 0.16 calc(10deg + var(--i) * 22.5deg) / 0.35);
+}
+.step.on::before {
+  background: oklch(74% 0.17 calc(10deg + var(--i) * 22.5deg));
+  box-shadow:
+    0 0 9px oklch(74% 0.17 calc(10deg + var(--i) * 22.5deg) / 0.95),
+    inset 0 0 2px rgba(255, 255, 255, 0.5);
+}
+.step .note {
+  color: rgba(244, 242, 251, 0.5);
+  position: absolute; left: 0; right: 0; bottom: 8%;
+  font-size: 0.62rem;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.8);
+}
+.step.on .note { color: rgba(244, 242, 251, 0.8); }
+
+/* jacks */
+.jack { display: inline-flex; flex-direction: column; align-items: center; gap: 0.2rem; }
+.jack svg { width: 2.6rem; height: auto; display: block; }
+.jack-nut { fill: #4c4168; stroke: #0a0713; stroke-width: 1; }
+.jack-ring { fill: #756c93; stroke: #0a0713; stroke-width: 0.8; }
+.jack-throat { fill: #262038; }
+.jack-socket { fill: #06040c; }
+.jack-glint { fill: none; stroke: rgba(255, 255, 255, 0.35); stroke-width: 1.6; stroke-linecap: round; }
+.jack-label {
+  font-family: var(--term); font-size: 0.6rem; letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--faint); text-shadow: 0 1px 0 rgba(0, 0, 0, 0.9);
+}
+
+/* the patch cable: shadow under, rubber core, sheen on top */
+.cable { position: absolute; inset: 0; pointer-events: none; z-index: 2; display: none; }
+@media (min-width: 860px) { .cable { display: block; } }
+.cable path { fill: none; }
+.cable .cable-shadow { stroke: rgba(0, 0, 0, 0.5); stroke-width: 8px; vector-effect: non-scaling-stroke; }
+.cable .cable-core { stroke: oklch(52% 0.16 325); stroke-width: 6px; vector-effect: non-scaling-stroke; stroke-linecap: round; }
+.cable .cable-sheen { stroke: oklch(72% 0.14 325 / 0.5); stroke-width: 1.8px; vector-effect: non-scaling-stroke; }
