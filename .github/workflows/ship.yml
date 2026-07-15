@@ -47,3 +47,7 @@ jobs:
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # v3's default is wrangler 3.x, which uploads _headers as a plain
+          # asset instead of applying it — killing COOP/COEP and therefore
+          # SharedArrayBuffer/audio. Wrangler 4 required.
+          wranglerVersion: "4"

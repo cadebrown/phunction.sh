@@ -7,12 +7,10 @@ account_id = "1f6e8a09fec260d326f4af42d7868238" # Alkemical Development
 compatibility_date = "2026-07-14"
 workers_dev = true
 
-# Domain cutover pending: phunction.sh is still claimed by the legacy Pages
-# project. Uncomment once that project is deleted (see docs/deploy.md).
-# routes = [
-#     { pattern = "phunction.sh", custom_domain = true },
-#     { pattern = "www.phunction.sh", custom_domain = true },
-# ]
+routes = [
+    { pattern = "phunction.sh", custom_domain = true },
+    { pattern = "www.phunction.sh", custom_domain = true },
+]
 
 [assets]
 directory = "./dist"
