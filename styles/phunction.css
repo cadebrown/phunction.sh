@@ -872,3 +872,14 @@ html.fnord body { animation: fnord-storm 4s ease-in-out; }
 /* ---- wide console LCD ---- */
 .lcd-wide { display: flex; flex-direction: column; gap: 0.15rem; width: 100%; min-height: 4.6rem; }
 .lcd-dim { opacity: 0.45; }
+
+/* ---- text fx module ---- */
+.textfx {
+  flex: 1; min-width: 16rem;
+  font-family: var(--prose); font-size: clamp(1.1rem, 2.6vw, 1.9rem);
+  line-height: 1.3; letter-spacing: 0.01em;
+  padding: 0.6rem 0.2rem;
+}
+.textfx-glyph { color: oklch(80% 0.13 calc(var(--gh) * 1deg)); transition: color 0.12s; }
+.textfx-glyph.hot { color: oklch(88% 0.17 calc(var(--gh) * 1deg)); text-shadow: 0 0 12px oklch(80% 0.17 calc(var(--gh) * 1deg) / 0.8); }
+.textfx-knobs { display: flex; gap: 1rem; }
