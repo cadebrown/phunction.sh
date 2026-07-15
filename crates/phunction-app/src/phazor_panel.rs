@@ -18,7 +18,7 @@ const RIFF: [u8; 16] = [
 
 /// Live telemetry mirrored into signals for display.
 #[derive(Clone, Copy, Default)]
-struct Meters {
+pub(crate) struct Meters {
     peak_l: f32,
     peak_r: f32,
     rms_l: f32,
@@ -31,7 +31,7 @@ struct Meters {
 }
 
 #[cfg(target_arch = "wasm32")]
-mod wiring {
+pub(crate) mod wiring {
     use super::Meters;
     use leptos::prelude::*;
     use phazor_core::Command;
@@ -49,6 +49,7 @@ mod wiring {
                 Ok(p) => {
                     PHAZOR.with(|slot| *slot.borrow_mut() = Some(p));
                     powered.set(true);
+                    ignite();
                     crate::raf::raf_loop(move || {
                         PHAZOR.with(|slot| {
                             if let Some(p) = slot.borrow_mut().as_mut() {
@@ -80,6 +81,51 @@ mod wiring {
         });
     }
 
+    /// The ignition flash: a moment of stage light when the engine wakes.
+    fn ignite() {
+        use wasm_bindgen::prelude::*;
+        use wasm_bindgen::JsCast;
+        let Some(root) = web_sys::window()
+            .and_then(|w| w.document())
+            .and_then(|d| d.document_element())
+        else {
+            return;
+        };
+        let _ = root.class_list().add_1("ignite");
+        let root2 = root.clone();
+        let end = Closure::once_into_js(move || {
+            let _ = root2.class_list().remove_1("ignite");
+        });
+        let _ = web_sys::window()
+            .expect("window")
+            .set_timeout_with_callback_and_timeout_and_arguments_0(end.unchecked_ref(), 1400);
+    }
+
+    /// Play one short note from anywhere (the wordmark keys): boots the
+    /// engine on first use — caller must be inside a user gesture.
+    pub fn play_note(note: u8) {
+        use wasm_bindgen::prelude::*;
+        use wasm_bindgen::JsCast;
+        let already = PHAZOR.with(|slot| slot.borrow().is_some());
+        let strike = move || {
+            send(Command::NoteOn { note, vel: 100 });
+            let off = Closure::once_into_js(move || send(Command::NoteOff { note }));
+            let _ = web_sys::window()
+                .expect("window")
+                .set_timeout_with_callback_and_timeout_and_arguments_0(off.unchecked_ref(), 220);
+        };
+        if already {
+            strike();
+        } else {
+            leptos::task::spawn_local(async move {
+                if let Ok(p) = phazor_web::start().await {
+                    PHAZOR.with(|slot| *slot.borrow_mut() = Some(p));
+                    strike();
+                }
+            });
+        }
+    }
+
     /// Push a command; counts (rather than blocks on) overflow.
     pub fn send(cmd: Command) {
         PHAZOR.with(|slot| {
@@ -93,7 +139,7 @@ mod wiring {
 }
 
 #[cfg(not(target_arch = "wasm32"))]
-mod wiring {
+pub(crate) mod wiring {
     //! Native stub so `cargo clippy --workspace` (host target) checks the
     //! view code; the panel is browser-only at runtime.
     use super::Meters;
@@ -102,6 +148,7 @@ mod wiring {
 
     pub fn power_on(_meters: RwSignal<Meters>, _powered: RwSignal<bool>) {}
     pub fn send(_cmd: Command) {}
+    pub fn play_note(_note: u8) {}
 }
 
 /// The `/phazor` route.

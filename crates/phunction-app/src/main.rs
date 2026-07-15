@@ -4,6 +4,7 @@
 //! is deliberately just wiring and view code.
 
 mod design_lab;
+mod fun;
 mod hud;
 mod lab;
 mod phasor_hero;
@@ -20,6 +21,7 @@ fn main() {
     #[cfg(target_arch = "wasm32")]
     trace::init();
     tracing::info!(version = env!("CARGO_PKG_VERSION"), "phunction booting");
+    fun::mount(());
     leptos::mount::mount_to_body(App);
 }
 
@@ -39,6 +41,7 @@ fn App() -> impl IntoView {
                     <a href="https://github.com/cadebrown/phunction.sh" target="_blank" rel="noopener">"src"</a>
                 </div>
             </nav>
+            <fun::Transmission />
             <Routes fallback=NotFound>
                 <Route path=path!("/") view=Home />
                 <Route path=path!("/phazor") view=phazor_panel::PhazorPage />
@@ -57,7 +60,26 @@ fn Home() -> impl IntoView {
     view! {
         <main class="hero">
             <phasor_hero::PhasorHero />
-            <h1 class="wordmark">"phunction"</h1>
+            // the name is an instrument: each letter strikes a phazor note
+            <h1 class="wordmark playable">
+                {"phunction"
+                    .chars()
+                    .enumerate()
+                    .map(|(i, ch)| {
+                        const NOTES: [u8; 9] = [57, 60, 62, 64, 67, 69, 72, 74, 76];
+                        let note = NOTES[i % NOTES.len()];
+                        view! {
+                            <button
+                                class="key"
+                                style=("--kh", format!("{}", 10 + i * 39))
+                                on:click=move |_| phazor_panel::wiring::play_note(note)
+                            >
+                                {ch}
+                            </button>
+                        }
+                    })
+                    .collect_view()}
+            </h1>
             <p class="theorem">
                 <span class="thm-label">"Theorem "</span>
                 "(phunction). "
@@ -90,7 +112,8 @@ fn Home() -> impl IntoView {
                 <a href="https://github.com/cadebrown/phunction.sh" target="_blank" rel="noopener">
                     "read the source"
                 </a>
-                " — it's part of the art"
+                " · "
+                <fun::Fortune />
             </footer>
         </main>
     }
