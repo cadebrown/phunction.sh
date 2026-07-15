@@ -28,7 +28,7 @@ pub fn PhasorHero() -> impl IntoView {
     let tip_x = RwSignal::new(CX + R * 0.9f64.cos());
     let tip_y = RwSignal::new(CY - R * 0.9f64.sin());
     let path_d = RwSignal::new(static_trace(0.9));
-    let phase = RwSignal::new((0.9f64.to_degrees() + 85.0).rem_euclid(360.0));
+    let phase = RwSignal::new((0.9f64.to_degrees() + 10.0).rem_euclid(360.0));
 
     let svg_ref = NodeRef::<leptos::svg::Svg>::new();
 
@@ -107,7 +107,7 @@ fn drive(
         tip_x.set(CX + R * theta.cos());
         tip_y.set(CY - R * theta.sin());
         // CSS hue: counterclockwise from ω⁰'s amber, matching the wheel.
-        phase.set((theta.to_degrees() + 85.0).rem_euclid(360.0));
+        phase.set((theta.to_degrees() + 10.0).rem_euclid(360.0));
     };
 
     let reduced = web_sys::window()

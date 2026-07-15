@@ -1,77 +1,86 @@
-# The aesthetic canon — *color is phase*
+# The aesthetic canon — HERMETIC FORMALISM
 
-This is the story every visual decision on phunction.sh derives from. If a
-change can't be justified from here, it doesn't ship. (Sibling doc for
-voidstar-style band context: we perform alongside voidstar — cosmic, void,
-ambient. phunction is the complementary pole: mathematical, luminous,
-precise. Don't drift toward their look; contrast is the act.)
+Decided with Cade in a five-round process (2026-07-15); the live record of
+rejected candidates is `/design`. If a change can't be justified from this
+document, it doesn't ship. Sibling context: we perform alongside voidstar
+(cosmic, void, ambient); phunction is the complementary pole — mathematical,
+luminous, precise. Contrast is the act.
 
-## The one rule
+## Character (round 1)
 
-**Color is phase.** phunction's world is the complex plane: the DAW is named
-for e^{iωt}, the visuals are domain-colored fields where hue literally
-encodes arg(z). So the palette is not a set of picked colors — it is the
-OKLCH hue wheel, read as phase:
+**The professor IS the wizard.** Claims are made in theorem register and
+meant rigorously; the artifacts carrying them are ritual objects. Neither
+mode is a costume for the other.
 
-| token | value | role |
+## The one color rule (round 2)
+
+**Color is phase** (hue = arg(z), domain-coloring convention), and the wheel
+has **eight named stations** — the 8th roots of unity rotated 10°:
+
+| station | angle | owns |
 |---|---|---|
-| `--plane` | `#0a0812` | the background: the plane at \|z\| → ∞. violet-black, never pure black in UI (pure black is reserved for lab fullscreen) |
-| `--ink` | `#ece5d8` | chalk-warm paper white. body text, wordmark |
-| `--annot` | `#8f8878` | marginalia: captions, labels, hints |
-| `--w0` | `oklch(80% 0.15 85)` | **ω⁰ amber** — power, tempo, values, the QED |
-| `--w1` | `oklch(78% 0.12 215)` | **ω¹ cyan** — links, the lab, cool/visual things |
-| `--w2` | `oklch(72% 0.19 345)` | **ω² magenta** — phazor, hot/audio things, warnings, hover |
+| `--blood` | 10° | danger, panic, peak clipping, warnings |
+| `--rust` | 55° | — (reserved) |
+| `--phosphor` | 100° | power, primary action, values, the QED ∎ |
+| `--ichor` | 145° | success/confirmation, power hover |
+| `--verdigris` | 190° | meters (rms base) |
+| `--aether` | 235° | links, the lab, cool/visual things |
+| `--sigil` | 280° | the mark, identity accents |
+| `--philtre` | 325° | phazor, hot/audio things, hover shift |
 
-The three accents are the cube roots of unity on the hue wheel (85°, 215°,
-345° — equally spaced). Need a fourth accent? You don't. Need a continuous
-range? Use the wheel itself: `oklch(L C <angle>)` where the angle *means*
-something (the phasor hero's hue = its argument; step i of the sequencer =
-85° + i·22.5°). Gradients are arcs of the wheel (`in oklch longer hue`),
-never arbitrary color pairs.
+Any other hue must be a *stated* angle (sequencer step i = 10° + i·22.5°;
+the phasor hero's hue = its argument + 10°). Grep `oklch(` — every hit
+says its angle. Ground: **midnight purple** `#1a1428` / `#221830` /
+`#382e4a`, ink `#f4f2fb`, annotation `#b3accc`, faint `#6e6790`.
 
-## Type: the paper and the shell
+## Type (round 3)
 
-The project's tension is a mathematician on a stage with a terminal. The
-typography stages it:
+- **Redaction 20** — display: wordmark, page titles, fig names. The
+  deteriorating print IS the brand texture.
+- **Redaction 50** — statements & prose (theorem blocks, descriptions).
+- **Iosevka** — the shell: all UI chrome, buttons, captions, data
+  (`tabular-nums` for numbers).
+- **Computer Modern (KaTeX cuts)** — *rendered mathematics only*. The
+  wizard writes; the math typesets itself. Never for UI or prose.
+- IM Fell English stays in the stack as fallback ink. Never introduce
+  another family.
 
-- **Paper** (KaTeX Main = Computer Modern, Knuth's mathematics face):
-  wordmark (*italic*), headings (*italic*), theorem copy, figure names.
-  Used with restraint — it is the voice of statements.
-- **Iosevka** (the shell): everything else — body, UI chrome, buttons,
-  captions, data. Numbers in UI get `font-variant-numeric: tabular-nums`.
-- **PaperMath** (KaTeX Math Italic): single math glyphs when they carry
-  meaning (the ∄ of the 404).
+## Voice
 
-Never introduce a third family. Never set UI chrome in Paper.
+Theorem register, played straight: "Theorem (phunction). … Proof. Press
+power. ∎" Sections are captioned figures (`fig. n`). Brand is `~/phunction`.
+Semantic glyphs only (∎ proof-end, ∄ 404, ∿ phazor, ℂ lab, φ the heart).
+No decorative emoji, no exclamation marks.
 
-## Voice: theorem register, played straight
+## Texture (round 2 — intensities provisional, tuning round reserved)
 
-Copy states things the way papers do, with stage-dry confidence:
-"Theorem (phunction). Any browser is a synthesizer. Proof: press power. ∎"
-Content sections are *figures* with `fig. n` labels — because they are
-figures. The topbar brand is `~/phunction` — the domain is a shell path.
-Glyphs are semantic or absent: ∎ ends proofs, ∄ is the 404, ∿ is phazor,
-ℂ is the lab. No decorative emoji, no exclamation marks.
+Noise (fractal grain, 10%, overlay), scanlines (13%), vignette (radial to
+78% at edges) — on everything **except** `/lab/:id`: the lab viewer sits
+above the texture layers (z-order) so shaders arrive unfiltered.
 
-## Signature and restraint
+## Signature & motion (round 4)
 
-The one bold element is the **live phasor** on the landing page (fig. 0):
-rotating unit vector, traced sine, hue = argument. Everything else stays
-quiet: hairline borders (`--line`), flat surfaces, no glow effects, no
-border-radius (the plane is ruled, not rounded), motion only where it
-depicts something (the phasor rotates because phasors rotate; figures don't
-bounce). `prefers-reduced-motion` freezes the phasor into a legible still.
+- **fig. 0, the phasor hero** owns the landing page: rotating unit vector
+  tracing its sine, hue = argument.
+- **The sigil is the mark**: 64-tick graduation ring, wonky heptagram
+  {7/3}, eight station dots at their own angles, φ still at the heart
+  (`sigil.rs`). Topbar, favicon, 404, future loading states. Layers
+  counter-rotate on a very slow clock.
+- Motion budget: instruments move + ambient life (wordmark breathes at
+  11s, cards lift-and-tilt on hover, sigil spins). Nothing bounces.
+  `prefers-reduced-motion` stills everything.
 
-The background grid is the graph paper of the old blackboard site — kept
-faint (7% alpha). It is substrate, not decoration.
+## Planned, decided, not yet built
+
+- **Whiteboard twin**: warm parchment grimoire (round-2 decision) — its own
+  round, re-derived from the same phase rule.
+- **Colorized math variables** (sacred anchor): symbols sample the eight
+  stations. Lands with real math content/KaTeX rendering.
+- Texture tuning pass (Cade: "more extreme, and we will come back").
 
 ## Hard rules
 
-1. Legible on a 1080p screenshare at the back of a venue. Contrast is a
-   feature, not a mood.
-2. Dark is canonical (projectors, stages, OLED). A light "whiteboard" theme
-   may come later; it must re-derive from the same phase rule.
-3. Every hue in the codebase is either a named token or a *stated* phase
-   angle. Grep for `oklch(` — each hit should say what angle it is and why.
-4. New pages open with their most characteristic element, not a header
-   block.
+1. Legible on a 1080p screenshare at the back of a venue.
+2. Every hue is a named station or a stated angle.
+3. New pages open with their most characteristic element.
+4. The lab's fullscreen shaders are never post-processed by site chrome.

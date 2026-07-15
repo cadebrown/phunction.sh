@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="description" content="phunction — audiovisual instrument, shader lab, browser DAW. all Rust, all yours." />
     <title>phunction</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!-- wasm-opt must be told about the atomics features the module uses;
          it refuses shared-memory modules otherwise. -->
     <link data-trunk rel="rust" href="crates/phunction-app/Cargo.toml" data-bin="phunction-app"
@@ -12,9 +13,10 @@
           data-wasm-opt-params="--all-features" />
     <link data-trunk rel="copy-dir" href="public" data-target-path="." />
     <link data-trunk rel="css" href="styles/phunction.css" />
+    <link data-trunk rel="css" href="styles/design-lab.css" />
     <style>
       /* pre-wasm splash only: the plane, before anything lands on it */
-      html { background: #0a0812; }
+      html { background: #1a1428; }
     </style>
   </head>
   <body></body>

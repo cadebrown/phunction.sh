@@ -1,21 +1,29 @@
-/* phunction.sh — the design system.
-   One rule generates everything: COLOR IS PHASE. The site is a domain-colored
-   complex plane; accents are the cube roots of unity on the OKLCH hue wheel
-   (ω⁰ amber, ω¹ cyan, ω² magenta), gradients are arcs of that wheel, and the
-   typography stages the project's central tension: the paper (Computer
-   Modern — mathematics) against the shell (Iosevka — the terminal).
-   Canon: docs/aesthetic.md. Everything legible on a 1080p screenshare. */
+/* phunction.sh — canon v2: HERMETIC FORMALISM (design process rounds 1–4,
+   record on /design; full rationale in docs/aesthetic.md).
+
+   COLOR IS PHASE, and the wheel has eight named stations — the 8th roots of
+   unity rotated 10°: blood·rust·phosphor·ichor·verdigris·aether·sigil·
+   philtre. Each station owns things; any other hue must state its angle.
+   Ground: synthwave midnight purple (round 1). Type: Redaction speaks,
+   Iosevka operates, Computer Modern typesets mathematics only (round 3).
+   Textures: noise/scanlines/vignette, deliberately present (round 2).
+   Everything legible on a 1080p screenshare. */
 
 /* ---- faces ---- */
 @font-face {
-  font-family: "Paper";
-  src: url("/fonts/KaTeX_Main-Regular.woff2") format("woff2");
+  font-family: "Redaction 20";
+  src: url("/fonts/redaction-20-latin-400-normal.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Redaction 50";
+  src: url("/fonts/redaction-50-latin-400-normal.woff2") format("woff2");
   font-weight: 400; font-style: normal; font-display: swap;
 }
 @font-face {
   font-family: "Paper";
-  src: url("/fonts/KaTeX_Main-Bold.woff2") format("woff2");
-  font-weight: 700; font-style: normal; font-display: swap;
+  src: url("/fonts/KaTeX_Main-Regular.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
 }
 @font-face {
   font-family: "Paper";
@@ -45,24 +53,28 @@
 
 /* ---- tokens ---- */
 :root {
-  /* the plane */
-  --plane: #0a0812;                       /* violet-black: |z| → ∞ */
-  --surface: #131020;
-  --gridline: oklch(85% 0.03 300 / 0.07);
-  --line: oklch(85% 0.03 300 / 0.18);
+  /* ground — midnight purple, the old site's signature */
+  --plane: #1a1428;
+  --surface: #221830;
+  --line: #382e4a;
   /* ink */
-  --ink: #ece5d8;                          /* chalk-warm paper white */
-  --annot: #8f8878;                        /* marginalia */
-  /* phase wheel — color = arg(z); accents are the cube roots of unity */
-  --w0: oklch(80% 0.15 85);                /* ω⁰ amber   */
-  --w1: oklch(78% 0.12 215);               /* ω¹ cyan    */
-  --w2: oklch(72% 0.19 345);               /* ω² magenta */
-  --w0-dim: oklch(80% 0.15 85 / 0.35);
-  --w1-dim: oklch(78% 0.12 215 / 0.35);
-  --w2-dim: oklch(72% 0.19 345 / 0.35);
+  --ink: #f4f2fb;
+  --annot: #b3accc;
+  --faint: #6e6790;
+  /* the eight stations — 8th roots of unity, +10° */
+  --blood:     oklch(70% 0.19 10);
+  --rust:      oklch(74% 0.16 55);
+  --phosphor:  oklch(84% 0.15 100);
+  --ichor:     oklch(80% 0.16 145);
+  --verdigris: oklch(80% 0.12 190);
+  --aether:    oklch(76% 0.12 235);
+  --sigil:     oklch(70% 0.17 280);
+  --philtre:   oklch(74% 0.17 325);
   /* type roles */
-  --paper: "Paper", "STIX Two Text", Georgia, serif;
+  --display: "Redaction 20", "IM Fell English", Georgia, serif;
+  --prose: "Redaction 50", "IM Fell English", Georgia, serif;
   --math: "PaperMath", "Paper", Georgia, serif;
+  --paper: "Paper", "STIX Two Text", Georgia, serif;
   --term: "Iosevka", ui-monospace, Menlo, monospace;
 }
 
@@ -71,121 +83,147 @@
 html, body {
   margin: 0;
   min-height: 100%;
+  /* vignette + the faint ruled grid + the plane */
   background:
-    linear-gradient(var(--gridline) 1px, transparent 1px) 0 0 / 100% 2.4rem,
-    linear-gradient(90deg, var(--gridline) 1px, transparent 1px) 0 0 / 2.4rem 100%,
+    radial-gradient(ellipse at 50% 28%, transparent 24%, rgba(8, 5, 16, 0.78) 100%),
+    linear-gradient(rgba(138, 108, 255, 0.045) 1px, transparent 1px) 0 0 / 100% 2.4rem,
+    linear-gradient(90deg, rgba(138, 108, 255, 0.045) 1px, transparent 1px) 0 0 / 2.4rem 100%,
     var(--plane);
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--term);
   font-size: 15px;
   line-height: 1.55;
 }
 
-a { color: var(--w1); text-decoration: none; }
-a:hover { color: var(--w2); }
+/* print grain + scanlines over everything except the lab (z-order exempts) */
+body::before {
+  content: "";
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity: 0.10;
+  mix-blend-mode: overlay;
+}
+body::after {
+  content: "";
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.45) 0 1px, transparent 1px 3px);
+  opacity: 0.13;
+}
+
+a { color: var(--aether); text-decoration: none; }
+a:hover { color: var(--philtre); }
 :focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+/* ---- the sigil ---- */
+.sigil { display: inline-block; vertical-align: middle; overflow: visible; }
+.sigil .sigil-ring path { stroke: var(--annot); stroke-width: 1; fill: none; opacity: 0.9; }
+.sigil .sigil-hepta polygon {
+  stroke: var(--ink); stroke-width: 1.6; fill: none;
+  stroke-linejoin: round; opacity: 0.85;
+}
+.sigil .sigil-inner { stroke: var(--faint); stroke-width: 1; fill: none; }
+.sigil .sigil-phi {
+  font-family: var(--math); font-style: italic; font-size: 15px;
+  fill: var(--phosphor); stroke: none;
+}
+.sigil .sigil-ring, .sigil .sigil-hepta { transform-origin: 50% 50%; }
+.sigil.spin .sigil-ring { animation: sigil-cw 240s linear infinite; }
+.sigil.spin .sigil-hepta { animation: sigil-ccw 360s linear infinite; }
+@keyframes sigil-cw { to { transform: rotate(1turn); } }
+@keyframes sigil-ccw { to { transform: rotate(-1turn); } }
 
 /* ---- chrome ---- */
 .topbar {
-  display: flex; justify-content: space-between; align-items: baseline;
-  padding: 0.8rem 1.4rem;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.7rem 1.4rem;
   border-bottom: 1px solid var(--line);
+  position: relative; z-index: 2;
 }
-.brand { color: var(--ink); font-weight: 700; }
-.brand::before { content: "~/"; color: var(--annot); font-weight: 400; }
-.brand:hover { color: var(--w0); }
+.brand { color: var(--ink); font-weight: 700; display: inline-flex; align-items: center; gap: 0.55rem; }
+.brand .brand-path::before { content: "~/"; color: var(--faint); font-weight: 400; }
+.brand:hover { color: var(--phosphor); }
 .links { display: flex; gap: 1.4rem; }
 
 /* ---- landing ---- */
-.hero {
-  max-width: 64rem; margin: 0 auto; padding: 2.5rem 1.5rem 4rem;
-}
+.hero { max-width: 64rem; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; position: relative; z-index: 2; }
 .wordmark {
-  font-family: var(--paper); font-style: italic; font-weight: 400;
+  font-family: var(--display); font-weight: 400;
   font-size: clamp(3rem, 9vw, 5.5rem);
-  letter-spacing: 0.01em;
+  line-height: 1.05;
   margin: 1.2rem 0 0.4rem;
   color: var(--ink);
+  animation: breathe 11s ease-in-out infinite;
 }
+@keyframes breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.92; } }
 .theorem {
-  font-family: var(--paper);
+  font-family: var(--prose);
   font-size: 1.2rem;
   max-width: 42rem;
   margin: 0 0 3rem;
 }
 .theorem .thm-label { font-weight: 700; }
 .theorem em { font-style: italic; }
-.theorem .qed { color: var(--w0); }
+.theorem .qed { color: var(--phosphor); }
 
-/* the signature: a live phasor tracing its projection */
+/* fig. 0 — the phasor (hue = argument, station origin at blood 10°) */
 .phasor-fig { margin: 1.5rem 0 0; }
 .phasor-fig svg { width: 100%; height: auto; display: block; }
 .phasor-fig .axis { stroke: var(--line); stroke-width: 1; }
 .phasor-fig .unit { fill: none; stroke: var(--line); stroke-width: 1.5; }
 .phasor-fig .radius {
-  stroke: oklch(78% 0.16 var(--phase, 85)); stroke-width: 2.5;
-  stroke-linecap: round;
+  stroke: oklch(76% 0.16 var(--phase, 10)); stroke-width: 2.5; stroke-linecap: round;
 }
-.phasor-fig .tip { fill: oklch(82% 0.17 var(--phase, 85)); }
-.phasor-fig .projection {
-  stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 5;
-}
+.phasor-fig .tip { fill: oklch(80% 0.17 var(--phase, 10)); }
+.phasor-fig .projection { stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 5; }
 .phasor-fig .trace {
-  fill: none; stroke: oklch(76% 0.15 var(--phase, 85));
+  fill: none; stroke: oklch(74% 0.15 var(--phase, 10));
   stroke-width: 2; stroke-linecap: round;
 }
 .figcaption, .phasor-fig figcaption {
-  font-family: var(--term); font-size: 0.8rem; color: var(--annot);
-  margin-top: 0.4rem;
+  font-family: var(--term); font-size: 0.8rem; color: var(--faint); margin-top: 0.4rem;
 }
 
-/* exhibits */
+/* exhibits — phazor wears philtre, the lab wears aether */
 .figs {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
   gap: 1.2rem; margin: 0 0 3rem;
 }
 .fig {
-  --w: var(--w1); --w-dim: var(--w1-dim);
+  --w: var(--aether);
   display: block;
   border: 1px solid var(--line);
-  background: color-mix(in oklab, var(--surface) 88%, transparent);
+  background: color-mix(in oklab, var(--surface) 90%, transparent);
   padding: 1.1rem 1.2rem 1.3rem;
   color: var(--ink);
-  transition: border-color 0.15s, transform 0.15s;
+  transition: border-color 0.15s, transform 0.2s;
 }
-.fig:hover { border-color: var(--w); transform: translateY(-2px); color: var(--ink); }
-.fig.hot { --w: var(--w2); --w-dim: var(--w2-dim); }
-.fig.warm { --w: var(--w0); --w-dim: var(--w0-dim); }
-.fig .fig-label { font-size: 0.8rem; color: var(--annot); display: block; }
+.fig:hover { border-color: var(--w); transform: translateY(-3px) rotate(-0.4deg); color: var(--ink); }
+.fig.hot { --w: var(--philtre); }
+.fig.warm { --w: var(--phosphor); }
+.fig .fig-label { font-size: 0.8rem; color: var(--faint); display: block; }
 .fig .fig-name {
-  font-family: var(--paper); font-style: italic; font-size: 1.5rem;
+  font-family: var(--display); font-size: 1.5rem;
   color: var(--w); display: block; margin: 0.15rem 0 0.35rem;
 }
-.fig .fig-glyph { float: right; font-size: 1.6rem; color: var(--w-dim); }
+.fig .fig-glyph { float: right; font-size: 1.6rem; color: var(--w); opacity: 0.4; }
 .fig .fig-desc { color: var(--annot); font-size: 0.9rem; display: block; }
 
-.colophon {
-  border-top: 1px solid var(--line);
-  padding-top: 1rem;
-  color: var(--annot); font-size: 0.8rem;
-}
+.colophon { border-top: 1px solid var(--line); padding-top: 1rem; color: var(--faint); font-size: 0.8rem; }
 
 /* ---- phazor panel ---- */
-.panel { max-width: 62rem; margin: 0 auto; padding: 2rem 1.5rem; }
-.panel-head h1 {
-  font-family: var(--paper); font-style: italic; font-weight: 400;
-  font-size: 2.6rem; margin: 0;
-}
-.panel-head .sub { color: var(--annot); font-size: 0.85rem; }
+.panel { max-width: 62rem; margin: 0 auto; padding: 2rem 1.5rem; position: relative; z-index: 2; }
+.panel-head h1 { font-family: var(--display); font-weight: 400; font-size: 2.6rem; margin: 0; }
+.panel-head .sub { color: var(--faint); font-size: 0.85rem; }
 
 .power {
   display: block; margin: 4rem auto;
   padding: 1.1rem 2.4rem;
   font-family: var(--term); font-size: 1.2rem;
-  color: var(--plane); background: var(--w0);
+  color: var(--plane); background: var(--phosphor);
   border: none; cursor: pointer;
 }
-.power:hover { background: var(--w2); }
+.power:hover { background: var(--ichor); }
 
 .transport { display: flex; gap: 0.8rem; align-items: center; margin: 1.6rem 0; flex-wrap: wrap; }
 .xport {
@@ -195,17 +233,14 @@ a:hover { color: var(--w2); }
   border: 1px solid var(--line);
 }
 .xport:hover { border-color: var(--ink); }
-.xport.lit { color: var(--plane); background: var(--w0); border-color: var(--w0); }
-.xport.panic { border-color: var(--w2-dim); color: var(--w2); }
+.xport.lit { color: var(--plane); background: var(--phosphor); border-color: var(--phosphor); }
+.xport.panic { border-color: var(--blood); color: var(--blood); }
 .tempo { margin-left: auto; display: flex; gap: 0.6rem; align-items: center; color: var(--annot); }
-.tempo .val { color: var(--w0); min-width: 3ch; }
+.tempo .val { color: var(--phosphor); min-width: 3ch; }
 
-/* the step row is the unit circle unrolled: step i sounds at phase
-   2πi/16, and wears that hue when armed. --i is set inline per button. */
-.steps {
-  display: grid; grid-template-columns: repeat(16, 1fr); gap: 0.35rem;
-  margin: 1.4rem 0;
-}
+/* the step row is the unit circle unrolled from station zero:
+   step i sounds at phase 2πi/16 and wears hue 10° + i·22.5°. */
+.steps { display: grid; grid-template-columns: repeat(16, 1fr); gap: 0.35rem; margin: 1.4rem 0; }
 .step {
   aspect-ratio: 1 / 1.4; cursor: pointer; position: relative;
   background: var(--surface);
@@ -216,7 +251,7 @@ a:hover { color: var(--w2); }
 .step:nth-child(4n + 1) { border-color: color-mix(in oklab, var(--line) 40%, var(--ink)); }
 .step:hover { border-color: var(--ink); }
 .step.on {
-  background: oklch(74% 0.15 calc(85deg + var(--i) * 22.5deg));
+  background: oklch(74% 0.16 calc(10deg + var(--i) * 22.5deg));
   border-color: transparent;
   color: var(--plane);
 }
@@ -226,9 +261,9 @@ a:hover { color: var(--w2); }
 .knobs { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1rem; margin: 1.6rem 0; }
 .param { display: grid; grid-template-columns: 6.5rem 1fr 5.5rem; gap: 0.6rem; align-items: center; }
 .param .name { color: var(--annot); }
-.param .val { color: var(--w0); font-size: 0.85rem; text-align: right; font-variant-numeric: tabular-nums; }
+.param .val { color: var(--phosphor); font-size: 0.85rem; text-align: right; font-variant-numeric: tabular-nums; }
 
-input[type="range"] { accent-color: var(--w2); width: 100%; }
+input[type="range"] { accent-color: var(--philtre); width: 100%; }
 
 .readout { display: flex; gap: 1.4rem; align-items: center; margin-top: 1.8rem; flex-wrap: wrap; }
 .meter { display: flex; gap: 0.5rem; align-items: center; flex: 1; min-width: 14rem; }
@@ -240,24 +275,20 @@ input[type="range"] { accent-color: var(--w2); width: 100%; }
 }
 .meter .rms {
   position: absolute; inset: 0 auto 0 0;
-  background: linear-gradient(90deg in oklch longer hue, var(--w1), var(--w0));
+  background: linear-gradient(90deg in oklch, var(--verdigris), var(--phosphor));
 }
-.meter .peak { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--w2); }
+.meter .peak { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--blood); }
 .stats { display: flex; gap: 1.2rem; color: var(--annot); font-size: 0.85rem; font-variant-numeric: tabular-nums; }
-.stats .warn { color: var(--w2); }
+.stats .warn { color: var(--blood); }
 
 /* ---- lab ---- */
-.lab-head {
-  max-width: 64rem; margin: 0 auto; padding: 2.5rem 1.5rem 0;
-}
-.lab-head h1 {
-  font-family: var(--paper); font-style: italic; font-weight: 400;
-  font-size: 2.6rem; margin: 0 0 0.2rem;
-}
+.lab-head { max-width: 64rem; margin: 0 auto; padding: 2.5rem 1.5rem 0; position: relative; z-index: 2; }
+.lab-head h1 { font-family: var(--display); font-weight: 400; font-size: 2.6rem; margin: 0 0 0.2rem; }
 .lab-head .tagline { color: var(--annot); margin: 0 0 2rem; }
-.lab-figs { max-width: 64rem; margin: 0 auto; padding: 0 1.5rem 4rem; }
+.lab-figs { max-width: 64rem; margin: 0 auto; padding: 0 1.5rem 4rem; position: relative; z-index: 2; }
 
-.labview { position: fixed; inset: 0; background: #000; }
+/* the lab viewer sits ABOVE the texture layers: shaders arrive unfiltered */
+.labview { position: fixed; inset: 0; background: #000; z-index: 5; }
 .labcanvas { width: 100%; height: 100%; display: block; touch-action: none; }
 .labhud {
   position: absolute; left: 0.9rem; bottom: 0.7rem;
@@ -266,30 +297,30 @@ input[type="range"] { accent-color: var(--w2); width: 100%; }
   text-shadow: 0 0 6px #000;
 }
 .labhud .hint { opacity: 0.7; }
-.gfx-error {
-  position: absolute; top: 40%; width: 100%; text-align: center;
-  color: var(--w2); z-index: 2;
-}
+.gfx-error { position: absolute; top: 40%; width: 100%; text-align: center; color: var(--blood); z-index: 6; }
 
 /* ---- 404 ---- */
-.nothing { text-align: center; padding: 6rem 1.5rem; }
-.nothing h1 { font-family: var(--math); font-size: 5rem; margin: 0; color: var(--w2); }
-.nothing p { color: var(--annot); }
+.nothing { text-align: center; padding: 5rem 1.5rem; position: relative; z-index: 2; }
+.nothing .sigil { opacity: 0.55; margin-bottom: 1.4rem; }
+.nothing h1 { font-family: var(--math); font-size: 4.5rem; margin: 0; color: var(--philtre); }
+.nothing p { color: var(--annot); font-family: var(--prose); }
 
 /* ---- debug HUD (ships to production, on purpose) ---- */
 .hud {
   position: fixed; right: 0.8rem; bottom: 0.8rem; z-index: 99;
   width: min(38rem, calc(100vw - 2rem)); max-height: 45vh;
   display: flex; flex-direction: column;
-  background: color-mix(in oklab, var(--plane) 94%, transparent);
-  border: 1px solid var(--w1-dim);
+  background: color-mix(in oklab, var(--plane) 95%, transparent);
+  border: 1px solid var(--aether);
   font-size: 0.75rem;
 }
-.hud header { display: flex; justify-content: space-between; padding: 0.4rem 0.7rem; border-bottom: 1px solid var(--line); color: var(--w1); }
-.hud .hud-build { color: var(--w0); }
+.hud header { display: flex; justify-content: space-between; padding: 0.4rem 0.7rem; border-bottom: 1px solid var(--line); color: var(--aether); }
+.hud .hud-build { color: var(--phosphor); }
 .hud .hud-log { flex: 1; overflow: auto; margin: 0; padding: 0.5rem 0.7rem; color: var(--ink); white-space: pre-wrap; }
-.hud footer { padding: 0.3rem 0.7rem; color: var(--annot); border-top: 1px solid var(--line); }
+.hud footer { padding: 0.3rem 0.7rem; color: var(--faint); border-top: 1px solid var(--line); }
 
 @media (prefers-reduced-motion: reduce) {
   .fig, .fig:hover { transition: none; transform: none; }
+  .wordmark { animation: none; }
+  .sigil.spin .sigil-ring, .sigil.spin .sigil-hepta { animation: none; }
 }

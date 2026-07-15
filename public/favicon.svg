@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- the phunction sigil, static cut for the favicon -->
+  <circle cx="50" cy="50" r="46" fill="none" stroke="#b3accc" stroke-width="2"/>
+  <polygon points="50.00,15.60 78.62,89.60 15.06,44.13 86.35,42.71 21.86,88.61 49.29,14.62 84.93,45.06"
+           fill="none" stroke="#f4f2fb" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="50" cy="50" r="13" fill="#1a1428" stroke="#6e6790" stroke-width="2"/>
+  <text x="50" y="51" text-anchor="middle" dominant-baseline="central"
+        font-family="Georgia, serif" font-style="italic" font-size="17" fill="#e8e46a">φ</text>
+</svg>

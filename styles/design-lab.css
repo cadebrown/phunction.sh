@@ -1,0 +1,258 @@
+/* The design lab (/design) — round-2 exploration: palette × texture × theme.
+   Each [data-palette] block is a COMPLETE candidate token set on the
+   midnight-purple ground (round-1 decision). The winner gets promoted into
+   phunction.css and docs/aesthetic.md; the losers stay here as record. */
+
+.dlab {
+  /* round-1 ground: synthwave midnight purple, inherited from the old site */
+  --bg: #1a1428;
+  --bg-elev: #221830;
+  --bg-edge: #382e4a;
+  --ink: #f4f2fb;
+  --annot: #b3accc;
+  --faint: #6e6790;
+
+  position: relative;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  padding-bottom: 4rem;
+}
+
+/* ---- palette candidates ---- */
+
+/* A · three roots — the shipped phase triad, retuned for purple ground */
+.dlab[data-palette="roots"] {
+  --a1: oklch(82% 0.14 85);   /* ω⁰ amber   */
+  --a2: oklch(80% 0.11 215);  /* ω¹ cyan    */
+  --a3: oklch(74% 0.18 345);  /* ω² magenta */
+  --a4: var(--a1);
+  --a5: var(--a2);
+  --a6: var(--a3);
+  --a7: var(--a1);
+  --a8: var(--a2);
+}
+
+/* B · eight stations — the grimoire palette as the 8th roots of unity,
+   rotated 10°. name : angle — blood 10, rust 55, phosphor 100, ichor 145,
+   verdigris 190, aether 235, sigil 280, philtre 325. */
+.dlab[data-palette="stations"] {
+  --a1: oklch(70% 0.19 10);   /* blood     */
+  --a2: oklch(74% 0.16 55);   /* rust      */
+  --a3: oklch(84% 0.15 100);  /* phosphor  */
+  --a4: oklch(80% 0.16 145);  /* ichor     */
+  --a5: oklch(80% 0.12 190);  /* verdigris */
+  --a6: oklch(76% 0.12 235);  /* aether    */
+  --a7: oklch(70% 0.17 280);  /* sigil     */
+  --a8: oklch(74% 0.17 325);  /* philtre   */
+}
+
+/* C · golden continuum — hue_k = k · 137.508°, the colorize-katex rule
+   promoted to the entire palette. No named accents, only indices. */
+.dlab[data-palette="golden"] {
+  --a1: oklch(78% 0.15 138);  /* k=1 */
+  --a2: oklch(74% 0.15 275);  /* k=2 */
+  --a3: oklch(78% 0.15 53);   /* k=3 */
+  --a4: oklch(78% 0.13 190);  /* k=4 */
+  --a5: oklch(72% 0.17 328);  /* k=5 */
+  --a6: oklch(80% 0.14 105);  /* k=6 */
+  --a7: oklch(74% 0.14 243);  /* k=7 */
+  --a8: oklch(76% 0.16 20);   /* k=8 */
+}
+
+/* whiteboard twin preview — parchment derivation of whichever palette:
+   same hue vars, dropped lightness/raised contrast, light ground. */
+.dlab[data-theme-preview="whiteboard"] {
+  --bg: #f3f1f7;
+  --bg-elev: #ffffff;
+  --bg-edge: #c9c4d3;
+  --ink: #1a1828;
+  --annot: #4f4a64;
+  --faint: #8a849c;
+  filter: none;
+}
+.dlab[data-theme-preview="whiteboard"] .swatch,
+.dlab[data-theme-preview="whiteboard"] .comp {
+  /* darken every accent for light ground: L −30, C +0.02 via relative color */
+  --a1: oklch(from var(--a1) calc(l - 0.3) calc(c + 0.02) h);
+  --a2: oklch(from var(--a2) calc(l - 0.3) calc(c + 0.02) h);
+  --a3: oklch(from var(--a3) calc(l - 0.34) calc(c + 0.02) h);
+  --a4: oklch(from var(--a4) calc(l - 0.3) calc(c + 0.02) h);
+  --a5: oklch(from var(--a5) calc(l - 0.3) calc(c + 0.02) h);
+  --a6: oklch(from var(--a6) calc(l - 0.3) calc(c + 0.02) h);
+  --a7: oklch(from var(--a7) calc(l - 0.3) calc(c + 0.02) h);
+  --a8: oklch(from var(--a8) calc(l - 0.34) calc(c + 0.02) h);
+}
+
+/* ---- textures (toggleable) ---- */
+.dlab[data-noise="on"]::before {
+  content: "";
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  opacity: 0.10;
+  mix-blend-mode: overlay;
+}
+.dlab[data-scan="on"]::after {
+  content: "";
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background: repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.45) 0 1px, transparent 1px 3px);
+  opacity: 0.15;
+}
+.dlab[data-vignette="on"] {
+  background-image: radial-gradient(ellipse at 50% 30%, transparent 24%, rgba(8, 5, 16, 0.78) 100%);
+}
+.dlab[data-theme-preview="whiteboard"][data-vignette="on"] {
+  background-image: radial-gradient(ellipse at 50% 25%, transparent 50%, rgba(80, 76, 108, 0.12) 100%);
+}
+
+/* ---- lab chrome ---- */
+.dlab-head { max-width: 66rem; margin: 0 auto; padding: 2rem 1.5rem 0.5rem; position: relative; z-index: 2; }
+.dlab-head h1 { font-family: var(--paper); font-style: italic; font-weight: 400; font-size: 2.2rem; margin: 0; }
+.dlab-head p { color: var(--annot); margin: 0.2rem 0 0; font-size: 0.9rem; }
+
+.dlab-controls {
+  max-width: 66rem; margin: 1rem auto; padding: 0 1.5rem;
+  display: flex; flex-wrap: wrap; gap: 0.6rem 1.6rem; align-items: center;
+  position: relative; z-index: 2;
+  font-size: 0.85rem;
+}
+.dlab-controls .group { display: flex; gap: 0.4rem; align-items: center; }
+.dlab-controls .group > span { color: var(--faint); margin-right: 0.2rem; }
+.dlab-controls button {
+  font-family: var(--term); font-size: inherit;
+  padding: 0.3rem 0.8rem; cursor: pointer;
+  color: var(--annot); background: var(--bg-elev);
+  border: 1px solid var(--bg-edge);
+}
+.dlab-controls button.sel { color: var(--bg); background: var(--ink); border-color: var(--ink); }
+
+/* ---- swatch board ---- */
+.swatches {
+  max-width: 66rem; margin: 0.5rem auto; padding: 0 1.5rem;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 0.6rem; position: relative; z-index: 2;
+}
+.swatch { border: 1px solid var(--bg-edge); }
+.swatch .chip { height: 3.2rem; }
+.swatch .meta { padding: 0.3rem 0.5rem; font-size: 0.72rem; color: var(--annot); display: flex; justify-content: space-between; }
+
+/* ---- the comp: one homepage in miniature ---- */
+.comp {
+  max-width: 66rem; margin: 1.5rem auto; padding: 2rem 1.5rem 2.5rem;
+  border: 1px solid var(--bg-edge);
+  background: var(--bg);
+  position: relative; z-index: 2;
+}
+.comp .wordmark { font-size: clamp(2.4rem, 6vw, 4rem); margin: 0 0 0.3rem; }
+.comp .theorem { font-size: 1.05rem; margin-bottom: 2rem; }
+.comp .theorem .qed { color: var(--a1); }
+.comp a { color: var(--a2); }
+.comp a:hover { color: var(--a3); }
+
+.comp .figs { margin: 0 0 2rem; }
+.comp .fig { border-color: var(--bg-edge); background: var(--bg-elev); }
+.comp .fig .fig-name { color: var(--a3); }
+.comp .fig + .fig .fig-name { color: var(--a2); }
+.comp .fig:hover { border-color: var(--a3); }
+.comp .fig + .fig:hover { border-color: var(--a2); }
+
+.comp .strip { display: grid; grid-template-columns: repeat(16, 1fr); gap: 0.3rem; margin: 0 0 2rem; }
+.comp .strip .cell {
+  aspect-ratio: 1 / 1.3; border: 1px solid var(--bg-edge); background: var(--bg-elev);
+}
+/* armed cells sample the candidate's own color logic per index */
+.dlab[data-palette="roots"] .comp .cell.armed {
+  background: oklch(76% 0.14 calc(85deg + var(--i) * 22.5deg));
+}
+.dlab[data-palette="stations"] .comp .cell.armed {
+  background: oklch(76% 0.15 calc(10deg + round(down, var(--i) * 22.5 / 45) * 45deg));
+}
+.dlab[data-palette="golden"] .comp .cell.armed {
+  background: oklch(76% 0.15 calc(var(--i) * 137.508deg));
+}
+.dlab[data-theme-preview="whiteboard"] .comp .cell.armed {
+  background: oklch(52% 0.17 calc(85deg + var(--i) * 22.5deg));
+}
+
+.comp .buttons { display: flex; gap: 0.8rem; margin-bottom: 2rem; flex-wrap: wrap; }
+.comp .btn {
+  font-family: var(--term); padding: 0.45rem 1.1rem; cursor: pointer;
+  border: 1px solid var(--bg-edge); background: var(--bg-elev); color: var(--ink);
+}
+.comp .btn.primary { background: var(--a1); border-color: var(--a1); color: var(--bg); }
+.comp .btn.danger { border-color: var(--a8); color: var(--a8); background: transparent; }
+
+.comp .codeblock {
+  background: color-mix(in oklab, var(--bg-elev) 80%, var(--bg));
+  border: 1px solid var(--bg-edge);
+  padding: 0.9rem 1.1rem; font-size: 0.85rem; overflow-x: auto;
+}
+/* colorized variables — the sacred anchor, previewed per palette */
+.comp .codeblock .v1 { color: var(--a4); }
+.comp .codeblock .v2 { color: var(--a5); }
+.comp .codeblock .v3 { color: var(--a6); }
+.comp .codeblock .v4 { color: var(--a7); }
+.comp .codeblock .kw { color: var(--annot); }
+
+.dlab-note {
+  max-width: 66rem; margin: 0 auto; padding: 0 1.5rem;
+  color: var(--faint); font-size: 0.8rem; position: relative; z-index: 2;
+}
+
+/* ---- round 3: type specimens ---- */
+@font-face {
+  font-family: "Redaction 20";
+  src: url("/fonts/redaction-20-latin-400-normal.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Redaction 50";
+  src: url("/fonts/redaction-50-latin-400-normal.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "IM Fell English";
+  src: url("/fonts/im-fell-english-latin-400-normal.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "IM Fell English";
+  src: url("/fonts/im-fell-english-latin-400-italic.woff2") format("woff2");
+  font-weight: 400; font-style: italic; font-display: swap;
+}
+@font-face {
+  font-family: "Monaspace Krypton";
+  src: url("/fonts/monaspace-krypton-latin-400-normal.woff2") format("woff2");
+  font-weight: 400; font-style: normal; font-display: swap;
+}
+@font-face {
+  font-family: "Monaspace Krypton";
+  src: url("/fonts/monaspace-krypton-latin-700-normal.woff2") format("woff2");
+  font-weight: 700; font-style: normal; font-display: swap;
+}
+
+.specimens {
+  max-width: 66rem; margin: 1rem auto 3rem; padding: 0 1.5rem;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(26rem, 1fr));
+  gap: 1.2rem; position: relative; z-index: 2;
+}
+.spec {
+  border: 1px solid var(--bg-edge); background: var(--bg-elev);
+  padding: 1.4rem 1.5rem 1.6rem;
+}
+.spec .spec-tag { font-size: 0.75rem; color: var(--faint); display: block; margin-bottom: 0.8rem; }
+.spec .spec-word { font-size: 3rem; line-height: 1.05; display: block; color: var(--ink); }
+.spec .spec-thm { display: block; margin: 0.7rem 0 1rem; font-size: 1.02rem; }
+.spec .spec-thm .qed { color: var(--a3); }
+.spec .spec-chrome { display: flex; gap: 0.7rem; align-items: center; font-size: 0.85rem; }
+.spec .spec-chrome .btn { padding: 0.35rem 0.9rem; }
+.spec .spec-cap { color: var(--annot); }
+
+.spec[data-face="professor"] { --d: "Paper"; --ds: italic; --s: "Paper"; --c: "Iosevka"; }
+.spec[data-face="wizard"] { --d: "Redaction 20"; --ds: normal; --s: "Redaction 50"; --c: "Monaspace Krypton"; }
+.spec[data-face="hermetic"] { --d: "Redaction 20"; --ds: normal; --s: "Paper"; --c: "Iosevka"; }
+.spec[data-face="manuscript"] { --d: "IM Fell English"; --ds: italic; --s: "Paper"; --c: "Monaspace Krypton"; }
+
+.spec .spec-word { font-family: var(--d), serif; font-style: var(--ds); font-weight: 400; }
+.spec .spec-thm { font-family: var(--s), serif; }
+.spec .spec-chrome, .spec .spec-chrome .btn, .spec .spec-tag { font-family: var(--c), monospace; }

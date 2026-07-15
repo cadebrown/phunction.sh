@@ -3,11 +3,13 @@
 //! Routing + panels. Heavy machinery lives in the engine crates; this crate
 //! is deliberately just wiring and view code.
 
+mod design_lab;
 mod hud;
 mod lab;
 mod phasor_hero;
 mod phazor_panel;
 mod raf;
+mod sigil;
 mod trace;
 
 use leptos::prelude::*;
@@ -27,7 +29,10 @@ fn App() -> impl IntoView {
     view! {
         <Router>
             <nav class="topbar">
-                <A href="/" attr:class="brand">"phunction"</A>
+                <A href="/" attr:class="brand">
+                    <sigil::Sigil size=26 />
+                    <span class="brand-path">"phunction"</span>
+                </A>
                 <div class="links">
                     <A href="/phazor">"phazor"</A>
                     <A href="/lab">"lab"</A>
@@ -39,6 +44,7 @@ fn App() -> impl IntoView {
                 <Route path=path!("/phazor") view=phazor_panel::PhazorPage />
                 <Route path=path!("/lab") view=lab::LabIndex />
                 <Route path=path!("/lab/:id") view=lab::LabView />
+                <Route path=path!("/design") view=design_lab::DesignLab />
             </Routes>
             <hud::DebugHud />
         </Router>
@@ -95,6 +101,7 @@ fn Home() -> impl IntoView {
 fn NotFound() -> impl IntoView {
     view! {
         <main class="nothing">
+            <div><sigil::Sigil size=110 /></div>
             <h1>"∄"</h1>
             <p>"no route satisfies this address"</p>
         </main>
