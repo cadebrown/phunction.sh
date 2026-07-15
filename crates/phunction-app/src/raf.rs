@@ -9,11 +9,14 @@ mod imp {
     use std::rc::Rc;
     use wasm_bindgen::prelude::*;
 
+    /// The self-referential slot a rAF callback uses to reschedule itself.
+    type CallbackSlot = Rc<RefCell<Option<Closure<dyn FnMut()>>>>;
+
     /// Run `tick` every animation frame until it returns `false`.
     pub fn raf_loop(mut tick: impl FnMut() -> bool + 'static) {
         // The classic self-referential closure knot: the closure needs its
         // own handle to reschedule itself.
-        let slot: Rc<RefCell<Option<Closure<dyn FnMut()>>>> = Rc::new(RefCell::new(None));
+        let slot: CallbackSlot = Rc::new(RefCell::new(None));
         let slot2 = Rc::clone(&slot);
         *slot.borrow_mut() = Some(Closure::new(move || {
             if tick() {

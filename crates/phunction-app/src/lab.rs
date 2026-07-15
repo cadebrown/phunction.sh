@@ -81,7 +81,8 @@ pub fn LabView() -> impl IntoView {
 
 #[cfg(target_arch = "wasm32")]
 mod wiring {
-    use super::*;
+    use leptos::prelude::{RwSignal, Set};
+    use phunction_gfx::wgpu::CurrentSurfaceTexture as Cst;
     use phunction_gfx::{FrameInput, GfxContext, PhunctorDef};
     use std::cell::Cell;
     use std::rc::Rc;
@@ -163,7 +164,6 @@ mod wiring {
                 }
                 ctx.resize_if_needed(size);
 
-                use phunction_gfx::wgpu::CurrentSurfaceTexture as Cst;
                 let frame = match ctx.surface.get_current_texture() {
                     Cst::Success(f) => f,
                     Cst::Suboptimal(f) => {
