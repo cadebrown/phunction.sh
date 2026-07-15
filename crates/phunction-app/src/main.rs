@@ -3,16 +3,20 @@
 //! Routing + panels. Heavy machinery lives in the engine crates; this crate
 //! is deliberately just wiring and view code.
 
+mod hud;
 mod lab;
 mod phazor_panel;
 mod raf;
+mod trace;
 
 use leptos::prelude::*;
 use leptos_router::components::{Route, Router, Routes, A};
 use leptos_router::path;
 
 fn main() {
-    console_error_panic_hook::set_once();
+    #[cfg(target_arch = "wasm32")]
+    trace::init();
+    tracing::info!(version = env!("CARGO_PKG_VERSION"), "phunction booting");
     leptos::mount::mount_to_body(App);
 }
 
@@ -35,6 +39,7 @@ fn App() -> impl IntoView {
                 <Route path=path!("/lab") view=lab::LabIndex />
                 <Route path=path!("/lab/:id") view=lab::LabView />
             </Routes>
+            <hud::DebugHud />
         </Router>
     }
 }

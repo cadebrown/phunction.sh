@@ -159,3 +159,18 @@ input[type="range"] { accent-color: var(--hot); width: 100%; }
   position: absolute; top: 40%; width: 100%; text-align: center;
   color: var(--hot); z-index: 2;
 }
+
+/* ---- debug HUD (ships to production, on purpose) ---- */
+.hud {
+  position: fixed; right: 0.8rem; bottom: 0.8rem; z-index: 99;
+  width: min(38rem, calc(100vw - 2rem)); max-height: 45vh;
+  display: flex; flex-direction: column;
+  background: rgba(6, 5, 12, 0.92);
+  border: 1px solid var(--cool); border-radius: 4px;
+  box-shadow: 0 0 24px rgba(89, 194, 255, 0.3);
+  font-size: 0.75rem;
+}
+.hud header { display: flex; justify-content: space-between; padding: 0.4rem 0.7rem; border-bottom: 1px solid rgba(89,194,255,0.25); color: var(--cool); }
+.hud .hud-build { color: var(--gold); }
+.hud .hud-log { flex: 1; overflow: auto; margin: 0; padding: 0.5rem 0.7rem; color: var(--ink); white-space: pre-wrap; }
+.hud footer { padding: 0.3rem 0.7rem; color: var(--ink-dim); border-top: 1px solid rgba(89,194,255,0.25); }
