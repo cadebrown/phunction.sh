@@ -9,6 +9,7 @@ mod hud;
 mod lab;
 mod phasor_hero;
 mod phazor_panel;
+mod rack;
 mod raf;
 mod sigil;
 mod substrate;

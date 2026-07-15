@@ -84,3 +84,23 @@ above the texture layers (z-order) so shaders arrive unfiltered.
 2. Every hue is a named station or a stated angle.
 3. New pages open with their most characteristic element.
 4. The lab's fullscreen shaders are never post-processed by site chrome.
+
+## The rack (component language — added with Cade 2026-07-15)
+
+UI controls are **machined modular-synth hardware, wired for real**:
+skeuomorphism is only allowed when the control genuinely does the thing it
+depicts. A `Knob` sends `Command::SetParam` down the ring; an `LedMeter`
+renders `MeterFrame` telemetry; a `Led` is a signal, never a decoration.
+Components live in `crates/phunction-app/src/rack.rs`.
+
+Vocabulary: rack panels (brushed, engraved Iosevka titles, corner screws
+with mismatched slot angles), ±135° knobs with station-hued value arcs,
+LED ladders (ichor floor → phosphor shoulder → blood ceiling), machined
+buttons with 2px travel, LCD readouts (phosphor on inset dark), key hints
+as keycaps. Interaction: drag knobs vertically, shift = fine, double-click
+= reset, wheel = nudge.
+
+Stolen from voidstar's qualia with love: control density, visible
+keyboard hints, the CLIP lamp, fps/beat/τ-style readouts. Deliberately
+NOT stolen: their flat terminal chrome — our hardware is machined, theirs
+is printed.

@@ -6,6 +6,7 @@
 //! a MIDI controller would be — which is what makes it replaceable, and
 //! what will let external controllers drive the same surface later.
 
+use crate::rack::{Knob, Led, LedMeter, RackPanel};
 use leptos::prelude::*;
 use phazor_core::{Command, ParamId, Step, StepSequencer};
 
@@ -157,7 +158,6 @@ pub fn PhazorPage() -> impl IntoView {
     let powered = RwSignal::new(false);
     let meters = RwSignal::new(Meters::default());
     let steps = RwSignal::new([false; 16]);
-    let tempo = RwSignal::new(120.0f64);
 
     let toggle_step = move |i: usize| {
         steps.update(|s| s[i] = !s[i]);
@@ -197,133 +197,97 @@ pub fn PhazorPage() -> impl IntoView {
                     </button>
                 }
             >
-                <section class="transport">
-                    <button
-                        class="xport"
-                        class:lit=move || meters.get().playing
-                        on:click=move |_| wiring::send(Command::Play)
-                    >"▶ play"</button>
-                    <button class="xport" on:click=move |_| wiring::send(Command::Stop)>"■ stop"</button>
-                    <button class="xport panic" on:click=move |_| wiring::send(Command::AllNotesOff)>"✕ panic"</button>
-                    <label class="tempo">
-                        "tempo "
-                        <input
-                            type="range" min="60" max="200" step="1"
-                            prop:value=move || tempo.get().to_string()
-                            on:input=move |ev| {
-                                let bpm: f64 = event_target_value(&ev).parse().unwrap_or(120.0);
-                                tempo.set(bpm);
-                                wiring::send(Command::SetTempo(bpm));
-                            }
+                <div class="rack">
+                    <RackPanel title="transport" class="span4">
+                        <button
+                            class="xport"
+                            class:lit=move || meters.get().playing
+                            on:click=move |_| wiring::send(Command::Play)
+                        >"▶ play"</button>
+                        <button class="xport" on:click=move |_| wiring::send(Command::Stop)>"■ stop"</button>
+                        <button class="xport panic" on:click=move |_| wiring::send(Command::AllNotesOff)>"✕ panic"</button>
+                        <Led on=Signal::derive(move || meters.get().playing) hue=145.0 label="run" />
+                        <Knob
+                            label="tempo"
+                            min=60.0 max=200.0 init=120.0 hue=190.0
+                            fmt=|v| format!("{v:.0} bpm")
+                            on_value=move |v: f32| wiring::send(Command::SetTempo(f64::from(v)))
                         />
-                        <span class="val">{move || format!("{:.0}", tempo.get())}</span>
-                    </label>
-                </section>
+                        <div class="lcd">
+                            <span>{move || format!("beat {:>6.2}", meters.get().beats)}</span>
+                            <span>{move || format!("vox {}", meters.get().voices)}</span>
+                            <span class:warn={move || meters.get().dropped > 0}>
+                                {move || format!("drop {}", meters.get().dropped)}
+                            </span>
+                        </div>
+                    </RackPanel>
 
-                <section class="steps">
-                    {(0..StepSequencer::LEN)
-                        .map(|i| {
-                            view! {
-                                <button
-                                    class="step"
-                                    // Each step wears the hue of its phase angle (2πi/16).
-                                    style=("--i", i.to_string())
-                                    class:on=move || steps.get()[i]
-                                    class:now=move || playhead() == Some(i)
-                                    on:click=move |_| toggle_step(i)
-                                >
-                                    <span class="note">{RIFF[i]}</span>
-                                </button>
-                            }
-                        })
-                        .collect_view()}
-                </section>
+                    <RackPanel title="voice" class="span5">
+                        <Knob
+                            label="cutoff"
+                            min=20.0 max=18000.0 init=9000.0 log=true hue=235.0
+                            fmt={|v| if v >= 1000.0 { format!("{:.1} kHz", v / 1000.0) } else { format!("{v:.0} Hz") }}
+                            on_value=move |v: f32| wiring::send(Command::SetParam { id: ParamId::FilterCutoff, value: v })
+                        />
+                        <Knob
+                            label="resonance"
+                            min=0.5 max=10.0 init=0.707 hue=325.0
+                            fmt=|v| format!("{v:.2}")
+                            on_value=move |v: f32| wiring::send(Command::SetParam { id: ParamId::FilterQ, value: v })
+                        />
+                        <Knob
+                            label="brightness"
+                            min=0.0 max=1.0 init=0.35 hue=100.0
+                            fmt=|v| format!("{v:.2}")
+                            on_value=move |v: f32| wiring::send(Command::SetParam { id: ParamId::OscBrightness, value: v })
+                        />
+                    </RackPanel>
 
-                <section class="knobs">
-                    <Param id=ParamId::FilterCutoff label="cutoff" min=0.0 max=1.0 step=0.001
-                        to_value=|v| 20.0 * 10.0f32.powf(3.0 * v)
-                        show=|v| format!("{:.0} Hz", 20.0 * 10.0f32.powf(3.0 * v))
-                        init=0.885 />
-                    <Param id=ParamId::FilterQ label="resonance" min=0.5 max=10.0 step=0.01
-                        to_value=|v| v show=|v| format!("{v:.2}") init=0.707 />
-                    <Param id=ParamId::OscBrightness label="brightness" min=0.0 max=1.0 step=0.01
-                        to_value=|v| v show=|v| format!("{v:.2}") init=0.35 />
-                    <Param id=ParamId::MasterGain label="master" min=0.0 max=1.2 step=0.01
-                        to_value=|v| v show=|v| format!("{v:.2}") init=0.8 />
-                </section>
+                    <RackPanel title="mix" class="span3">
+                        <Knob
+                            label="master"
+                            min=0.0 max=1.2 init=0.8 hue=55.0
+                            fmt=|v| format!("{v:.2}")
+                            on_value=move |v: f32| wiring::send(Command::SetParam { id: ParamId::MasterGain, value: v })
+                        />
+                        <LedMeter label="L" level={Signal::derive(move || (meters.get().rms_l * 3.0).min(1.0))} />
+                        <LedMeter label="R" level={Signal::derive(move || (meters.get().rms_r * 3.0).min(1.0))} />
+                        <Led
+                            on={Signal::derive(move || meters.get().peak_l.max(meters.get().peak_r) > 0.97)}
+                            hue=10.0
+                            label="clip"
+                        />
+                    </RackPanel>
 
-                <section class="readout">
-                    <Meter label="L" peak=move || meters.get().peak_l rms=move || meters.get().rms_l />
-                    <Meter label="R" peak=move || meters.get().peak_r rms=move || meters.get().rms_r />
-                    <div class="stats">
-                        <span>{move || format!("beat {:.2}", meters.get().beats)}</span>
-                        <span>{move || format!("voices {}", meters.get().voices)}</span>
-                        <span class:warn={move || meters.get().dropped > 0}>
-                            {move || format!("dropped {}", meters.get().dropped)}
-                        </span>
-                    </div>
-                </section>
+                    <RackPanel title="sequence">
+                        <section class="steps" style="width: 100%">
+                            {(0..StepSequencer::LEN)
+                                .map(|i| {
+                                    view! {
+                                        <button
+                                            class="step"
+                                            // Each step wears the hue of its phase angle (2πi/16).
+                                            style=("--i", i.to_string())
+                                            class:on=move || steps.get()[i]
+                                            class:now=move || playhead() == Some(i)
+                                            on:click=move |_| toggle_step(i)
+                                        >
+                                            <span class="note">{RIFF[i]}</span>
+                                        </button>
+                                    }
+                                })
+                                .collect_view()}
+                        </section>
+                    </RackPanel>
+                </div>
+
+                <div class="keyhints">
+                    <span><kbd>"space"</kbd>" play/stop"</span>
+                    <span><kbd>"esc"</kbd>" panic"</span>
+                    <span><kbd>"shift"</kbd>"+drag knobs for fine control · double-click resets"</span>
+                    <span><kbd>"`"</kbd>" debug"</span>
+                </div>
             </Show>
         </main>
-    }
-}
-
-/// One labeled parameter slider bound to an engine [`ParamId`].
-#[component]
-fn Param(
-    /// Engine parameter this slider drives.
-    id: ParamId,
-    /// Display label.
-    label: &'static str,
-    /// Slider minimum (UI units).
-    min: f32,
-    /// Slider maximum (UI units).
-    max: f32,
-    /// Slider step (UI units).
-    step: f32,
-    /// Map slider position → engine value (e.g. log cutoff).
-    to_value: fn(f32) -> f32,
-    /// Map slider position → display string.
-    show: fn(f32) -> String,
-    /// Initial slider position (UI units).
-    init: f32,
-) -> impl IntoView {
-    let pos = RwSignal::new(init);
-    view! {
-        <label class="param">
-            <span class="name">{label}</span>
-            <input
-                type="range"
-                min=min max=max step=step
-                prop:value=move || pos.get().to_string()
-                on:input=move |ev| {
-                    let v: f32 = event_target_value(&ev).parse().unwrap_or(init);
-                    pos.set(v);
-                    wiring::send(Command::SetParam { id, value: to_value(v) });
-                }
-            />
-            <span class="val">{move || show(pos.get())}</span>
-        </label>
-    }
-}
-
-/// A peak+RMS bar meter.
-#[component]
-fn Meter(
-    /// Channel label.
-    label: &'static str,
-    /// Peak level 0..=1 (post-limiter, so it genuinely can't exceed 1).
-    peak: impl Fn() -> f32 + Send + Sync + 'static,
-    /// RMS level 0..=1.
-    rms: impl Fn() -> f32 + Send + Sync + 'static,
-) -> impl IntoView {
-    view! {
-        <div class="meter">
-            <span class="ch">{label}</span>
-            <div class="bar">
-                <div class="rms" style:width=move || format!("{:.1}%", rms() * 100.0)></div>
-                <div class="peak" style:left=move || format!("{:.1}%", (peak() * 100.0).min(99.5))></div>
-            </div>
-        </div>
     }
 }
