@@ -176,7 +176,9 @@ mod wiring {
                         return true;
                     }
                 };
-                let view = frame.texture.create_view(&Default::default());
+                let view = frame
+                    .texture
+                    .create_view(&phunction_gfx::wgpu::TextureViewDescriptor::default());
                 let input = FrameInput {
                     time: t0.elapsed().as_secs_f32(),
                     aspect: size.0 as f32 / size.1 as f32,

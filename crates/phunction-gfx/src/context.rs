@@ -94,7 +94,7 @@ impl GfxContext {
                 alpha_mode: wgpu::CompositeAlphaMode::Auto,
                 view_formats: vec![],
                 desired_maximum_frame_latency: 2,
-                color_space: Default::default(),
+                color_space: wgpu::SurfaceColorSpace::default(),
             },
         );
     }

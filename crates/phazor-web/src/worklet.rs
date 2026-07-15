@@ -176,6 +176,10 @@ pub struct Phazor {
 
 /// Boot the engine into an `AudioWorklet` thread. Call from a user gesture —
 /// browsers refuse to start audio otherwise.
+///
+/// # Errors
+/// Any `JsValue` the browser throws on the way up (context construction,
+/// module load, node construction). Callers show it to the user verbatim.
 pub async fn start() -> Result<Phazor, JsValue> {
     let ctx = AudioContext::new()?;
     let worklet_url = createPhazorWorkletUrl(&mainGlueUrl(), TEXT_CODEC_POLYFILL);

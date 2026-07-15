@@ -91,13 +91,13 @@ impl ShaderPhunctor {
                 vertex: wgpu::VertexState {
                     module: &module,
                     entry_point: Some("vs_main"),
-                    compilation_options: Default::default(),
+                    compilation_options: wgpu::PipelineCompilationOptions::default(),
                     buffers: &[],
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &module,
                     entry_point: Some("fs_main"),
-                    compilation_options: Default::default(),
+                    compilation_options: wgpu::PipelineCompilationOptions::default(),
                     targets: &[Some(gfx.format.into())],
                 }),
                 primitive: wgpu::PrimitiveState::default(),
@@ -129,7 +129,9 @@ impl Phunctor for ShaderPhunctor {
         gfx.queue
             .write_buffer(&self.uniforms, 0, bytemuck::bytes_of(&u));
 
-        let mut encoder = gfx.device.create_command_encoder(&Default::default());
+        let mut encoder = gfx
+            .device
+            .create_command_encoder(&wgpu::CommandEncoderDescriptor::default());
         {
             let mut pass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
                 label: Some("phunctor"),
