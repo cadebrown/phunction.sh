@@ -76,3 +76,15 @@ speakers        …meanwhile wgpu (phunction-gfx) renders phunctors on canvas
 When you finish a work session, report: what changed, what you *verified in
 the browser* (not just compiled), current wasm size (`ls dist/*_bg.wasm`),
 and any invariant above you had to bend — with why.
+
+## The multimodal directive (standing, from Cade)
+
+phunction.sh is a **live-performance toolkit**: every piece must be
+playable from laptop (keyboard/trackpad), touch (iPad/Android Chrome;
+iOS-stretch), and **gamepads/controllers** — one shared control scheme and
+one design language (the rack) across all modules. Concretely: Pointer
+Events only (never mouse-only), touch targets ≥44px, visible keycap hints
+for every binding, and inputs route through the same Command/modulation
+bus the UI uses so a gamepad axis, a finger, and a knob are the same
+signal. New toolkit pieces adopt the rack components, the station palette,
+and the shared control layer — no bespoke input handling.
