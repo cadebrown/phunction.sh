@@ -32,6 +32,9 @@ web-sys = { workspace = true, features = [
     "WheelEvent",
     "CssStyleDeclaration",
     "DomRect",
+    "Gamepad",
+    "GamepadButton",
+    "Navigator",
 ] }
 
 [lints]

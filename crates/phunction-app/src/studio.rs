@@ -6,6 +6,8 @@
 
 use crate::rack::{Fader, Jack, Knob, Led, LedMeter, RackPanel, XyPad};
 use leptos::prelude::*;
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::JsCast;
 
 /// Glyphs the scrambler is allowed to hallucinate.
 const POOL: [char; 20] = [
@@ -184,12 +186,36 @@ pub fn Studio() -> impl IntoView {
     // a synthetic LFO drives the meters so the playground breathes even
     // without the audio engine powered
     let lfo = RwSignal::new(0.0f32);
+    // any connected gamepad flies the orbit: left stick = yaw/pitch —
+    // the multimodal directive's 'easy vibing' modality, live
+    let pad_seen = RwSignal::new(false);
     #[cfg(target_arch = "wasm32")]
     {
         let t0 = web_time::Instant::now();
         crate::raf::raf_loop(move || {
             let t = t0.elapsed().as_secs_f32();
             lfo.set(((t * 0.9).sin() * 0.5 + 0.5) * ((t * 2.3).sin() * 0.2 + 0.8));
+
+            if let Some(pads) = web_sys::window().and_then(|w| w.navigator().get_gamepads().ok()) {
+                for pad in pads.iter() {
+                    let Ok(pad) = pad.dyn_into::<web_sys::Gamepad>() else {
+                        continue;
+                    };
+                    pad_seen.set(true);
+                    let axes = pad.axes();
+                    let ax = axes.get(0).as_f64().unwrap_or(0.0);
+                    let ay = axes.get(1).as_f64().unwrap_or(0.0);
+                    // deadzone, then nudge the shared orbit channel
+                    if ax.abs() > 0.12 || ay.abs() > 0.12 {
+                        #[allow(clippy::cast_possible_truncation)]
+                        orbit.update(|(x, y)| {
+                            *x = (*x + ax as f32 * 0.012).rem_euclid(1.0);
+                            *y = (*y - ay as f32 * 0.012).clamp(0.0, 1.0);
+                        });
+                    }
+                    break;
+                }
+            }
             true
         });
     }
@@ -224,6 +250,7 @@ pub fn Studio() -> impl IntoView {
                 </RackPanel>
 
                 <RackPanel title="signals" class="span3">
+                    <Led on={Signal::derive(move || pad_seen.get())} hue=280.0 label="pad" />
                     <LedMeter label="lfo" level=Signal::derive(move || lfo.get()) />
                     <LedMeter label="inv" level=Signal::derive(move || 1.0 - lfo.get()) />
                     <Led on={Signal::derive(move || lfo.get() > 0.85)} hue=10.0 label="hot" />
