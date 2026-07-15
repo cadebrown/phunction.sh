@@ -86,9 +86,12 @@ fn Scene(
 ) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
     let error = RwSignal::new(None::<String>);
+    #[cfg(not(target_arch = "wasm32"))]
+    let _ = orbit; // consumed only by the wasm render loop
 
     #[cfg(target_arch = "wasm32")]
     {
+        use phunction_gfx::wgpu::CurrentSurfaceTexture as Cst;
         use phunction_gfx::{FrameInput, GfxContext, Phunctor as _};
         use std::cell::Cell;
         let started = Cell::new(false);
@@ -127,7 +130,6 @@ fn Scene(
                         canvas.set_height(size.1);
                     }
                     ctx.resize_if_needed(size);
-                    use phunction_gfx::wgpu::CurrentSurfaceTexture as Cst;
                     let frame = match ctx.surface.get_current_texture() {
                         Cst::Success(f) => f,
                         Cst::Suboptimal(f) => {
