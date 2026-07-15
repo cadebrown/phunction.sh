@@ -72,6 +72,9 @@ cast_sign_loss = "allow"
 # audio code is float-heavy; these fire constantly with no value there
 float_cmp = "allow"
 suboptimal_flops = "allow"
+# declarative view! trees are long but not complex; line count is the wrong
+# complexity metric for UI components
+too_many_lines = "allow"
 
 # `release` is tuned for the *shipped wasm* — that is the product. (Trunk
 # 0.21 can't select custom cargo profiles, so release it is.)

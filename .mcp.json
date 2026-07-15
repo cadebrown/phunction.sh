@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "crates": {
+      "command": "npx",
+      "args": ["-y", "cratesio-mcp"],
+      "description": "crates.io registry: verify versions, health, deps before adding anything (docs/crates-policy.md)"
+    },
+    "deepwiki": {
+      "type": "http",
+      "url": "https://mcp.deepwiki.com/mcp",
+      "description": "AI-indexed GitHub repo docs — wgpu/leptos/wasm-bindgen internals when the API shifted again"
+    },
+    "context7": {
+      "type": "http",
+      "url": "https://mcp.context7.com/mcp",
+      "description": "current library documentation (leptos, wgpu, wrangler) — prefer over memory"
+    }
+  }
+}

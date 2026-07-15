@@ -1,0 +1,25 @@
+---
+description: phunction.sh house rules (Rust/WASM audiovisual instrument)
+globs:
+alwaysApply: true
+---
+
+Read AGENTS.md first — it is the canonical map and the non-negotiables.
+Condensed here:
+
+- Build ONLY through `just` (`just dev`, `just build`, `just check`). The
+  justfile owns the threaded-wasm rustflags; bare cargo/trunk wasm builds
+  produce broken artifacts.
+- `just check` must be green before any push; pushes to main deploy to
+  production.
+- Audio thread code (`phazor-core::Engine::process` and below): no
+  allocation, no locks, no strings, no unbounded work. UI↔engine
+  communication is Copy PODs over rtrb rings only.
+- Musical time comes from the Transport frame counter; events are
+  frame-offset within the render quantum. Never wall-clock.
+- Ship the debugger: tracing/meters/error surfaces stay in production.
+- New dependencies go through docs/crates-policy.md (verify version,
+  maintenance, wasm32 support — don't trust training memory).
+- wgpu and leptos break APIs every release: check the vendored source in
+  the cargo registry or docs before writing against them.
+- Public items get doc comments stating invariants/why (missing_docs=warn).
