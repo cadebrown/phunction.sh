@@ -216,6 +216,171 @@ pub fn LedMeter(
     }
 }
 
+/// A machined slot fader. Absolute-position drag (grab anywhere on the
+/// slot, the cap comes to your finger — FL Studio rules, not hardware
+/// rules), wheel to nudge, double-click to reset.
+#[component]
+pub fn Fader(
+    /// Engraved label.
+    label: &'static str,
+    /// Initial normalized position `0..=1`.
+    #[prop(default = 0.75)]
+    init: f32,
+    /// Station hue for the slot fill and readout.
+    hue: f32,
+    /// Receives the normalized position on every change.
+    #[prop(into)]
+    on_value: Callback<f32>,
+) -> impl IntoView {
+    let pos = RwSignal::new(init.clamp(0.0, 1.0));
+    let dragging = StoredValue::new(false);
+
+    let apply = move |p: f32| {
+        let p = p.clamp(0.0, 1.0);
+        pos.set(p);
+        on_value.run(p);
+    };
+    // map a pointer event to a normalized position within the slot
+    let from_event = move |ev: &web_sys::PointerEvent| -> Option<f32> {
+        let t = ev.current_target()?.dyn_into::<web_sys::Element>().ok()?;
+        let r = t.get_bounding_client_rect();
+        let frac = (f64::from(ev.client_y()) - r.top()) / r.height().max(1.0);
+        #[allow(clippy::cast_possible_truncation)]
+        Some(1.0 - frac.clamp(0.0, 1.0) as f32)
+    };
+
+    view! {
+        <div class="fader" style=("--hue", format!("{hue}"))>
+            <svg
+                viewBox="0 0 36 130"
+                role="slider"
+                aria-label=label
+                aria-valuemin="0"
+                aria-valuemax="1"
+                aria-valuenow=move || pos.get()
+                tabindex="0"
+                on:pointerdown=move |ev: web_sys::PointerEvent| {
+                    ev.prevent_default();
+                    if let Some(t) = ev.target().and_then(|t| t.dyn_into::<web_sys::Element>().ok()) {
+                        let _ = t.set_pointer_capture(ev.pointer_id());
+                    }
+                    dragging.set_value(true);
+                    if let Some(p) = from_event(&ev) {
+                        apply(p);
+                    }
+                }
+                on:pointermove=move |ev: web_sys::PointerEvent| {
+                    if dragging.get_value() {
+                        if let Some(p) = from_event(&ev) {
+                            apply(p);
+                        }
+                    }
+                }
+                on:pointerup=move |_| dragging.set_value(false)
+                on:pointercancel=move |_| dragging.set_value(false)
+                on:wheel=move |ev: web_sys::WheelEvent| {
+                    ev.prevent_default();
+                    apply(pos.get_untracked() - (ev.delta_y() as f32) / 1200.0);
+                }
+                on:dblclick=move |_| apply(init)
+            >
+                // slot: countersunk channel with the station-hued fill below the cap
+                <rect class="fader-slot" x="14" y="8" width="8" height="114" rx="3"></rect>
+                <rect
+                    class="fader-fill"
+                    x="16"
+                    width="4"
+                    y=move || 10.0 + f64::from(1.0 - pos.get()) * 106.0
+                    height=move || f64::from(pos.get()) * 106.0
+                ></rect>
+                // machined cap with grip lines
+                <g class="fader-cap-g" style=("transform", move || format!("translateY({}px)", f64::from(1.0 - pos.get()) * 106.0))>
+                    <rect class="fader-cap-shadow" x="4.5" y="4" width="28" height="15" rx="2"></rect>
+                    <rect class="fader-cap" x="4" y="2" width="28" height="15" rx="2"></rect>
+                    <line class="fader-grip" x1="8" y1="9.5" x2="28" y2="9.5"></line>
+                    <line class="fader-grip dim" x1="8" y1="6.5" x2="28" y2="6.5"></line>
+                    <line class="fader-grip dim" x1="8" y1="12.5" x2="28" y2="12.5"></line>
+                </g>
+            </svg>
+            <span class="knob-label">{label}</span>
+            <span class="knob-value">{move || format!("{:.2}", pos.get())}</span>
+        </div>
+    }
+}
+
+/// A 2D control surface — one finger, two parameters. The crosshair wears
+/// both stations; taps and drags are the same gesture.
+#[component]
+pub fn XyPad(
+    /// Engraved label.
+    label: &'static str,
+    /// Hue for the X axis readout/line.
+    hue_x: f32,
+    /// Hue for the Y axis readout/line.
+    hue_y: f32,
+    /// Receives `(x, y)` in `0..=1` on every change.
+    #[prop(into)]
+    on_value: Callback<(f32, f32)>,
+) -> impl IntoView {
+    let xy = RwSignal::new((0.5f32, 0.5f32));
+    let dragging = StoredValue::new(false);
+
+    let apply = move |p: (f32, f32)| {
+        let p = (p.0.clamp(0.0, 1.0), p.1.clamp(0.0, 1.0));
+        xy.set(p);
+        on_value.run(p);
+    };
+    let from_event = move |ev: &web_sys::PointerEvent| -> Option<(f32, f32)> {
+        let t = ev.current_target()?.dyn_into::<web_sys::Element>().ok()?;
+        let r = t.get_bounding_client_rect();
+        #[allow(clippy::cast_possible_truncation)]
+        Some((
+            ((f64::from(ev.client_x()) - r.left()) / r.width().max(1.0)).clamp(0.0, 1.0) as f32,
+            (1.0 - (f64::from(ev.client_y()) - r.top()) / r.height().max(1.0)).clamp(0.0, 1.0)
+                as f32,
+        ))
+    };
+
+    view! {
+        <div class="xypad" style=("--hx", format!("{hue_x}")) style=("--hy", format!("{hue_y}"))>
+            <div
+                class="xypad-surface"
+                on:pointerdown=move |ev: web_sys::PointerEvent| {
+                    ev.prevent_default();
+                    if let Some(t) = ev.target().and_then(|t| t.dyn_into::<web_sys::Element>().ok()) {
+                        let _ = t.set_pointer_capture(ev.pointer_id());
+                    }
+                    dragging.set_value(true);
+                    if let Some(p) = from_event(&ev) {
+                        apply(p);
+                    }
+                }
+                on:pointermove=move |ev: web_sys::PointerEvent| {
+                    if dragging.get_value() {
+                        if let Some(p) = from_event(&ev) {
+                            apply(p);
+                        }
+                    }
+                }
+                on:pointerup=move |_| dragging.set_value(false)
+                on:pointercancel=move |_| dragging.set_value(false)
+            >
+                <span class="xypad-vline" style=("left", move || format!("{:.1}%", xy.get().0 * 100.0))></span>
+                <span class="xypad-hline" style=("top", move || format!("{:.1}%", (1.0 - xy.get().1) * 100.0))></span>
+                <span
+                    class="xypad-dot"
+                    style=("left", move || format!("{:.1}%", xy.get().0 * 100.0))
+                    style=("top", move || format!("{:.1}%", (1.0 - xy.get().1) * 100.0))
+                ></span>
+            </div>
+            <span class="knob-label">{label}</span>
+            <span class="knob-value">
+                {move || format!("{:.2} · {:.2}", xy.get().0, xy.get().1)}
+            </span>
+        </div>
+    }
+}
+
 /// A 3.5mm jack socket with its hex nut — the honest Eurorack anchor.
 /// Decorative today, modulation routing tomorrow; the nut is real either way.
 #[component]

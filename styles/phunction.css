@@ -690,7 +690,7 @@ html.fnord body { animation: fnord-storm 4s ease-in-out; }
 /* countersunk screws with cross slots */
 .screw {
   width: 13px; height: 13px;
-  background: radial-gradient(circle at 34% 28%, #8b83a8, #4a4062 55%, #211a34 85%);
+  background: radial-gradient(circle at 34% 28%, #a9a1c4, #5c5178 55%, #2b2344 85%);
   box-shadow:
     0 0 0 2px #100b1d,
     0 0 0 3px rgba(255, 255, 255, 0.05),
@@ -833,3 +833,42 @@ html.fnord body { animation: fnord-storm 4s ease-in-out; }
 .rack-latch:hover .rack-fold { color: var(--phosphor); }
 .rack-panel.folded { padding-bottom: 0.85rem; }
 .rack-body.hidden { display: none; }
+
+/* ---- fader ---- */
+.fader { display: flex; flex-direction: column; align-items: center; width: 2.8rem; user-select: none; }
+.fader svg { width: 100%; height: auto; cursor: grab; touch-action: none; display: block; }
+.fader svg:active { cursor: grabbing; }
+.fader-slot { fill: #120d1e; stroke: #090612; stroke-width: 1;
+}
+.fader-fill { fill: oklch(72% 0.16 calc(var(--hue) * 1deg)); }
+.fader-cap-shadow { fill: rgba(0, 0, 0, 0.55); }
+.fader-cap {
+  fill: #3a2f55; stroke: #0d0a16; stroke-width: 1;
+}
+.fader-grip { stroke: #171126; stroke-width: 1.6; }
+.fader-grip.dim { stroke: rgba(23, 17, 38, 0.55); }
+.fader-cap-g { will-change: transform; }
+
+/* ---- xy pad ---- */
+.xypad { display: flex; flex-direction: column; align-items: center; user-select: none; }
+.xypad-surface {
+  position: relative; width: 13rem; height: 9rem; touch-action: none; cursor: crosshair;
+  background:
+    linear-gradient(rgba(138, 108, 255, 0.06) 1px, transparent 1px) 0 0 / 100% 1.5rem,
+    linear-gradient(90deg, rgba(138, 108, 255, 0.06) 1px, transparent 1px) 0 0 / 1.5rem 100%,
+    linear-gradient(180deg, #141021, #0f0b1a);
+  border: 1px solid #090612;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.75), 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+.xypad-vline { position: absolute; top: 0; bottom: 0; width: 1px; background: oklch(78% 0.12 calc(var(--hx) * 1deg) / 0.75); }
+.xypad-hline { position: absolute; left: 0; right: 0; height: 1px; background: oklch(76% 0.17 calc(var(--hy) * 1deg) / 0.75); }
+.xypad-dot {
+  position: absolute; width: 13px; height: 13px; border-radius: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle at 35% 30%, #fff, oklch(76% 0.15 calc(var(--hx) * 1deg)) 45%, oklch(70% 0.17 calc(var(--hy) * 1deg)));
+  box-shadow: 0 0 12px oklch(75% 0.16 calc(var(--hx) * 1deg) / 0.8);
+}
+
+/* ---- wide console LCD ---- */
+.lcd-wide { display: flex; flex-direction: column; gap: 0.15rem; width: 100%; min-height: 4.6rem; }
+.lcd-dim { opacity: 0.45; }

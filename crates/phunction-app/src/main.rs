@@ -12,6 +12,7 @@ mod phazor_panel;
 mod rack;
 mod raf;
 mod sigil;
+mod studio;
 mod substrate;
 mod trace;
 
@@ -51,6 +52,7 @@ fn App() -> impl IntoView {
                 <Route path=path!("/lab") view=lab::LabIndex />
                 <Route path=path!("/lab/:id") view=lab::LabView />
                 <Route path=path!("/design") view=design_lab::DesignLab />
+                <Route path=path!("/studio") view=studio::Studio />
             </Routes>
             <hud::DebugHud />
         </Router>

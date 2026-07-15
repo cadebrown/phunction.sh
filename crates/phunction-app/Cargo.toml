@@ -31,6 +31,7 @@ web-sys = { workspace = true, features = [
     "KeyboardEvent",
     "WheelEvent",
     "CssStyleDeclaration",
+    "DomRect",
 ] }
 
 [lints]
