@@ -20,7 +20,16 @@ tracing.workspace = true
 wasm-bindgen.workspace = true
 wasm-bindgen-futures.workspace = true
 js-sys.workspace = true
-web-sys = { workspace = true, features = ["Window", "Document", "console"] }
+web-time.workspace = true
+web-sys = { workspace = true, features = [
+    "Window",
+    "Document",
+    "console",
+    "Element",
+    "HtmlCanvasElement",
+    "PointerEvent",
+    "KeyboardEvent",
+] }
 
 [lints]
 workspace = true

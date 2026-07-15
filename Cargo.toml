@@ -26,6 +26,7 @@ leptos_router = { version = "0.8" }
 
 # gpu
 wgpu = { version = "30", default-features = false, features = ["webgpu", "webgl", "wgsl"] }
+bytemuck = { version = "1", features = ["derive"] }
 
 # wasm glue
 wasm-bindgen = "0.2"

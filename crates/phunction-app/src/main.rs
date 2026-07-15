@@ -3,6 +3,7 @@
 //! Routing + panels. Heavy machinery lives in the engine crates; this crate
 //! is deliberately just wiring and view code.
 
+mod lab;
 mod phazor_panel;
 mod raf;
 
@@ -31,7 +32,8 @@ fn App() -> impl IntoView {
             <Routes fallback=NotFound>
                 <Route path=path!("/") view=Home />
                 <Route path=path!("/phazor") view=phazor_panel::PhazorPage />
-                <Route path=path!("/lab") view=LabIndex />
+                <Route path=path!("/lab") view=lab::LabIndex />
+                <Route path=path!("/lab/:id") view=lab::LabView />
             </Routes>
         </Router>
     }
@@ -57,17 +59,6 @@ fn Home() -> impl IntoView {
                 </A>
             </div>
             <p class="fine">"all Rust · all open · runs on anything with a browser"</p>
-        </main>
-    }
-}
-
-/// Lab index (harness lands next; honest placeholder, not vaporware).
-#[component]
-fn LabIndex() -> impl IntoView {
-    view! {
-        <main class="hero">
-            <h1>"the lab"</h1>
-            <p class="tagline">"⟨ phunctors assembling — wgpu harness is being wired ⟩"</p>
         </main>
     }
 }

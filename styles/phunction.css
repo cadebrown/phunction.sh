@@ -143,3 +143,19 @@ input[type="range"] { accent-color: var(--hot); width: 100%; }
 .meter .peak { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--hot); }
 .stats { display: flex; gap: 1.2rem; color: var(--ink-dim); font-size: 0.85rem; }
 .stats .warn { color: var(--hot); }
+
+/* ---- lab viewer ---- */
+.labview { position: fixed; inset: 0; background: #000; }
+.labcanvas { width: 100%; height: 100%; display: block; touch-action: none; }
+.labhud {
+  position: absolute; left: 0.9rem; bottom: 0.7rem;
+  display: flex; gap: 1.2rem; align-items: baseline;
+  color: var(--ink-dim); font-size: 0.8rem;
+  text-shadow: 0 0 6px #000;
+  opacity: 0.85;
+}
+.labhud .hint { opacity: 0.7; }
+.gfx-error {
+  position: absolute; top: 40%; width: 100%; text-align: center;
+  color: var(--hot); z-index: 2;
+}
