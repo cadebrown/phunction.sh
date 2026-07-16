@@ -917,3 +917,7 @@ html.fnord body { animation: fnord-storm 4s ease-in-out; }
 /* ---- presets ---- */
 .xport.preset { font-size: 1rem; padding: 0.7rem 1.4rem; }
 .preset-hint { color: var(--faint); font-size: 0.75rem; align-self: center; }
+
+/* viewport mind selector */
+.vp-select { display: flex; gap: 0.5rem; flex-wrap: wrap; width: 100%; margin-bottom: 0.6rem; }
+.xport.vp { font-size: 0.82rem; padding: 0.35rem 0.9rem; }

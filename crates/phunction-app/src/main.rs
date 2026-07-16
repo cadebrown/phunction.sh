@@ -3,11 +3,11 @@
 //! Routing + panels. Heavy machinery lives in the engine crates; this crate
 //! is deliberately just wiring and view code.
 
+mod camera;
 mod design_lab;
 mod fractal;
 mod fun;
 mod hud;
-mod lab;
 mod phasor_hero;
 mod phazor_panel;
 mod rack;
@@ -42,7 +42,7 @@ fn App() -> impl IntoView {
                 </A>
                 <div class="links">
                     <A href="/phazor">"phazor"</A>
-                    <A href="/lab">"lab"</A>
+                    <A href="/studio">"studio"</A>
                     <a href="https://github.com/cadebrown/phunction.sh" target="_blank" rel="noopener">"src"</a>
                 </div>
             </nav>
@@ -50,8 +50,6 @@ fn App() -> impl IntoView {
             <Routes fallback=NotFound>
                 <Route path=path!("/") view=Home />
                 <Route path=path!("/phazor") view=phazor_panel::PhazorPage />
-                <Route path=path!("/lab") view=lab::LabIndex />
-                <Route path=path!("/lab/:id") view=lab::LabView />
                 <Route path=path!("/design") view=design_lab::DesignLab />
                 <Route path=path!("/studio") view=studio::Studio />
             </Routes>
@@ -113,12 +111,12 @@ fn Home() -> impl IntoView {
                         "a DAW whose engine runs as a thread inside your audio driver. sixteen steps, sixteen phases."
                     </span>
                 </A>
-                <A href="/lab" attr:class="fig">
+                <A href="/studio" attr:class="fig">
                     <span class="fig-glyph">"ℂ"</span>
                     <span class="fig-label">"fig. 2"</span>
-                    <span class="fig-name">"the lab"</span>
+                    <span class="fig-name">"the studio"</span>
                     <span class="fig-desc">
-                        "shader experiments on the complex plane. one URL each — feed them a projector."
+                        "the toolkit playground: faders, surfaces, neural toys — every control is a signal."
                     </span>
                 </A>
             </nav>

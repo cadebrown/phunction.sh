@@ -35,6 +35,11 @@ web-sys = { workspace = true, features = [
     "Gamepad",
     "GamepadButton",
     "Navigator",
+    "MediaDevices",
+    "MediaStream",
+    "MediaStreamConstraints",
+    "HtmlVideoElement",
+    "HtmlMediaElement",
 ] }
 
 [lints]

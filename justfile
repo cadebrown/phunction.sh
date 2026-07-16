@@ -34,6 +34,14 @@ wait-build stamp='':
     done
     echo "timeout waiting for rebuild" >&2; exit 1
 
+# One-shot dev rebuild into dist/ (~3s warm). The running `just dev` serves
+# dist/ from disk, so this lands without its file watcher — use when the
+# watcher wedges (it drops events after error bursts) or for deterministic
+# agent-driven rebuilds. Reload the browser manually; the auto-reload
+# websocket only fires on watcher builds.
+rebuild:
+    RUSTFLAGS='{{WASM_RUSTFLAGS}}' CARGO_UNSTABLE_BUILD_STD={{BUILD_STD}} trunk build
+
 # Production build into dist/.
 build:
     RUSTFLAGS='{{WASM_RUSTFLAGS}}' CARGO_UNSTABLE_BUILD_STD={{BUILD_STD}} trunk build --release

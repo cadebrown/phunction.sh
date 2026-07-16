@@ -11,11 +11,13 @@
 //! it up from there.
 
 pub mod context;
+pub mod field_phunctor;
 pub mod phunctor;
 pub mod scene;
 pub mod shader_phunctor;
 
 pub use context::{GfxContext, GfxError};
+pub use field_phunctor::FieldPhunctor;
 pub use phunctor::{FrameInput, Phunctor, PhunctorDef, PhunctorMeta};
 pub use scene::Scene3d;
 pub use shader_phunctor::ShaderPhunctor;
@@ -36,6 +38,25 @@ pub static REGISTRY: &[PhunctorDef] = &[
     },
     PhunctorDef {
         meta: PhunctorMeta {
+            id: "gyroid",
+            name: "gyroid",
+            glyph: "▚",
+            tagline: "flight through a twisted minimal surface — one labyrinth of two",
+        },
+        create: |gfx| Box::new(ShaderPhunctor::new(gfx, GYROID_WGSL)),
+    },
+    PhunctorDef {
+        meta: PhunctorMeta {
+            id: "cortex",
+            name: "cortex",
+            glyph: "ψ",
+            tagline:
+                "a neural field: a 5→12→12→3 network painting per pixel, listening to the music",
+        },
+        create: |gfx| Box::new(ShaderPhunctor::new(gfx, CORTEX_WGSL)),
+    },
+    PhunctorDef {
+        meta: PhunctorMeta {
             id: "argand",
             name: "argand",
             glyph: "ℂ",
@@ -53,6 +74,12 @@ pub static REGISTRY: &[PhunctorDef] = &[
 /// citadel's WGSL, exposed so the phazor workstation can host the same
 /// fractal in its viewport that the lab shows fullscreen.
 pub const CITADEL_WGSL: &str = include_str!("../shaders/citadel.wgsl");
+/// gyroid's WGSL (workstation viewport option).
+pub const GYROID_WGSL: &str = include_str!("../shaders/gyroid.wgsl");
+/// cortex's WGSL (workstation viewport option).
+pub const CORTEX_WGSL: &str = include_str!("../shaders/cortex.wgsl");
+/// specter's WGSL (camera field; workstation viewport option).
+pub const SPECTER_WGSL: &str = include_str!("../shaders/specter.wgsl");
 
 /// Look up a phunctor by URL slug.
 #[must_use]
