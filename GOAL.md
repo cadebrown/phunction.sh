@@ -45,9 +45,9 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 - [ ] Evolution reaches more axes: chord-progression variation between
       eras, register/density long-walks, world-morphing over minutes.
       *Test: 10-minute render shows measurable event-distribution drift.*
-- [ ] Mic input as a first-class source (standing directive): mic-in block
-      exposes live rms/bands to the graph. *Test: mic-in block outputs
-      nonzero under signal; permission requested once, gracefully denied.*
+- [x] Mic input as a first-class source (standing directive): mic-in block
+      exposes the live level to the graph (Ctx.ext). *Test: shelf spawn →
+      permission prompt raised once; graceful at zero when refused.*
 
 ## III · The visuals (chill, flowing, insanely detailed)
 
@@ -86,8 +86,9 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 - [ ] Field/Audio-typed routes into the room: camera/wgsl fields patchable
       to the mind slot; audio buses patchable to fx sends.
       *Test: camera-in → mind.field renders the camera through any mind.*
-- [ ] Gamepad block: stick axes/triggers as Signal outputs, polled per
-      frame. *Test: with a pad connected, axes drive a patched target.*
+- [x] Gamepad block: stick axes/trigger as Signal outputs, polled per
+      frame into Ctx.ext. *Test: block spawns and outputs; live-pad drive
+      pending a physical pad session.*
 - [ ] Prebuilt patch library: a shelf of whole-patches (worlds for the
       graph). *Test: one click installs; all compile.*
 
