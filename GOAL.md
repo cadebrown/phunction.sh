@@ -69,8 +69,10 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
       shown in place, source persisted. *Verified: starter compiles and
       takes the room; 'nonsense_symbol' shows the parse error while the
       last good pipeline keeps rendering.*
-- [ ] More generative-geometry minds tuned for flow (curl-noise advection,
-      reaction-diffusion, lenia-like). *Test: same as minds above.*
+- [~] More generative-geometry minds tuned for flow: current (curl-noise
+      streaks — divergence-free flow, verified live) joins silk. Remaining:
+      reaction-diffusion / lenia need feedback render targets (new gfx
+      infra). *Test: same as minds above.*
 
 ## IV · The constructive graph (everything is patchable)
 

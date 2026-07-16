@@ -84,6 +84,8 @@ pub const BASILICA_WGSL: &str = include_str!("../shaders/basilica.wgsl");
 pub const GASKET_WGSL: &str = include_str!("../shaders/gasket.wgsl");
 /// The silk mind: domain-warped flow noise — the flowy one.
 pub const SILK_WGSL: &str = include_str!("../shaders/silk.wgsl");
+/// The current mind: curl-noise flow — slow water in the dark.
+pub const CURRENT_WGSL: &str = include_str!("../shaders/current.wgsl");
 /// specter's WGSL (camera field; workstation viewport option).
 pub const SPECTER_WGSL: &str = include_str!("../shaders/specter.wgsl");
 

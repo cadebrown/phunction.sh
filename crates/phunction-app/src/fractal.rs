@@ -96,8 +96,9 @@ impl Default for CitadelParams {
 
 /// The selectable minds and their per-mind control names — every fader
 /// tells the truth about what it does *for this visual*.
-const MINDS: [(&str, &str, [&str; 4]); 8] = [
+const MINDS: [(&str, &str, [&str; 4]); 9] = [
     ("silk", "silk", ["depth", "grain", "hue", "drift"]),
+    ("current", "current", ["flow", "eddies", "hue", "drift"]),
     ("wgsl", "wgsl", ["a", "b", "hue", "c"]),
     ("citadel", "citadel", ["scale", "warp", "hue", "dolly"]),
     ("gyroid", "gyroid", ["thickness", "twist", "hue", "speed"]),
@@ -250,6 +251,10 @@ pub fn CitadelRack(
                                 "silk" => {
                                     Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::SILK_WGSL))
                                 }
+                                "current" => Vp::Shader(ShaderPhunctor::new(
+                                    &ctx,
+                                    phunction_gfx::CURRENT_WGSL,
+                                )),
 
                                 "basilica" => Vp::Shader(ShaderPhunctor::new(
                                     &ctx,
