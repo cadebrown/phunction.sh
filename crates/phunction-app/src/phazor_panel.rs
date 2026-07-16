@@ -99,6 +99,12 @@ impl Cv {
 }
 
 #[cfg(target_arch = "wasm32")]
+thread_local! {
+    /// Latest transport state, mirrored for the space-bar toggle.
+    static LAST_PLAYING: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+#[cfg(target_arch = "wasm32")]
 pub(crate) mod wiring {
     use super::Meters;
     use leptos::prelude::*;
@@ -135,6 +141,7 @@ pub(crate) mod wiring {
                                 }
                                 if let Some(f) = latest {
                                     LAST.with(|l| l.set(f));
+                                    super::LAST_PLAYING.with(|p| p.set(f.playing));
                                     // the resume checkpoint: beats + playing,
                                     // stamped every ~2s — only while running
                                     // (a stopped engine must not clobber the
@@ -291,13 +298,26 @@ pub fn PhazorPage() -> impl IntoView {
                 if tag == "INPUT" || tag == "TEXTAREA" {
                     return;
                 }
-                if ev.key() == "z" {
-                    if let Some(root) = web_sys::window()
-                        .and_then(|w| w.document())
-                        .and_then(|d| d.document_element())
-                    {
-                        let _ = root.class_list().toggle("zen");
+                match ev.key().as_str() {
+                    "z" => {
+                        if let Some(root) = web_sys::window()
+                            .and_then(|w| w.document())
+                            .and_then(|d| d.document_element())
+                        {
+                            let _ = root.class_list().toggle("zen");
+                        }
                     }
+                    " " => {
+                        // the keyhint is a promise: space toggles transport
+                        ev.prevent_default();
+                        if LAST_PLAYING.with(std::cell::Cell::get) {
+                            wiring::send(Command::Stop);
+                        } else {
+                            wiring::send(Command::Play);
+                        }
+                    }
+                    "Escape" => wiring::send(Command::AllNotesOff),
+                    _ => {}
                 }
             });
         if let Some(w) = web_sys::window() {
@@ -329,8 +349,9 @@ pub fn PhazorPage() -> impl IntoView {
             .iter()
             .map(|on| if *on { '1' } else { '0' })
             .collect();
+        let c = citadel.get();
         let state = format!(
-            "v1;{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{}",
+            "v2;{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{}",
             tempo.get(),
             cv.cutoff.get(),
             cv.resonance.get(),
@@ -348,6 +369,11 @@ pub fn PhazorPage() -> impl IntoView {
             cv.seed.get(),
             cv.scale.get(),
             bits,
+            c.scale,
+            c.warp,
+            c.hue,
+            c.dolly,
+            u8::from(c.auto),
         );
         if hydrated.get_value() {
             wiring::save_state("phazor:state", &state);
@@ -362,7 +388,7 @@ pub fn PhazorPage() -> impl IntoView {
     let start_world = move || {
         if !booted.get_value() {
             booted.set_value(true);
-            if !restore_session(steps, tempo, cv) {
+            if !restore_session(steps, tempo, cv, citadel) {
                 apply_preset(&PRESETS[0], steps, citadel, tempo, cv);
             }
             hydrated.set_value(true);
@@ -906,12 +932,17 @@ fn ExprRack(
 /// Rebuild the whole machine from the persisted state; `false` if there is
 /// none (first visit) and the opening world should play instead. The clock
 /// checkpoint seeks the transport, so a reload resumes mid-set.
-fn restore_session(steps: RwSignal<[bool; 16]>, tempo: RwSignal<f32>, cv: Cv) -> bool {
+fn restore_session(
+    steps: RwSignal<[bool; 16]>,
+    tempo: RwSignal<f32>,
+    cv: Cv,
+    citadel: RwSignal<crate::fractal::CitadelParams>,
+) -> bool {
     let Some(state) = wiring::load_state("phazor:state") else {
         return false;
     };
     let parts: Vec<&str> = state.split(';').collect();
-    if parts.len() != 18 || parts[0] != "v1" {
+    if parts.len() != 23 || parts[0] != "v2" {
         return false;
     }
     let f = |i: usize| parts[i].parse::<f32>().unwrap_or(0.5);
@@ -959,6 +990,17 @@ fn restore_session(steps: RwSignal<[bool; 16]>, tempo: RwSignal<f32>, cv: Cv) ->
             }),
         });
     }
+    citadel.update(|c| {
+        let generation = c.gen + 1;
+        *c = crate::fractal::CitadelParams {
+            scale: f(18),
+            warp: f(19),
+            hue: f(20),
+            dolly: f(21),
+            auto: parts[22] != "0",
+            gen: generation,
+        };
+    });
     // the clock checkpoint: land where the set left off
     if let Some(clock) = wiring::load_state("phazor:clock") {
         if let Some((beats, playing)) = clock.split_once(';') {

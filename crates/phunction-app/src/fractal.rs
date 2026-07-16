@@ -58,7 +58,19 @@ pub fn CitadelRack(
 ) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
     let error = RwSignal::new(None::<String>);
-    let mind = RwSignal::new("silk");
+    let mind = RwSignal::new(
+        crate::phazor_panel::wiring::load_state("phazor:mind")
+            .and_then(|m| {
+                MINDS
+                    .iter()
+                    .find(|(id, _, _)| *id == m)
+                    .map(|(id, _, _)| *id)
+            })
+            .unwrap_or("silk"),
+    );
+    Effect::new(move |_| {
+        crate::phazor_panel::wiring::save_state("phazor:mind", mind.get());
+    });
 
     #[cfg(target_arch = "wasm32")]
     {
@@ -94,7 +106,9 @@ pub fn CitadelRack(
                     }
                 };
                 let webgpu = ctx.backend() == "webgpu";
-                let mut current = "silk";
+                // sentinel: the first raf frame installs whatever mind the
+                // signal restored, through the normal swap path
+                let mut current = "";
                 let mut vp = Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::SILK_WGSL));
                 let t0 = web_time::Instant::now();
                 let mut last_beat = 0u64;

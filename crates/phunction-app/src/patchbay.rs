@@ -71,6 +71,8 @@ mod state {
         pub static NODE_DRAG: Cell<Option<(NodeId, f64, f64)>> = const { Cell::new(None) };
         pub static SEEDED: Cell<bool> = const { Cell::new(false) };
         pub static TICKING: Cell<bool> = const { Cell::new(false) };
+        pub static SAVED_REV: Cell<u64> = const { Cell::new(u64::MAX) };
+        pub static SAVE_TICK: Cell<u32> = const { Cell::new(0) };
         /// Set when a cable just landed, so the click that follows the
         /// pointerup doesn't immediately unplug the fresh connection.
         pub static JUST_LANDED: Cell<bool> = const { Cell::new(false) };
@@ -112,44 +114,86 @@ pub fn Patchbay() -> impl IntoView {
 
         let bump = move || rev.update(|r| *r += 1);
 
-        // spawn a starter patch once: lfo → mind.warp, so the bay is never
-        // an empty void (qualia idle rule: alive before you touch it).
-        // Thread-local guards, not per-mount state: the graph outlives the
-        // component, so a remount must not re-seed or double-tick.
+        // build a graph from patch text: shared by run-patch, boot restore
+        let install_patch = move |src: &str| -> Result<(), String> {
+            let plan = phunction_graph::patch::compile(src, &crate::patchbay::TARGET_KEYS)
+                .map_err(|e| format!("line {}: {}", e.line, e.msg))?;
+            let (graph, ids) = phunction_graph::patch::build(&plan)?;
+            let n = plan.nodes.len();
+            let total = ids.len();
+            let mut depth = vec![0usize; total];
+            for _ in 0..n {
+                for ((si, _), (di, _)) in &plan.links {
+                    if depth[*di] <= depth[*si] {
+                        depth[*di] = depth[*si] + 1;
+                    }
+                }
+            }
+            for (r, (si, _, _)) in plan.routes.iter().enumerate() {
+                depth[n + r] = depth[*si] + 1;
+            }
+            // saved positions (order-keyed) beat the auto-layout
+            let saved_xy: Vec<(f64, f64)> =
+                crate::phazor_panel::wiring::load_state("phazor:patch-xy")
+                    .map(|t| {
+                        t.split(';')
+                            .filter_map(|p| {
+                                let (x, y) = p.split_once(',')?;
+                                Some((x.parse().ok()?, y.parse().ok()?))
+                            })
+                            .collect()
+                    })
+                    .unwrap_or_default();
+            GRAPH.with(|g| *g.borrow_mut() = graph);
+            NODES.with(|nlist| {
+                let mut nlist = nlist.borrow_mut();
+                nlist.clear();
+                let mut rows = std::collections::HashMap::<usize, usize>::new();
+                for (i, id) in ids.iter().enumerate() {
+                    let kind = if i < n {
+                        plan.nodes[i].kind.to_string()
+                    } else {
+                        "param-out".to_string()
+                    };
+                    let row = rows.entry(depth[i]).or_insert(0);
+                    *row += 1;
+                    #[allow(clippy::cast_precision_loss)]
+                    let (ax, ay) = (
+                        26.0 + depth[i] as f64 * 210.0,
+                        24.0 + (*row - 1) as f64 * 128.0,
+                    );
+                    let (x, y) = saved_xy
+                        .get(i)
+                        .copied()
+                        .filter(|_| saved_xy.len() == total)
+                        .unwrap_or((ax, ay));
+                    nlist.push(NodeUi {
+                        id: *id,
+                        kind,
+                        x,
+                        y,
+                        ring: Vec::new(),
+                    });
+                }
+            });
+            bump();
+            Ok(())
+        };
+
+        // boot: the saved patch if there is one (a live set never
+        // evaporates), else the starter — the bay is never an empty void
         if !state::SEEDED.with(std::cell::Cell::get) {
             state::SEEDED.with(|s| s.set(true));
-            GRAPH.with(|g| {
-                let mut g = g.borrow_mut();
-                let lfo = g.add(library::build("lfo").unwrap());
-                let knob = g.add(library::build("knob").unwrap());
-                let sink = g.add(library::build("param-out").unwrap());
-                let _ = g.connect((lfo, 0), (sink, 0));
-                let _ = g.connect((knob, 0), (lfo, 0));
-                NODES.with(|n| {
-                    let mut n = n.borrow_mut();
-                    n.push(NodeUi {
-                        id: knob,
-                        kind: "knob".into(),
-                        x: 30.0,
-                        y: 150.0,
-                        ring: Vec::new(),
-                    });
-                    n.push(NodeUi {
-                        id: lfo,
-                        kind: "lfo".into(),
-                        x: 230.0,
-                        y: 90.0,
-                        ring: Vec::new(),
-                    });
-                    n.push(NodeUi {
-                        id: sink,
-                        kind: "param-out".into(),
-                        x: 460.0,
-                        y: 120.0,
-                        ring: Vec::new(),
-                    });
-                });
-            });
+            let saved = crate::phazor_panel::wiring::load_state("phazor:patch");
+            let restored = saved
+                .as_deref()
+                .is_some_and(|text| install_patch(text).is_ok());
+            if let Some(text) = saved {
+                code_src.set(text);
+            }
+            if !restored {
+                let _ = install_patch("k = knob 0.5\nl = lfo rate=k\nl -> mind.warp");
+            }
         }
 
         // the patch clock: tick the graph every animation frame against the
@@ -220,6 +264,36 @@ pub fn Patchbay() -> impl IntoView {
                 }
                 MIND_MODS.with(|m| m.set(mods));
                 frame.update(|f| *f += 1);
+                // autosave: any structural change (rev moved) lands in
+                // storage within a second — a live set never evaporates
+                let tick = state::SAVE_TICK.with(|t| {
+                    let v = t.get() + 1;
+                    t.set(v);
+                    v
+                });
+                if tick.is_multiple_of(60) {
+                    let now_rev = rev.get_untracked();
+                    if state::SAVED_REV.with(std::cell::Cell::get) != now_rev {
+                        state::SAVED_REV.with(|r| r.set(now_rev));
+                        let listed: Vec<(NodeId, String)> = NODES.with(|nl| {
+                            nl.borrow()
+                                .iter()
+                                .map(|nd| (nd.id, nd.kind.clone()))
+                                .collect()
+                        });
+                        let text =
+                            GRAPH.with(|g| phunction_graph::patch::render(&g.borrow(), &listed));
+                        crate::phazor_panel::wiring::save_state("phazor:patch", &text);
+                        let xy: String = NODES.with(|nl| {
+                            nl.borrow()
+                                .iter()
+                                .map(|nd| format!("{:.0},{:.0}", nd.x, nd.y))
+                                .collect::<Vec<_>>()
+                                .join(";")
+                        });
+                        crate::phazor_panel::wiring::save_state("phazor:patch-xy", &xy);
+                    }
+                }
                 true
             });
         }
@@ -278,70 +352,18 @@ pub fn Patchbay() -> impl IntoView {
             bump();
         };
 
-        // code → graph: compile, build, lay nodes out by dependency depth
-        let run_patch = move |_ev: web_sys::MouseEvent| {
-            let src = code_src.get_untracked();
-            let plan = match phunction_graph::patch::compile(&src, &crate::patchbay::TARGET_KEYS) {
-                Ok(p) => p,
-                Err(e) => {
-                    code_bad.set(true);
-                    code_msg.set(format!("✗ line {}: {}", e.line, e.msg));
-                    return;
+        // code → graph: compile, build, lay out (saved positions win)
+        let run_patch =
+            move |_ev: web_sys::MouseEvent| match install_patch(&code_src.get_untracked()) {
+                Ok(()) => {
+                    code_bad.set(false);
+                    code_msg.set("patched — the graph is the code now".into());
                 }
-            };
-            match phunction_graph::patch::build(&plan) {
                 Err(e) => {
                     code_bad.set(true);
                     code_msg.set(format!("✗ {e}"));
                 }
-                Ok((graph, ids)) => {
-                    code_bad.set(false);
-                    code_msg.set(format!(
-                        "patched · {} nodes, {} cables, {} routes",
-                        plan.nodes.len(),
-                        plan.links.len(),
-                        plan.routes.len()
-                    ));
-                    let n = plan.nodes.len();
-                    let total = ids.len();
-                    let mut depth = vec![0usize; total];
-                    for _ in 0..n {
-                        for ((si, _), (di, _)) in &plan.links {
-                            if depth[*di] <= depth[*si] {
-                                depth[*di] = depth[*si] + 1;
-                            }
-                        }
-                    }
-                    for (r, (si, _, _)) in plan.routes.iter().enumerate() {
-                        depth[n + r] = depth[*si] + 1;
-                    }
-                    GRAPH.with(|g| *g.borrow_mut() = graph);
-                    NODES.with(|nlist| {
-                        let mut nlist = nlist.borrow_mut();
-                        nlist.clear();
-                        let mut rows = std::collections::HashMap::<usize, usize>::new();
-                        for (i, id) in ids.iter().enumerate() {
-                            let kind = if i < n {
-                                plan.nodes[i].kind.to_string()
-                            } else {
-                                "param-out".to_string()
-                            };
-                            let row = rows.entry(depth[i]).or_insert(0);
-                            *row += 1;
-                            #[allow(clippy::cast_precision_loss)]
-                            nlist.push(NodeUi {
-                                id: *id,
-                                kind,
-                                x: 26.0 + depth[i] as f64 * 210.0,
-                                y: 24.0 + (*row - 1) as f64 * 128.0,
-                                ring: Vec::new(),
-                            });
-                        }
-                    });
-                    bump();
-                }
-            }
-        };
+            };
 
         // graph → code: the inverse door
         let to_code = move |_ev: web_sys::MouseEvent| {
@@ -682,6 +704,7 @@ fn node_view(
                                     b.set_param(v);
                                 }
                             });
+                            bump(); // autosave sees the turn
                         }
                     }
                 />
@@ -696,7 +719,10 @@ fn node_view(
                             g.borrow_mut().block_mut(id).map(|b| b.set_code(&src))
                         });
                         match result {
-                            Some(Ok(())) => status.set("expr compiled".into()),
+                            Some(Ok(())) => {
+                                status.set("expr compiled".into());
+                                bump(); // autosave sees the new program
+                            }
                             Some(Err(e)) => status.set(format!("expr ✗ {e}")),
                             None => {}
                         }
