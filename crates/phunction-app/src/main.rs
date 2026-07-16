@@ -5,6 +5,7 @@
 
 mod camera;
 mod design_lab;
+mod expr_slot;
 mod fractal;
 mod fun;
 mod gfx_gate;

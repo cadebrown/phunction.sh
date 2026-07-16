@@ -78,6 +78,10 @@ pub const CITADEL_WGSL: &str = include_str!("../shaders/citadel.wgsl");
 pub const GYROID_WGSL: &str = include_str!("../shaders/gyroid.wgsl");
 /// cortex's WGSL (workstation viewport option).
 pub const CORTEX_WGSL: &str = include_str!("../shaders/cortex.wgsl");
+/// The basilica mind: a raymarched mandelbox (box-fold ∘ sphere-fold).
+pub const BASILICA_WGSL: &str = include_str!("../shaders/basilica.wgsl");
+/// The gasket mind: an apollonian packing via repeated inversion.
+pub const GASKET_WGSL: &str = include_str!("../shaders/gasket.wgsl");
 /// specter's WGSL (camera field; workstation viewport option).
 pub const SPECTER_WGSL: &str = include_str!("../shaders/specter.wgsl");
 

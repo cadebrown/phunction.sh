@@ -455,6 +455,8 @@ pub fn PhazorPage() -> impl IntoView {
                         <Led on=Signal::derive(move || meters.get().rms_l + meters.get().rms_r > 0.005) hue=145.0 label="sig" />
                     </RackPanel>
 
+                    <ExprRack meters=meters />
+
                     <svg class="cable" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                         <path class="cable-shadow" d="M26.5 57 C 29 86, 40 74, 43.5 42"></path>
                         <path class="cable-core" d="M26.5 56 C 29 84, 40 72, 43.5 41"></path>
@@ -704,4 +706,83 @@ fn apply_preset(
         *c = p.citadel;
         c.gen = gen;
     });
+}
+
+/// The expr rack: a text field that is a patch cable. Type a formula in
+/// phunction's little language, pick a fader to possess, and the viewport
+/// obeys — parse errors answer in theorem voice, addressed to the character.
+#[component]
+fn ExprRack(
+    /// Telemetry signal (drives the live value needle at frame rate).
+    meters: RwSignal<Meters>,
+) -> impl IntoView {
+    const DEFAULT_SRC: &str = "0.3*sin(t*0.1) + bass*0.5";
+    let source = RwSignal::new(DEFAULT_SRC.to_string());
+    let target = RwSignal::new(1usize); // warp, by default
+    let error = RwSignal::new(None::<String>);
+
+    let install =
+        move || match phunction_graph::expr::parse(&source.get_untracked(), crate::expr_slot::VARS)
+        {
+            Ok(program) => {
+                error.set(None);
+                crate::expr_slot::set(Some((program, target.get_untracked())));
+            }
+            Err(e) => {
+                error.set(Some(format!("✗ at char {}: {}", e.pos + 1, e.msg)));
+                crate::expr_slot::set(None);
+            }
+        };
+    // arm the default expression on mount
+    install();
+
+    view! {
+        <RackPanel title="expr · a little language" class="span9">
+            <div class="expr-row">
+                <input
+                    class="expr-input"
+                    type="text"
+                    spellcheck="false"
+                    autocomplete="off"
+                    prop:value=move || source.get()
+                    on:input=move |ev| {
+                        source.set(event_target_value(&ev));
+                        install();
+                    }
+                    aria-label="modulation expression"
+                />
+                <div class="vp-select">
+                    {crate::expr_slot::TARGETS
+                        .into_iter()
+                        .enumerate()
+                        .map(|(i, name)| {
+                            view! {
+                                <button
+                                    class="xport vp"
+                                    class:lit=move || target.get() == i
+                                    on:click=move |_| {
+                                        target.set(i);
+                                        install();
+                                    }
+                                >
+                                    {"→ "}{name}
+                                </button>
+                            }
+                        })
+                        .collect_view()}
+                </div>
+            </div>
+            <div class="expr-status" class:err=move || error.get().is_some()>
+                {move || {
+                    let _ = meters.get(); // frame clock for the live needle
+                    error.get().unwrap_or_else(|| {
+                        format!(
+                            "⊢ vars: t · beat · bass · mid · air · rms   ∙   value {:+.3}",
+                            crate::expr_slot::last()
+                        )
+                    })
+                }}
+            </div>
+        </RackPanel>
+    }
 }

@@ -40,9 +40,11 @@ impl Default for CitadelParams {
 
 /// The selectable minds and their per-mind control names — every fader
 /// tells the truth about what it does *for this visual*.
-const MINDS: [(&str, &str, [&str; 4]); 4] = [
+const MINDS: [(&str, &str, [&str; 4]); 6] = [
     ("citadel", "◬ citadel", ["scale", "warp", "hue", "dolly"]),
     ("gyroid", "▚ gyroid", ["thickness", "twist", "hue", "speed"]),
+    ("basilica", "⛫ basilica", ["scale", "fold", "hue", "orbit"]),
+    ("gasket", "◍ gasket", ["ratio", "zoom", "hue", "drift"]),
     ("cortex", "ψ cortex", ["seed", "zoom", "hue", "flow"]),
     ("specter", "☉ specter", ["folds", "paint", "hue", "zoom"]),
 ];
@@ -108,6 +110,12 @@ pub fn CitadelRack(
                         vp = match want {
                             "gyroid" => {
                                 Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::GYROID_WGSL))
+                            }
+                            "basilica" => {
+                                Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::BASILICA_WGSL))
+                            }
+                            "gasket" => {
+                                Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::GASKET_WGSL))
                             }
                             "cortex" => {
                                 Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::CORTEX_WGSL))
@@ -218,19 +226,33 @@ pub fn CitadelRack(
                         (bands[a..z].iter().sum::<f32>() / (z - a) as f32).min(1.0)
                     };
 
+                    let mut mods = [
+                        (par.scale + ds).clamp(0.0, 1.0),
+                        (par.warp + dw + rms).clamp(0.0, 1.0),
+                        par.hue + pulse * 0.12,
+                        (par.dolly + dd).clamp(0.0, 1.0),
+                        coarse(0, 4),
+                        coarse(4, 8),
+                        coarse(8, 12),
+                        coarse(12, 16),
+                    ];
+                    // the little language gets the last word on the bus
+                    #[allow(clippy::cast_possible_truncation)]
+                    crate::expr_slot::apply(
+                        &mut mods,
+                        &[
+                            now,
+                            met.beats as f32,
+                            coarse(0, 4),
+                            coarse(4, 8),
+                            coarse(12, 16),
+                            rms,
+                        ],
+                    );
                     let input = FrameInput {
                         time: now,
                         aspect: size.0 as f32 / size.1 as f32,
-                        mods: [
-                            (par.scale + ds).clamp(0.0, 1.0),
-                            (par.warp + dw + rms).clamp(0.0, 1.0),
-                            par.hue + pulse * 0.12,
-                            (par.dolly + dd).clamp(0.0, 1.0),
-                            coarse(0, 4),
-                            coarse(4, 8),
-                            coarse(8, 12),
-                            coarse(12, 16),
-                        ],
+                        mods,
                     };
                     match &mut vp {
                         Vp::Shader(s) => s.frame(&ctx, &view, &input),

@@ -23,6 +23,7 @@
 //!    evaluation is a topological sweep per tick with a [`Ctx`] snapshot
 //!    (time, beats, audio telemetry, live-input handles).
 
+pub mod expr;
 pub mod graph;
 pub mod library;
 pub mod value;

@@ -11,6 +11,7 @@ authors.workspace = true
 phazor-core.workspace = true
 phazor-web.workspace = true
 phunction-gfx.workspace = true
+phunction-graph.workspace = true
 leptos.workspace = true
 leptos_router.workspace = true
 console_error_panic_hook.workspace = true

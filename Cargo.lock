@@ -1592,6 +1592,7 @@ dependencies = [
  "phazor-core",
  "phazor-web",
  "phunction-gfx",
+ "phunction-graph",
  "tracing",
  "wasm-bindgen",
  "wasm-bindgen-futures",
