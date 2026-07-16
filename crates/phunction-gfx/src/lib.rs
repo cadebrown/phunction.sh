@@ -11,12 +11,14 @@
 //! it up from there.
 
 pub mod context;
-pub mod field_phunctor;
+pub mod feedback_phunctor;
+mod field_phunctor;
 pub mod phunctor;
 pub mod scene;
 pub mod shader_phunctor;
 
 pub use context::{GfxContext, GfxError};
+pub use feedback_phunctor::FeedbackPhunctor;
 pub use field_phunctor::FieldPhunctor;
 pub use phunctor::{FrameInput, Phunctor, PhunctorDef, PhunctorMeta};
 pub use scene::Scene3d;
@@ -86,6 +88,10 @@ pub const GASKET_WGSL: &str = include_str!("../shaders/gasket.wgsl");
 pub const SILK_WGSL: &str = include_str!("../shaders/silk.wgsl");
 /// The current mind: curl-noise flow — slow water in the dark.
 pub const CURRENT_WGSL: &str = include_str!("../shaders/current.wgsl");
+/// The petri mind, sim pass: Gray-Scott reaction-diffusion.
+pub const PETRI_SIM_WGSL: &str = include_str!("../shaders/petri.wgsl");
+/// The petri mind, present pass: chemistry onto the canon wheel.
+pub const PETRI_PRESENT_WGSL: &str = include_str!("../shaders/petri_present.wgsl");
 /// specter's WGSL (camera field; workstation viewport option).
 pub const SPECTER_WGSL: &str = include_str!("../shaders/specter.wgsl");
 

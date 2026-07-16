@@ -112,9 +112,10 @@ impl Default for CitadelParams {
 
 /// The selectable minds and their per-mind control names — every fader
 /// tells the truth about what it does *for this visual*.
-const MINDS: [(&str, &str, [&str; 4]); 9] = [
+const MINDS: [(&str, &str, [&str; 4]); 10] = [
     ("silk", "silk", ["depth", "grain", "hue", "drift"]),
     ("current", "current", ["flow", "eddies", "hue", "drift"]),
+    ("petri", "petri", ["feed", "kill", "hue", "speed"]),
     ("wgsl", "wgsl", ["a", "b", "hue", "c"]),
     ("citadel", "citadel", ["scale", "warp", "hue", "dolly"]),
     ("gyroid", "gyroid", ["thickness", "twist", "hue", "speed"]),
@@ -154,7 +155,8 @@ pub fn CitadelRack(
     #[cfg(target_arch = "wasm32")]
     {
         use phunction_gfx::{
-            wgpu, FieldPhunctor, FrameInput, GfxContext, Phunctor as _, ShaderPhunctor,
+            wgpu, FeedbackPhunctor, FieldPhunctor, FrameInput, GfxContext, Phunctor as _,
+            ShaderPhunctor,
         };
         use std::cell::Cell;
         use wgpu::CurrentSurfaceTexture as Cst;
@@ -162,6 +164,7 @@ pub fn CitadelRack(
         enum Vp {
             Shader(ShaderPhunctor),
             Field(FieldPhunctor),
+            Feedback(FeedbackPhunctor),
         }
 
         let started = Cell::new(false);
@@ -277,6 +280,11 @@ pub fn CitadelRack(
                                 "current" => Vp::Shader(ShaderPhunctor::new(
                                     &ctx,
                                     phunction_gfx::CURRENT_WGSL,
+                                )),
+                                "petri" => Vp::Feedback(FeedbackPhunctor::new(
+                                    &ctx,
+                                    phunction_gfx::PETRI_SIM_WGSL,
+                                    phunction_gfx::PETRI_PRESENT_WGSL,
                                 )),
 
                                 "basilica" => Vp::Shader(ShaderPhunctor::new(
@@ -466,6 +474,7 @@ pub fn CitadelRack(
                     match &mut vp {
                         Vp::Shader(s) => s.frame(&ctx, &view, &input),
                         Vp::Field(f) => f.frame(&ctx, &view, &input),
+                        Vp::Feedback(f) => f.frame(&ctx, &view, &input),
                     }
                     ctx.queue.present(frame);
                     true
