@@ -149,6 +149,16 @@ outs: ["level": SIG],
     outs.push(Value::Signal(ctx.ext[0]));
 });
 
+block!(MidiIn, MIDI_IN_META, "midi-in", "midi in", "media",
+ins: [],
+outs: ["note": SIG, "vel": SIG, "mod": SIG],
+|self, ctx, ins, outs| {
+    // ext[4..7] = last MIDI note / velocity / mod-wheel, normalized
+    outs.push(Value::Signal(ctx.ext[4]));
+    outs.push(Value::Signal(ctx.ext[5]));
+    outs.push(Value::Signal(ctx.ext[6]));
+});
+
 block!(Pads, PADS_META, "pads", "gamepad", "source",
 ins: [],
 outs: ["x": SIG, "y": SIG, "trig": SIG],
@@ -340,6 +350,7 @@ pub fn build(id: &str) -> Option<Box<dyn Block>> {
         "audio-in" => Box::new(AudioIn::default()),
         "camera-in" => Box::new(CameraIn::default()),
         "mic-in" => Box::new(MicIn::default()),
+        "midi-in" => Box::new(MidiIn::default()),
         "pads" => Box::new(Pads::default()),
         "scale" => Box::new(Scale::default()),
         "mix" => Box::new(Mix::default()),
@@ -360,6 +371,7 @@ pub static SHELF: &[&BlockMeta] = &[
     &AUDIO_IN_META,
     &CAMERA_IN_META,
     &MIC_IN_META,
+    &MIDI_IN_META,
     &PADS_META,
     &EXPR_META,
     &SCALE_META,

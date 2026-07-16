@@ -131,9 +131,14 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 - [~] Arrow-key nudge + Home/End on focused knobs/faders — landed and
       verified (tempo nudged by keys). Remaining: focus order audit.
       *Test: keyboard-only session can play, patch, and mix.*
-- [ ] Gamepad → bus (see IV). MIDI-in as a stretch.
-- [ ] Real-device touch pass on iPad + Android Chromium.
-      *Test: all gesture suites pass on touch emulation at minimum.*
+- [x] Gamepad → bus (see IV). MIDI-in landed too: last note/velocity/
+      mod-wheel as a media block over Ctx.ext[4..7], requested on first
+      node use (Web MIDI, no sysex). *Verified: shelf spawn; hardware
+      drive pending a physical controller session.*
+- [~] Touch pass: the full gesture suite runs green with touch-type
+      pointers (fader drag 0.65→0.81, panel float, node drag 26→116px,
+      knob turn — all pointerType:'touch'). Real-device iPad/Android
+      session remains with Cade's hardware.
 
 ## VIII · UI quality (dense, legible, rock solid)
 

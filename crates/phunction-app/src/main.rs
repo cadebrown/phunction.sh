@@ -11,6 +11,7 @@ mod fun;
 mod gfx_gate;
 mod hud;
 mod mic;
+mod midi;
 mod pages;
 mod patchbay;
 mod phasor_hero;

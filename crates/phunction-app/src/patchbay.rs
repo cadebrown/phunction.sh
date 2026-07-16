@@ -250,6 +250,13 @@ pub fn Patchbay() -> impl IntoView {
                 };
                 let mut ext = [0.0f32; 8];
                 ext[0] = mic;
+                if NODES.with(|n| n.borrow().iter().any(|nd| nd.kind == "midi-in")) {
+                    crate::midi::request();
+                    let (note, vel, cc1) = crate::midi::snapshot();
+                    ext[4] = note;
+                    ext[5] = vel;
+                    ext[6] = cc1;
+                }
                 if let Some(pad) = web_sys::window()
                     .and_then(|w| w.navigator().get_gamepads().ok())
                     .and_then(|pads| {

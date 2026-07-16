@@ -47,6 +47,10 @@ web-sys = { workspace = true, features = [
     "AnalyserNode",
     "MediaStreamAudioSourceNode",
     "AudioContext",
+    "MidiAccess",
+    "MidiInput",
+    "MidiInputMap",
+    "MidiMessageEvent",
 ] }
 
 [lints]
