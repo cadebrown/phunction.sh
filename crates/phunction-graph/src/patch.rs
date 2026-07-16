@@ -85,14 +85,29 @@ pub fn compile(src: &str, keys: &[&'static str]) -> Result<Plan, PatchError> {
         }
 
         if let Some((lhs, rhs)) = line.split_once("->") {
-            // route: `name -> board.key`
+            // route: `name -> board.key`. Signals go to parameter keys;
+            // a Field goes to the room itself via `mind.field`.
             let name = lhs.trim();
             let key_txt = rhs.trim();
             let (src_ix, out_port) = resolve_ref(name, &names, &plan, line_no)?;
+            let from_ty = node_meta(&plan.nodes[src_ix]).outputs[out_port].ty;
+            if key_txt == "mind.field" {
+                if from_ty != crate::value::PortType::Field {
+                    return Err(err(
+                        line_no,
+                        format!("mind.field takes a Field, not {from_ty:?}"),
+                    ));
+                }
+                plan.routes.push((src_ix, out_port, "mind.field"));
+                continue;
+            }
             let Some(key) = keys.iter().find(|k| **k == key_txt) else {
                 return Err(err(
                     line_no,
-                    format!("unknown key `{key_txt}` (have: {})", keys.join(", ")),
+                    format!(
+                        "unknown key `{key_txt}` (have: {}, mind.field)",
+                        keys.join(", ")
+                    ),
                 ));
             };
             plan.routes.push((src_ix, out_port, key));
@@ -303,7 +318,11 @@ pub fn build(plan: &Plan) -> Result<(Graph, Vec<NodeId>), String> {
         })?;
     }
     for (si, sp, key) in &plan.routes {
-        let sink = g.add(Box::new(library::ParamOut { key }));
+        let sink = if *key == "mind.field" {
+            g.add(Box::new(library::FieldOut))
+        } else {
+            g.add(Box::new(library::ParamOut { key }))
+        };
         ids.push(sink);
         g.connect((ids[*si], *sp), (sink, 0))
             .map_err(|e| format!("route {} -> {key}: {e:?}", plan.nodes[*si].name))?;
@@ -320,7 +339,7 @@ pub fn render(graph: &Graph, nodes: &[(NodeId, String)]) -> String {
     let mut counts: std::collections::HashMap<&str, usize> = std::collections::HashMap::new();
     let mut names: std::collections::HashMap<usize, String> = std::collections::HashMap::new();
     for (id, kind) in nodes {
-        if kind == "param-out" {
+        if kind == "param-out" || kind == "field-out" {
             continue;
         }
         let n = counts.entry(kind.as_str()).or_insert(0);
@@ -374,6 +393,14 @@ pub fn render(graph: &Graph, nodes: &[(NodeId, String)]) -> String {
         };
         if let (Some(key), Some(src)) = (block.key(), feeder(*id, 0)) {
             let _ = writeln!(out, "{src} -> {key}");
+        }
+    }
+    for (id, kind) in nodes {
+        if kind != "field-out" {
+            continue;
+        }
+        if let Some(src) = feeder(*id, 0) {
+            let _ = writeln!(out, "{src} -> mind.field");
         }
     }
     out
@@ -431,7 +458,10 @@ e -> mind.warp
         let board = ctx.board.borrow();
         assert_eq!(board.len(), 1);
         assert_eq!(board[0].0, "mind.warp");
-        assert!(board[0].1.is_finite());
+        let crate::value::Value::Signal(v) = board[0].1 else {
+            panic!("routes write signals");
+        };
+        assert!(v.is_finite());
     }
 
     #[test]
@@ -484,6 +514,24 @@ e -> mind.warp
                 compile(text, &keys).unwrap_or_else(|e| panic!("library patch `{name}`: {e}"));
             build(&plan).unwrap_or_else(|e| panic!("library patch `{name}` build: {e}"));
         }
+    }
+
+    #[test]
+    fn field_routes_compile_and_reach_the_board() {
+        let plan = compile("cam = camera-in\ncam -> mind.field", KEYS).unwrap();
+        let (mut g, _ids) = build(&plan).unwrap();
+        let ctx = Ctx {
+            camera: crate::value::FieldId(1),
+            ..Ctx::default()
+        };
+        g.tick(&ctx);
+        let board = ctx.board.borrow();
+        assert_eq!(board.len(), 1);
+        assert_eq!(board[0].0, "mind.field");
+        assert!(matches!(board[0].1, crate::value::Value::Field(f) if f.0 == 1));
+
+        let e = compile("k = knob 0.5\nk -> mind.field", KEYS).unwrap_err();
+        assert!(e.msg.contains("takes a Field"), "{}", e.msg);
     }
 
     #[test]

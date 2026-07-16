@@ -331,13 +331,43 @@ impl Block for ParamOut {
         &PARAM_OUT_META
     }
     fn eval(&mut self, ctx: &Ctx, inputs: &[Value], _outputs: &mut Vec<Value>) {
-        ctx.board.borrow_mut().push((self.key, sig(&inputs[0])));
+        ctx.board
+            .borrow_mut()
+            .push((self.key, Value::Signal(sig(&inputs[0]))));
     }
     fn key(&self) -> Option<&'static str> {
         Some(self.key)
     }
     fn set_key(&mut self, key: &'static str) {
         self.key = key;
+    }
+}
+
+/// A field sink: routes a Field (camera, later render targets) to the
+/// room — the runtime reads `mind.field` off the board and switches the
+/// viewport onto that source. Cables into the architecture itself.
+#[derive(Debug, Default)]
+pub struct FieldOut;
+static FIELD_OUT_META: BlockMeta = BlockMeta {
+    id: "field-out",
+    name: "→ room",
+    category: "sink",
+    inputs: &[PortSpec {
+        name: "field",
+        ty: PortType::Field,
+    }],
+    outputs: &[],
+};
+impl Block for FieldOut {
+    fn meta(&self) -> &'static BlockMeta {
+        &FIELD_OUT_META
+    }
+    fn eval(&mut self, ctx: &Ctx, inputs: &[Value], _outputs: &mut Vec<Value>) {
+        if let Value::Field(id) = inputs[0] {
+            ctx.board
+                .borrow_mut()
+                .push(("mind.field", Value::Field(id)));
+        }
     }
 }
 
@@ -359,6 +389,7 @@ pub fn build(id: &str) -> Option<Box<dyn Block>> {
         "knob" => Box::new(Knob::default()),
         "expr" => Box::new(ExprBlock::starter()),
         "param-out" => Box::new(ParamOut { key: "mind.warp" }),
+        "field-out" => Box::new(FieldOut),
         _ => return None,
     })
 }
@@ -379,4 +410,5 @@ pub static SHELF: &[&BlockMeta] = &[
     &SLEW_META,
     &SPLIT_META,
     &PARAM_OUT_META,
+    &FIELD_OUT_META,
 ];

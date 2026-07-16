@@ -1,6 +1,8 @@
 //! The graph: typed nodes, validated edges, topological evaluation.
 
 use crate::library::Block;
+#[allow(unused_imports)] // Ctx::board's docs reference it
+use crate::library::ParamOut;
 use crate::value::{adapt, compat, AdapterKind, Compat, PortType, Value};
 use crate::value::{AudioId, FieldId};
 use core::cell::RefCell;
@@ -37,9 +39,10 @@ pub struct Ctx {
     /// External world inputs the runtime fills per frame:
     /// `[mic, pad_x, pad_y, pad_trigger, …]` — blocks read, never write.
     pub ext: [f32; 8],
-    /// Where [`crate::library::ParamOut`] sinks write: `(key, value)` per
-    /// tick, drained by the runtime.
-    pub board: RefCell<Vec<(&'static str, f32)>>,
+    /// Where sink blocks write: `(key, value)` per tick, drained by the
+    /// runtime. Values are typed — signals route to parameters, fields
+    /// route to the room (see `mind.field`).
+    pub board: RefCell<Vec<(&'static str, Value)>>,
 }
 
 impl Default for Ctx {
@@ -268,7 +271,10 @@ mod tests {
         assert_eq!(board.len(), 1);
         assert_eq!(board[0].0, "citadel.warp");
         // scale's mul input is unconnected → default 0 → output must be 0
-        assert!(board[0].1.abs() < 1e-6);
+        let Value::Signal(v) = board[0].1 else {
+            panic!("param-out writes signals");
+        };
+        assert!(v.abs() < 1e-6);
     }
 
     #[test]

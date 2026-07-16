@@ -60,6 +60,22 @@ pub fn request_mind(id: &'static str) {
     REQUEST.with(|r| r.set(Some(id)));
 }
 
+#[cfg(target_arch = "wasm32")]
+thread_local! {
+    /// The patch's routed field source (`mind.field` on the board), if any.
+    static ROUTED_FIELD: std::cell::Cell<Option<u32>> = const { std::cell::Cell::new(None) };
+}
+
+/// The patchbay routes (or unroutes) a field into the room.
+#[cfg(target_arch = "wasm32")]
+pub fn route_field(id: Option<u32>) {
+    ROUTED_FIELD.with(|r| r.set(id.filter(|id| *id != 0)));
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(dead_code)]
+pub fn route_field(_id: Option<u32>) {}
+
 #[cfg(not(target_arch = "wasm32"))]
 #[allow(dead_code)]
 pub fn request_mind(_id: &'static str) {}
@@ -188,7 +204,14 @@ pub fn CitadelRack(
                     if let Some(m) = REQUEST.with(std::cell::Cell::take) {
                         mind.set(m);
                     }
-                    let want = mind.get_untracked();
+                    // a routed field owns the room while the cable holds:
+                    // the patch is architecture, not decoration
+                    let routed = ROUTED_FIELD.with(std::cell::Cell::get).is_some();
+                    let want = if routed {
+                        "specter"
+                    } else {
+                        mind.get_untracked()
+                    };
                     // live wgsl: build candidates through a validation error
                     // scope; the running pipeline only swaps on approval, so
                     // broken code never blanks the room (GOAL III)

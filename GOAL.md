@@ -89,9 +89,13 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 - [x] The patch **is** the persistence: autosaves as text within 1s of any
       change; boot restores it. A live set never evaporates.
       *Test: mutate → reload → identical graph, code, and positions.*
-- [ ] Field/Audio-typed routes into the room: camera/wgsl fields patchable
-      to the mind slot; audio buses patchable to fx sends.
-      *Test: camera-in → mind.field renders the camera through any mind.*
+- [~] Field-typed routes into the room: the board carries typed Values;
+      `cam = camera-in / cam -> mind.field` compiles (Field-checked),
+      routes on the board, and takes the room onto the camera pipeline
+      while the cable holds — verified end-to-end (camera streaming into
+      the field). Remaining: fields through arbitrary minds (per-mind
+      field support) and audio buses to fx sends. *Tested: graph test +
+      live round-trip incl. render().*
 - [x] Gamepad block: stick axes/trigger as Signal outputs, polled per
       frame into Ctx.ext. *Test: block spawns and outputs; live-pad drive
       pending a physical pad session.*

@@ -64,6 +64,17 @@ pub fn mind_mods() -> [f32; 4] {
     [0.0; 4]
 }
 
+/// The library kind of a live block (sinks vary: param-out / field-out).
+#[cfg(target_arch = "wasm32")]
+fn graph_kind_of(
+    graph: &phunction_graph::graph::Graph,
+    id: phunction_graph::graph::NodeId,
+) -> String {
+    graph
+        .block(id)
+        .map_or_else(|| "param-out".to_string(), |b| b.meta().id.to_string())
+}
+
 #[cfg(target_arch = "wasm32")]
 mod state {
     use phunction_graph::graph::{Graph, NodeId};
@@ -173,16 +184,25 @@ pub fn Patchbay() -> impl IntoView {
                             .collect()
                     })
                     .unwrap_or_default();
+            // capture sink kinds before the graph moves into the cell
+            let sink_kinds: Vec<String> = ids
+                .iter()
+                .skip(n)
+                .map(|id| graph_kind_of(&graph, *id))
+                .collect();
             GRAPH.with(|g| *g.borrow_mut() = graph);
             NODES.with(|nlist| {
                 let mut nlist = nlist.borrow_mut();
                 nlist.clear();
                 let mut rows = std::collections::HashMap::<usize, usize>::new();
                 for (i, id) in ids.iter().enumerate() {
+                    // route sinks may be param-out OR field-out: ask the
+                    // graph rather than assuming (a field route rendered as
+                    // param-out silently vanishes from the round trip)
                     let kind = if i < n {
                         plan.nodes[i].kind.to_string()
                     } else {
-                        "param-out".to_string()
+                        sink_kinds[i - n].clone()
                     };
                     let row = rows.entry(depth[i]).or_insert(0);
                     *row += 1;
@@ -248,6 +268,10 @@ pub fn Patchbay() -> impl IntoView {
                 } else {
                     0.0
                 };
+                // a camera-in node on the bay is a request for the lens
+                if NODES.with(|n| n.borrow().iter().any(|nd| nd.kind == "camera-in")) {
+                    crate::camera::request();
+                }
                 let mut ext = [0.0f32; 8];
                 ext[0] = mic;
                 if NODES.with(|n| n.borrow().iter().any(|nd| nd.kind == "midi-in")) {
@@ -307,9 +331,21 @@ pub fn Patchbay() -> impl IntoView {
                         }
                     });
                 });
-                // drain the board: mind.* accumulate, engine keys forward
+                // drain the board: signal keys accumulate/forward, and a
+                // routed field switches the room onto that source
                 let mut mods = [0.0f32; 4];
-                for (key, v) in ctx.board.borrow().iter() {
+                let mut routed_field: Option<u32> = None;
+                for (key, value) in ctx.board.borrow().iter() {
+                    let v = match value {
+                        Value::Signal(s) | Value::Phase(s) => *s,
+                        Value::Field(id) => {
+                            if *key == "mind.field" {
+                                routed_field = Some(id.0);
+                            }
+                            continue;
+                        }
+                        _ => continue,
+                    };
                     match *key {
                         "mind.scale" => mods[0] += v,
                         "mind.warp" => mods[1] += v,
@@ -337,6 +373,7 @@ pub fn Patchbay() -> impl IntoView {
                     }
                 }
                 MIND_MODS.with(|m| m.set(mods));
+                crate::fractal::route_field(routed_field);
                 frame.update(|f| *f += 1);
                 // autosave: any structural change (rev moved) lands in
                 // storage within a second — a live set never evaporates
