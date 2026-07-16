@@ -4,6 +4,7 @@ use crate::event::{Command, ParamId, PARAM_COUNT};
 use crate::math::Smoothed;
 use crate::meter::{BlockMeter, MeterFrame};
 use crate::seq::{SeqEvent, SeqEventKind, StepSequencer, MAX_EVENTS_PER_BLOCK};
+use crate::spectrum::Spectrum;
 use crate::transport::Transport;
 use crate::voice::Voice;
 use crate::Sample;
@@ -24,6 +25,8 @@ pub struct Engine {
     voices: [Voice; VOICES],
     params: [Smoothed; PARAM_COUNT],
     meter: BlockMeter,
+    /// The on-thread analyzer feeding MeterFrame.bands.
+    spectrum: Spectrum,
     /// Monotone counter stamping gate-ons for voice-steal ordering.
     note_counter: u64,
     /// Scratch for the sequencer's per-block events (audio path: no alloc).
@@ -51,6 +54,7 @@ impl Engine {
             voices: [Voice::new(sample_rate); VOICES],
             params,
             meter: BlockMeter::default(),
+            spectrum: Spectrum::new(sample_rate),
             note_counter: 0,
             events: heapless::Vec::new(),
         }
@@ -165,6 +169,7 @@ impl Engine {
             v.flush();
             sounding += u8::from(v.sounding().is_some());
         }
+        self.spectrum.analyze(&left[..block_len]);
         let (peak_l, peak_r, rms_l, rms_r) = self.meter.finish();
         MeterFrame {
             frame: self.transport.frame(),
@@ -175,6 +180,7 @@ impl Engine {
             rms_r,
             voices: sounding,
             playing: self.transport.playing(),
+            bands: self.spectrum.levels(),
         }
     }
 

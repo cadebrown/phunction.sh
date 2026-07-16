@@ -14,10 +14,7 @@ use crate::phunctor::{FrameInput, Phunctor};
 struct Uniforms {
     time: f32,
     aspect: f32,
-    mod0: f32,
-    mod1: f32,
-    mod2: f32,
-    mod3: f32,
+    mods: [f32; 8],
     _pad: [f32; 2],
 }
 
@@ -120,10 +117,7 @@ impl Phunctor for ShaderPhunctor {
         let u = Uniforms {
             time: input.time,
             aspect: input.aspect,
-            mod0: input.mods[0],
-            mod1: input.mods[1],
-            mod2: input.mods[2],
-            mod3: input.mods[3],
+            mods: input.mods,
             _pad: [0.0; 2],
         };
         gfx.queue

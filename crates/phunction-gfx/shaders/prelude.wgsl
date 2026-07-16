@@ -8,6 +8,10 @@ struct U {
     mod1: f32,
     mod2: f32,
     mod3: f32,
+    mod4: f32,
+    mod5: f32,
+    mod6: f32,
+    mod7: f32,
     _pad0: f32,
     _pad1: f32,
 }

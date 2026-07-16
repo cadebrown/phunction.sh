@@ -897,3 +897,23 @@ html.fnord body { animation: fnord-storm 4s ease-in-out; }
 /* citadel viewport: taller, letterboxed dark */
 .fractal-canvas { height: 22rem; }
 .fold-side { display: flex; flex-direction: column; gap: 0.7rem; align-items: center; }
+
+/* ---- spectrum analyzer ---- */
+.spectrum-row {
+  display: flex; gap: 4px; align-items: flex-end;
+  width: 100%; height: 6.5rem;
+  padding: 6px; background: #120d1e;
+  border: 1px solid #090612;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+.spec-band { flex: 1; height: 100%; display: flex; align-items: flex-end; }
+.spec-fill {
+  width: 100%;
+  background: oklch(74% 0.16 calc(10deg + var(--i) * 22.5deg));
+  box-shadow: 0 0 8px oklch(74% 0.16 calc(10deg + var(--i) * 22.5deg) / 0.6);
+  transition: height 0.05s linear;
+}
+
+/* ---- presets ---- */
+.xport.preset { font-size: 1rem; padding: 0.7rem 1.4rem; }
+.preset-hint { color: var(--faint); font-size: 0.75rem; align-self: center; }

@@ -95,7 +95,7 @@ mod wiring {
                     time: t0.elapsed().as_secs_f32(),
                     aspect: size.0 as f32 / size.1 as f32,
                     // mod2 = intensity: visible weather, legible ink
-                    mods: [0.5, 0.5, 0.55, 0.5],
+                    mods: [0.5, 0.5, 0.55, 0.5, 0.0, 0.0, 0.0, 0.0],
                 };
                 field.frame(&ctx, &view, &input);
                 ctx.queue.present(frame);

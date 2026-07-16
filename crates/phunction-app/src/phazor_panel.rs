@@ -30,6 +30,8 @@ pub(crate) struct Meters {
     playing: bool,
     /// Commands dropped because the ring was full (debug HUD surfaces this).
     dropped: u32,
+    /// 16-band spectrum mirror.
+    bands: [f32; phazor_core::BANDS],
 }
 
 #[cfg(target_arch = "wasm32")]
@@ -78,6 +80,7 @@ pub(crate) mod wiring {
                                         m.voices = f.voices;
                                         m.playing = f.playing;
                                         m.dropped = DROPPED.with(|d| *d.borrow());
+                                        m.bands = f.bands;
                                     });
                                 }
                             }
@@ -172,6 +175,8 @@ pub fn PhazorPage() -> impl IntoView {
     let powered = RwSignal::new(false);
     let meters = RwSignal::new(Meters::default());
     let steps = RwSignal::new([false; 16]);
+    let citadel = RwSignal::new(crate::fractal::CitadelParams::default());
+    let tempo = RwSignal::new(120.0f32);
 
     let toggle_step = move |i: usize| {
         steps.update(|s| s[i] = !s[i]);
@@ -225,7 +230,11 @@ pub fn PhazorPage() -> impl IntoView {
                             label="tempo"
                             min=60.0 max=200.0 init=120.0 hue=190.0
                             fmt=|v| format!("{v:.0} bpm")
-                            on_value=move |v: f32| wiring::send(Command::SetTempo(f64::from(v)))
+                            sync=Signal::derive(move || tempo.get())
+                            on_value=move |v: f32| {
+                                tempo.set(v);
+                                wiring::send(Command::SetTempo(f64::from(v)));
+                            }
                         />
                         <Jack label="clk" />
                         <div class="lcd">
@@ -280,7 +289,46 @@ pub fn PhazorPage() -> impl IntoView {
                         <path class="cable-core" d="M26.5 56 C 29 84, 40 72, 43.5 41"></path>
                         <path class="cable-sheen" d="M26.2 55.7 C 28.7 83.5, 39.7 71.5, 43.2 40.7"></path>
                     </svg>
-                    <CitadelRack />
+                    <CitadelRack params=citadel />
+
+                    <RackPanel title="presets · whole worlds" class="span12">
+                        {PRESETS
+                            .iter()
+                            .map(|preset| {
+                                let name = preset.name;
+                                view! {
+                                    <button
+                                        class="xport preset"
+                                        on:click=move |_| apply_preset(preset, steps, citadel, tempo)
+                                    >
+                                        {name}
+                                    </button>
+                                }
+                            })
+                            .collect_view()}
+                        <span class="preset-hint">
+                            "each button rewrites the whole machine: pattern, tempo, voice, folds"
+                        </span>
+                    </RackPanel>
+
+                    <RackPanel title="spectrum · 60 Hz → 12 kHz" class="span12">
+                        <div class="spectrum-row">
+                            {(0..phazor_core::BANDS)
+                                .map(|i| {
+                                    view! {
+                                        <div class="spec-band" style=("--i", i.to_string())>
+                                            <div
+                                                class="spec-fill"
+                                                style=("height", move || {
+                                                    format!("{:.1}%", (meters.get().bands[i] * 130.0).min(100.0))
+                                                })
+                                            ></div>
+                                        </div>
+                                    }
+                                })
+                                .collect_view()}
+                        </div>
+                    </RackPanel>
 
                     <RackPanel title="sequence">
                         <section class="steps" style="width: 100%">
@@ -313,4 +361,128 @@ pub fn PhazorPage() -> impl IntoView {
             </Show>
         </main>
     }
+}
+
+/// One whole-machine state: pattern, tempo, voice, folds. VISION calls
+/// these worlds; the panel calls them presets.
+pub struct Preset {
+    name: &'static str,
+    tempo: f64,
+    pattern: [bool; 16],
+    cutoff: f32,
+    resonance: f32,
+    brightness: f32,
+    master: f32,
+    citadel: crate::fractal::CitadelParams,
+}
+
+/// The shipped worlds.
+pub static PRESETS: [Preset; 3] = [
+    Preset {
+        name: "⌬ acid citadel",
+        tempo: 140.0,
+        pattern: [
+            true, false, true, false, true, true, false, true, true, false, true, false, true,
+            true, true, false,
+        ],
+        cutoff: 900.0,
+        resonance: 7.5,
+        brightness: 0.85,
+        master: 0.85,
+        citadel: crate::fractal::CitadelParams {
+            scale: 0.62,
+            warp: 0.55,
+            hue: 0.78,
+            dolly: 0.68,
+            auto: false,
+            gen: 0,
+        },
+    },
+    Preset {
+        name: "∿ ambient drift",
+        tempo: 72.0,
+        pattern: [
+            true, false, false, false, false, false, true, false, false, false, true, false, false,
+            false, false, false,
+        ],
+        cutoff: 2400.0,
+        resonance: 1.1,
+        brightness: 0.22,
+        master: 0.75,
+        citadel: crate::fractal::CitadelParams {
+            scale: 0.36,
+            warp: 0.45,
+            hue: 0.12,
+            dolly: 0.28,
+            auto: true,
+            gen: 0,
+        },
+    },
+    Preset {
+        name: "◬ spectral storm",
+        tempo: 128.0,
+        pattern: [
+            true, true, false, true, false, true, true, false, true, false, true, true, false,
+            true, false, true,
+        ],
+        cutoff: 5200.0,
+        resonance: 3.8,
+        brightness: 1.0,
+        master: 0.9,
+        citadel: crate::fractal::CitadelParams {
+            scale: 0.5,
+            warp: 0.72,
+            hue: 0.5,
+            dolly: 0.5,
+            auto: true,
+            gen: 0,
+        },
+    },
+];
+
+/// Rewrite the whole machine to a preset: engine commands + fractal state
+/// + control remount (gen bump) so every cap and needle tells the truth.
+fn apply_preset(
+    p: &'static Preset,
+    steps: RwSignal<[bool; 16]>,
+    citadel: RwSignal<crate::fractal::CitadelParams>,
+    tempo: RwSignal<f32>,
+) {
+    #[allow(clippy::cast_possible_truncation)]
+    tempo.set(p.tempo as f32);
+    wiring::send(Command::SetTempo(p.tempo));
+    steps.set(p.pattern);
+    for (i, &on) in p.pattern.iter().enumerate() {
+        #[allow(clippy::cast_possible_truncation)]
+        wiring::send(Command::SetStep {
+            index: i as u8,
+            step: on.then(|| Step {
+                note: RIFF[i],
+                vel: 108,
+                gate: 0.55,
+            }),
+        });
+    }
+    wiring::send(Command::SetParam {
+        id: ParamId::FilterCutoff,
+        value: p.cutoff,
+    });
+    wiring::send(Command::SetParam {
+        id: ParamId::FilterQ,
+        value: p.resonance,
+    });
+    wiring::send(Command::SetParam {
+        id: ParamId::OscBrightness,
+        value: p.brightness,
+    });
+    wiring::send(Command::SetParam {
+        id: ParamId::MasterGain,
+        value: p.master,
+    });
+    wiring::send(Command::Play);
+    citadel.update(|c| {
+        let gen = c.gen + 1;
+        *c = p.citadel;
+        c.gen = gen;
+    });
 }

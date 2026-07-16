@@ -42,7 +42,7 @@ fn de(p0: vec3<f32>, scale: f32, warp: f32, trap: ptr<function, f32>) -> f32 {
 
 @fragment
 fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
-    let scale = mix(1.55, 2.9, clamp(u.mod0, 0.0, 1.0));
+    let scale = mix(1.55, 2.9, clamp(u.mod0, 0.0, 1.0)) - u.mod4 * 0.22;
     let warp = (u.mod1 - 0.5) * 1.6;
     let dolly = mix(4.2, 1.6, clamp(u.mod3, 0.0, 1.0));
 
@@ -82,7 +82,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
         col = tone * (0.18 + 1.1 * depthfade) + vec3<f32>(0.9, 0.85, 1.0) * pow(1.0 - cost, 6.0) * 0.25;
     }
     // the void glows with march cost: edges of the structure catch fire
-    col = col + palette(phase + 0.45, vec3<f32>(0.0, 0.33, 0.67)) * cost * cost * 0.85;
+    col = col + palette(phase + 0.45, vec3<f32>(0.0, 0.33, 0.67)) * cost * cost * (0.85 + u.mod7 * 1.6);
 
     let r2 = dot(in.uv, in.uv);
     col = col * (1.0 - 0.3 * r2);

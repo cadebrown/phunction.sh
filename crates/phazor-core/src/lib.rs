@@ -27,6 +27,7 @@ pub mod event;
 pub mod math;
 pub mod meter;
 pub mod seq;
+pub mod spectrum;
 pub mod transport;
 pub mod voice;
 
@@ -34,6 +35,7 @@ pub use engine::Engine;
 pub use event::{Command, ParamId};
 pub use meter::MeterFrame;
 pub use seq::{Step, StepSequencer};
+pub use spectrum::{Spectrum, BANDS};
 pub use transport::Transport;
 
 /// One audio sample. The engine is `f32` end to end, matching Web Audio.

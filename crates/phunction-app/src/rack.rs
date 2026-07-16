@@ -61,9 +61,20 @@ pub fn Knob(
     /// Receives the mapped engine value on every change.
     #[prop(into)]
     on_value: Callback<f32>,
+    /// External truth in ENGINE units: when it changes, the needle follows.
+    #[prop(optional, into)]
+    sync: Option<Signal<f32>>,
 ) -> impl IntoView {
     let init_pos = unmap(init, min, max, log).clamp(0.0, 1.0);
     let pos = RwSignal::new(init_pos);
+    if let Some(sync) = sync {
+        Effect::new(move |_| {
+            let p = unmap(sync.get(), min, max, log).clamp(0.0, 1.0);
+            if (pos.get_untracked() - p).abs() > 1e-4 {
+                pos.set(p);
+            }
+        });
+    }
     let value = move || map_pos(pos.get(), min, max, log);
     let angle = move || -SWEEP + f64::from(pos.get()) * 2.0 * SWEEP;
 
@@ -231,9 +242,20 @@ pub fn Fader(
     /// Receives the normalized position on every change.
     #[prop(into)]
     on_value: Callback<f32>,
+    /// External truth: when this changes (presets), the cap follows.
+    #[prop(optional, into)]
+    sync: Option<Signal<f32>>,
 ) -> impl IntoView {
     let pos = RwSignal::new(init.clamp(0.0, 1.0));
     let dragging = StoredValue::new(false);
+    if let Some(sync) = sync {
+        Effect::new(move |_| {
+            let v = sync.get().clamp(0.0, 1.0);
+            if (pos.get_untracked() - v).abs() > 1e-4 {
+                pos.set(v);
+            }
+        });
+    }
 
     let apply = move |p: f32| {
         let p = p.clamp(0.0, 1.0);

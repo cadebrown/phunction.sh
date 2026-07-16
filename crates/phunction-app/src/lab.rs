@@ -188,7 +188,10 @@ mod wiring {
                 let input = FrameInput {
                     time: t0.elapsed().as_secs_f32(),
                     aspect: size.0 as f32 / size.1 as f32,
-                    mods: mods.get(),
+                    mods: {
+                        let m = mods.get();
+                        [m[0], m[1], m[2], m[3], 0.5, 0.5, 0.5, 0.5]
+                    },
                 };
                 phunctor.frame(&ctx, &view, &input);
                 ctx.queue.present(frame);

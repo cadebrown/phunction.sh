@@ -28,9 +28,10 @@ pub struct FrameInput {
     pub time: f32,
     /// Output aspect ratio (w/h).
     pub aspect: f32,
-    /// Four general-purpose modulation channels in `0..=1`. Their meaning is
-    /// phunctor-local; the harness just routes them.
-    pub mods: [f32; 4],
+    /// Eight general-purpose modulation channels in `0..=1` — knobs, pads,
+    /// and the spectrum's coarse bands. Meaning is phunctor-local; the
+    /// harness just routes them.
+    pub mods: [f32; 8],
 }
 
 /// A hosted visual module.

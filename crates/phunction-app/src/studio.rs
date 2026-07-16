@@ -150,7 +150,7 @@ fn Scene(
                     let input = FrameInput {
                         time: t0.elapsed().as_secs_f32(),
                         aspect: size.0 as f32 / size.1 as f32,
-                        mods: [x, y, 0.5, 0.5],
+                        mods: [x, y, 0.5, 0.5, 0.0, 0.0, 0.0, 0.0],
                     };
                     scene.frame(&ctx, &view, &input);
                     ctx.queue.present(frame);

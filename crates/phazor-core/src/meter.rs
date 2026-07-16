@@ -21,6 +21,8 @@ pub struct MeterFrame {
     pub voices: u8,
     /// True if the transport is running.
     pub playing: bool,
+    /// 16-band smoothed spectrum (60 Hz → 12 kHz, log-spaced).
+    pub bands: [f32; crate::spectrum::BANDS],
 }
 
 /// Accumulates peak/RMS over one block.

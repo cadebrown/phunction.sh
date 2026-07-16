@@ -23,6 +23,9 @@ pub struct CitadelParams {
     pub dolly: f32,
     /// Auto-explore engaged.
     pub auto: bool,
+    /// Bumped by presets: remounts the fader bank so caps jump to the
+    /// new truth (controls must never lie about the state they control).
+    pub gen: u32,
 }
 
 impl Default for CitadelParams {
@@ -33,14 +36,17 @@ impl Default for CitadelParams {
             hue: 0.2,
             dolly: 0.45,
             auto: true,
+            gen: 0,
         }
     }
 }
 
 /// The viewport + control panels, as one rack row.
 #[component]
-pub fn CitadelRack() -> impl IntoView {
-    let params = RwSignal::new(CitadelParams::default());
+pub fn CitadelRack(
+    /// Lifted so presets can rewrite the whole fractal state.
+    params: RwSignal<CitadelParams>,
+) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
     let error = RwSignal::new(None::<String>);
 
@@ -128,6 +134,11 @@ pub fn CitadelRack() -> impl IntoView {
                     };
                     let rms = (m.rms_l + m.rms_r) * 1.5;
 
+                    // coarse spectrum → mods 4..7 (bass, low-mid, high-mid, air)
+                    let b = m.bands;
+                    let coarse = |a: usize, z: usize| -> f32 {
+                        (b[a..z].iter().sum::<f32>() / (z - a) as f32).min(1.0)
+                    };
                     let input = FrameInput {
                         time: t,
                         aspect: size.0 as f32 / size.1 as f32,
@@ -136,6 +147,10 @@ pub fn CitadelRack() -> impl IntoView {
                             (p.warp + dw + rms).clamp(0.0, 1.0),
                             p.hue + pulse * 0.12,
                             (p.dolly + dd).clamp(0.0, 1.0),
+                            coarse(0, 4),
+                            coarse(4, 8),
+                            coarse(8, 12),
+                            coarse(12, 16),
                         ],
                     };
                     fractal.frame(&ctx, &view, &input);
@@ -157,12 +172,16 @@ pub fn CitadelRack() -> impl IntoView {
         </RackPanel>
         <RackPanel title="fold controls" class="span5">
             <Fader label="scale" init=0.45 hue=145.0
+                sync=Signal::derive(move || params.get().scale)
                 on_value=move |v: f32| params.update(|p| p.scale = v) />
             <Fader label="warp" init=0.5 hue=325.0
+                sync=Signal::derive(move || params.get().warp)
                 on_value=move |v: f32| params.update(|p| p.warp = v) />
             <Fader label="hue" init=0.2 hue=100.0
+                sync=Signal::derive(move || params.get().hue)
                 on_value=move |v: f32| params.update(|p| p.hue = v) />
             <Fader label="dolly" init=0.45 hue=235.0
+                sync=Signal::derive(move || params.get().dolly)
                 on_value=move |v: f32| params.update(|p| p.dolly = v) />
             <div class="fold-side">
                 <button
