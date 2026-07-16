@@ -10,6 +10,7 @@ mod fractal;
 mod fun;
 mod gfx_gate;
 mod hud;
+mod mic;
 mod patchbay;
 mod phasor_hero;
 mod phazor_panel;

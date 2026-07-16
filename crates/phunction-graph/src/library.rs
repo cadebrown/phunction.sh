@@ -140,6 +140,25 @@ outs: ["field": PortType::Field],
     outs.push(Value::Field(ctx.camera));
 });
 
+block!(MicIn, MIC_IN_META, "mic-in", "mic in", "media",
+ins: [],
+outs: ["level": SIG],
+|self, ctx, ins, outs| {
+    // ext[0] = live microphone level (the runtime requests permission on
+    // first use; 0 until granted — idle must still feel alive upstream)
+    outs.push(Value::Signal(ctx.ext[0]));
+});
+
+block!(Pads, PADS_META, "pads", "gamepad", "source",
+ins: [],
+outs: ["x": SIG, "y": SIG, "trig": SIG],
+|self, ctx, ins, outs| {
+    // ext[1..4] = first gamepad's left stick + trigger, polled per frame
+    outs.push(Value::Signal(ctx.ext[1]));
+    outs.push(Value::Signal(ctx.ext[2]));
+    outs.push(Value::Signal(ctx.ext[3]));
+});
+
 block!(Scale, SCALE_META, "scale", "scale·offset", "math",
 ins: ["in": SIG, "mul": SIG, "add": SIG],
 outs: ["out": SIG],
@@ -320,6 +339,8 @@ pub fn build(id: &str) -> Option<Box<dyn Block>> {
         "beat" => Box::new(BeatClock::default()),
         "audio-in" => Box::new(AudioIn::default()),
         "camera-in" => Box::new(CameraIn::default()),
+        "mic-in" => Box::new(MicIn::default()),
+        "pads" => Box::new(Pads::default()),
         "scale" => Box::new(Scale::default()),
         "mix" => Box::new(Mix::default()),
         "slew" => Box::new(Slew::default()),
@@ -338,6 +359,8 @@ pub static SHELF: &[&BlockMeta] = &[
     &BEAT_META,
     &AUDIO_IN_META,
     &CAMERA_IN_META,
+    &MIC_IN_META,
+    &PADS_META,
     &EXPR_META,
     &SCALE_META,
     &MIX_META,

@@ -44,6 +44,9 @@ web-sys = { workspace = true, features = [
     "Storage",
     "DragEvent",
     "DataTransfer",
+    "AnalyserNode",
+    "MediaStreamAudioSourceNode",
+    "AudioContext",
 ] }
 
 [lints]

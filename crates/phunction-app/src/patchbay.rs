@@ -108,6 +108,7 @@ pub fn Patchbay() -> impl IntoView {
         use phunction_graph::library;
         use phunction_graph::value::Value;
         use state::{NodeUi, CABLE, GRAPH, MIND_MODS, NODES, NODE_DRAG};
+        use wasm_bindgen::JsCast;
 
         // node geometry shared by cable rendering and hit logic
         const NODE_W: f64 = 170.0;
@@ -221,6 +222,36 @@ pub fn Patchbay() -> impl IntoView {
                     code_src.set(text);
                 }
                 let met = crate::phazor_panel::wiring::last_meter();
+                // world inputs: mic level + first gamepad, polled per frame
+                let uses_mic = NODES.with(|n| n.borrow().iter().any(|nd| nd.kind == "mic-in"));
+                let mic = if uses_mic {
+                    crate::mic::request();
+                    crate::mic::level()
+                } else {
+                    0.0
+                };
+                let mut ext = [0.0f32; 8];
+                ext[0] = mic;
+                if let Some(pad) = web_sys::window()
+                    .and_then(|w| w.navigator().get_gamepads().ok())
+                    .and_then(|pads| {
+                        pads.iter()
+                            .find_map(|p| p.dyn_into::<web_sys::Gamepad>().ok())
+                    })
+                {
+                    let axes = pad.axes();
+                    #[allow(clippy::cast_possible_truncation)]
+                    {
+                        ext[1] = axes.get(0).as_f64().unwrap_or(0.0) as f32;
+                        ext[2] = axes.get(1).as_f64().unwrap_or(0.0) as f32;
+                    }
+                    if let Ok(b) = pad.buttons().get(7).dyn_into::<web_sys::GamepadButton>() {
+                        #[allow(clippy::cast_possible_truncation)]
+                        {
+                            ext[3] = b.value() as f32;
+                        }
+                    }
+                }
                 let ctx = Ctx {
                     time: t0.elapsed().as_secs_f32(),
                     beats: met.beats,
@@ -230,6 +261,7 @@ pub fn Patchbay() -> impl IntoView {
                     camera: phunction_graph::value::FieldId(u32::from(
                         crate::camera::video().is_some(),
                     )),
+                    ext,
                     ..Ctx::default()
                 };
                 GRAPH.with(|g| {

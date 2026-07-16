@@ -34,6 +34,9 @@ pub struct Ctx {
     pub audio_bus: AudioId,
     /// The live camera field handle (0 until granted).
     pub camera: FieldId,
+    /// External world inputs the runtime fills per frame:
+    /// `[mic, pad_x, pad_y, pad_trigger, …]` — blocks read, never write.
+    pub ext: [f32; 8],
     /// Where [`crate::library::ParamOut`] sinks write: `(key, value)` per
     /// tick, drained by the runtime.
     pub board: RefCell<Vec<(&'static str, f32)>>,
@@ -49,6 +52,7 @@ impl Default for Ctx {
             peak: 0.0,
             audio_bus: AudioId(1),
             camera: FieldId(0),
+            ext: [0.0; 8],
             board: RefCell::new(Vec::new()),
         }
     }
