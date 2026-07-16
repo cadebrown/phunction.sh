@@ -42,9 +42,11 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 - [x] The score **evolves forever**: seed hash-steps every 64 beats;
       nothing loops statically. *Test: eras produce different event streams;
       resume evolves identically from the same position.*
-- [ ] Evolution reaches more axes: chord-progression variation between
-      eras, register/density long-walks, world-morphing over minutes.
-      *Test: 10-minute render shows measurable event-distribution drift.*
+- [~] Evolution reaches more axes: the PROGRESSION now varies with the
+      era seed (three minor-family walks; the drone releases gracefully
+      at era edges). Remaining: register/density long-walks, world-
+      morphing over minutes. *Test: eras traverse different progressions;
+      storm test still silent.*
 - [x] Mic input as a first-class source (standing directive): mic-in block
       exposes the live level to the graph (Ctx.ext). *Test: shelf spawn →
       permission prompt raised once; graceful at zero when refused.*

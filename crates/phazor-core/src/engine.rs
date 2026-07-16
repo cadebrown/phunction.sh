@@ -243,6 +243,13 @@ impl Engine {
         if self.transport.playing() && era != self.era {
             self.era = era;
             self.score.seed = self.score.seed.wrapping_mul(0x9E37_79B9).wrapping_add(1);
+            // the progression may change with the seed: release the old
+            // chord gracefully so no drone voice is orphaned mid-era
+            for v in &mut self.voices {
+                if v.layer() == LAYER_DRONE {
+                    v.note_off();
+                }
+            }
         }
 
         // 2. This block's events: the user pattern + the generative score,
@@ -301,11 +308,17 @@ impl Engine {
                 let verb_in_r = bus[0].1 * 0.6 + bus[1].1 * 0.3 + bus[2].1 * 0.45 + dr * 0.5;
                 let (vl, vr) = self.reverb.tick(verb_in_l, verb_in_r, reverb_size);
 
-                // master: sum, saturate (drive's tanh is also the ceiling)
+                // master: sum, soft-knee, saturate. The rational knee
+                // (x / (1 + k|x|)) bounds the slope BEFORE the tanh — a
+                // slammed bus rounds off instead of squaring up (the storm
+                // test hears squared-up saturation as a click; a limiter
+                // is gain staging, not a distortion effect).
                 let pre_l = (dry_l * 0.35 + dl * delay_mix + vl * reverb_mix) * master;
                 let pre_r = (dry_r * 0.35 + dr * delay_mix + vr * reverb_mix) * master;
-                let out_l = drive(pre_l, drv);
-                let out_r = drive(pre_r, drv);
+                let knee_l = pre_l / (1.0 + 0.45 * pre_l.abs());
+                let knee_r = pre_r / (1.0 + 0.45 * pre_r.abs());
+                let out_l = drive(knee_l, drv);
+                let out_r = drive(knee_r, drv);
                 left[i] = out_l;
                 right[i] = out_r;
                 self.meter.tick(out_l, out_r);
@@ -317,10 +330,23 @@ impl Engine {
         // 4. Advance musical time by what we actually rendered.
         self.transport.advance(block_len);
 
-        // 5. Hygiene + telemetry.
+        // 5. Hygiene + telemetry. The orphan watchdog releases any short-
+        // note voice (arp/lead) still holding past four beats: reseeds and
+        // step edits can strand a note-off, and stranded sustains stack
+        // until the master saturates — the storm test found this as a
+        // near-square tanh edge, not a control click.
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let max_hold = (frames_per_beat * 4.0) as u64;
+        let now_frame = self.transport.frame();
         let mut sounding = 0u8;
         for v in &mut self.voices {
             v.flush();
+            if v.sounding().is_some()
+                && v.layer() != LAYER_DRONE
+                && now_frame.saturating_sub(v.born()) > max_hold
+            {
+                v.note_off();
+            }
             sounding += u8::from(v.sounding().is_some());
         }
         self.delay.flush();
@@ -381,7 +407,15 @@ impl Engine {
             .or_else(|| quietest(&self.voices, Some(layer)))
             .or_else(|| quietest(&self.voices, None))
             .unwrap_or(0);
-        self.voices[slot].steal_to(note, vel, self.note_counter, layer, pan, spread);
+        self.voices[slot].steal_to(
+            note,
+            vel,
+            self.note_counter,
+            layer,
+            pan,
+            spread,
+            self.transport.frame(),
+        );
     }
 
     fn note_off(&mut self, note: u8, layer: u8) {

@@ -205,6 +205,8 @@ pub struct Voice {
     velocity_target: f32,
     /// Monotone stamp of the last gate-on, for oldest-voice stealing.
     age: u64,
+    /// Engine frame at gate-on (the orphan watchdog reads this).
+    born: u64,
     /// A steal in flight: the note that takes over once the fast release
     /// reaches silence. `(note, vel, age, layer, pan, spread)`.
     pending: Option<(u8, u8, u64, u8, f32, f32)>,
@@ -233,6 +235,7 @@ impl Voice {
             velocity: 0.0,
             velocity_target: 0.0,
             age: 0,
+            born: 0,
             pending: None,
             layer: crate::LAYER_ARP,
             spread: 0.0,
@@ -246,7 +249,18 @@ impl Voice {
     /// voice starts immediately; a voice ringing a different note gets a
     /// ~2ms fade first, then the new note takes over (steals never click:
     /// the live-performance invariant).
-    pub fn steal_to(&mut self, note: u8, vel: u8, age: u64, layer: u8, pan: f32, spread: f32) {
+    #[allow(clippy::too_many_arguments)]
+    pub fn steal_to(
+        &mut self,
+        note: u8,
+        vel: u8,
+        age: u64,
+        layer: u8,
+        pan: f32,
+        spread: f32,
+        now: u64,
+    ) {
+        self.born = now;
         if self.sounding().is_none() || (self.note == note && self.layer == layer) {
             self.note_on(note, vel, age, layer, pan, spread);
         } else {
@@ -315,6 +329,12 @@ impl Voice {
     #[must_use]
     pub fn age(&self) -> u64 {
         self.age
+    }
+
+    /// Engine frame at the last gate-on (the orphan watchdog reads this).
+    #[must_use]
+    pub fn born(&self) -> u64 {
+        self.born
     }
 
     /// Envelope level (for steal ordering: prefer the quietest).

@@ -68,9 +68,15 @@ fn hash01(seed: u32, k: u64) -> f32 {
     (hash(seed, k) >> 8) as f32 / (1u32 << 24) as f32
 }
 
-/// The progression: chord-root scale degrees, two bars each. i → VI → iv → v
-/// in minor-family modes — the dark-ambient standard for a reason.
-const PROGRESSION: [usize; 4] = [0, 5, 3, 4];
+/// The progressions: chord-root scale degrees, two bars each — all
+/// minor-family staples. The seed picks one, and since the seed
+/// hash-steps every 64 beats (see the engine), the harmony itself
+/// evolves between eras instead of looping one loop forever.
+const PROGRESSIONS: [[usize; 4]; 3] = [
+    [0, 5, 3, 4], // i → VI → iv → v: the dark-ambient standard
+    [0, 2, 5, 4], // i → III → VI → v: lifts, then settles
+    [0, 1, 5, 4], // i → II → VI → v: the phrygian shadow walk
+];
 
 /// Beats per chord (two bars of 4/4).
 const CHORD_BEATS: f64 = 8.0;
@@ -109,16 +115,22 @@ impl Default for Score {
 }
 
 impl Score {
+    /// The seed's progression for this era.
+    #[must_use]
+    fn progression(self) -> [usize; 4] {
+        PROGRESSIONS[((self.seed >> 4) as usize) % PROGRESSIONS.len()]
+    }
+
     /// Chord index sounding at a given beat position.
     #[must_use]
     fn chord_at(beats: f64) -> usize {
-        ((beats / CHORD_BEATS) as usize) % PROGRESSION.len()
+        ((beats / CHORD_BEATS) as usize) % 4
     }
 
     /// The chord's tones as MIDI notes (low root, root, fifth, minor tenth).
     #[must_use]
     fn chord_tones(self, chord: usize) -> [u8; 4] {
-        let semis = self.scale.semis()[PROGRESSION[chord] % 7];
+        let semis = self.scale.semis()[self.progression()[chord] % 7];
         let base = i16::from(self.root) + semis;
         [
             clamp_midi(base - 12),
@@ -167,9 +179,9 @@ impl Score {
         for k in first..last {
             let boundary = k as f64 * frames_per_chord;
             let offset = (boundary - start) as usize;
-            let chord = (k as usize) % PROGRESSION.len();
+            let chord = (k as usize) % 4;
             if k > 0 {
-                let prev = (k as usize + PROGRESSION.len() - 1) % PROGRESSION.len();
+                let prev = (k as usize + 3) % 4;
                 for note in self.chord_tones(prev) {
                     let _ = out.push(SeqEvent {
                         offset,
