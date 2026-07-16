@@ -988,7 +988,12 @@ html.fnord body { animation: fnord-storm 4s ease-in-out; }
   inset: 0;
   width: 100vw;
   height: 100vh;
-  z-index: 0;
+  /* The canvas lives INSIDE .panel (a stacking context): at z 0 it shares
+     the tree-order paint bucket with the panes and covers everything that
+     precedes it in the DOM the moment the GPU paints its first frame.
+     Negative z drops it into the below-content bucket — under every pane,
+     above the (transparent) panel background. */
+  z-index: -1;
   pointer-events: none;
 }
 /* the rack floats above the field on glass */
