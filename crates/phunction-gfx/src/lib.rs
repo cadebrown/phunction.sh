@@ -24,20 +24,35 @@ pub use shader_phunctor::ShaderPhunctor;
 pub use wgpu;
 
 /// Every phunctor the lab ships. Order = display order on the index.
-pub static REGISTRY: &[PhunctorDef] = &[PhunctorDef {
-    meta: PhunctorMeta {
-        id: "argand",
-        name: "argand",
-        glyph: "ℂ",
-        tagline: "domain-colored phasor field — three poles orbiting the complex plane",
+pub static REGISTRY: &[PhunctorDef] = &[
+    PhunctorDef {
+        meta: PhunctorMeta {
+            id: "citadel",
+            name: "citadel",
+            glyph: "◬",
+            tagline: "kaleidoscopic IFS raymarcher — folded space, orbit-trap phase coloring",
+        },
+        create: |gfx| Box::new(ShaderPhunctor::new(gfx, CITADEL_WGSL)),
     },
-    create: |gfx| {
-        Box::new(ShaderPhunctor::new(
-            gfx,
-            include_str!("../shaders/argand.wgsl"),
-        ))
+    PhunctorDef {
+        meta: PhunctorMeta {
+            id: "argand",
+            name: "argand",
+            glyph: "ℂ",
+            tagline: "domain-colored phasor field — three poles orbiting the complex plane",
+        },
+        create: |gfx| {
+            Box::new(ShaderPhunctor::new(
+                gfx,
+                include_str!("../shaders/argand.wgsl"),
+            ))
+        },
     },
-}];
+];
+
+/// citadel's WGSL, exposed so the phazor workstation can host the same
+/// fractal in its viewport that the lab shows fullscreen.
+pub const CITADEL_WGSL: &str = include_str!("../shaders/citadel.wgsl");
 
 /// Look up a phunctor by URL slug.
 #[must_use]

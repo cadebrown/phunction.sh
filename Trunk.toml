@@ -9,7 +9,19 @@ dist = "dist"
 # Binaryen new enough to handle shared-memory/atomics modules cleanly.
 wasm_opt = "version_130"
 
+[watch]
+# the build-stamp hook writes here; watching it would rebuild-loop forever
+ignore = [".dev", "dist", "public/fonts"]
+
 [serve]
 # COOP/COEP so SharedArrayBuffer (threaded audio) works in `just dev` exactly
 # like production. If audio works locally but not deployed, check _headers.
 headers = { "Cross-Origin-Opener-Policy" = "same-origin", "Cross-Origin-Embedder-Policy" = "require-corp" }
+
+# Build stamp: every successful build writes a nanosecond timestamp to
+# .dev/last-build. Agents and scripts wait on THIS (one file read), never
+# on parsing serve logs or asset hashes.
+[[hooks]]
+stage = "post_build"
+command = "sh"
+command_arguments = ["-c", "mkdir -p .dev && date +%s%N > .dev/last-build"]

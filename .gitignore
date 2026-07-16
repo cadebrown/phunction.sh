@@ -4,3 +4,4 @@
 *.wasm.map
 node_modules
 .wrangler
+.dev/

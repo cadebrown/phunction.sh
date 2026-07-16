@@ -812,8 +812,9 @@ html.fnord body { animation: fnord-storm 4s ease-in-out; }
 }
 
 /* the patch cable: shadow under, rubber core, sheen on top */
+/* the decorative cable retired 2026-07-15: superseded by the patchbay
+   (real typed cables). Kept classes for the patchbay renderer. */
 .cable { position: absolute; inset: 0; pointer-events: none; z-index: 2; display: none; }
-@media (min-width: 860px) { .cable { display: block; } }
 .cable path { fill: none; }
 .cable .cable-shadow { stroke: rgba(0, 0, 0, 0.5); stroke-width: 8px; vector-effect: non-scaling-stroke; }
 .cable .cable-core { stroke: oklch(52% 0.16 325); stroke-width: 6px; vector-effect: non-scaling-stroke; stroke-linecap: round; }
@@ -892,3 +893,7 @@ html.fnord body { animation: fnord-storm 4s ease-in-out; }
   background: #050308;
 }
 @media (min-width: 860px) { .rack .span7 { grid-column: span 7; } }
+
+/* citadel viewport: taller, letterboxed dark */
+.fractal-canvas { height: 22rem; }
+.fold-side { display: flex; flex-direction: column; gap: 0.7rem; align-items: center; }

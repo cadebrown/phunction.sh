@@ -4,6 +4,7 @@
 //! is deliberately just wiring and view code.
 
 mod design_lab;
+mod fractal;
 mod fun;
 mod hud;
 mod lab;

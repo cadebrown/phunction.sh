@@ -6,6 +6,7 @@
 //! a MIDI controller would be — which is what makes it replaceable, and
 //! what will let external controllers drive the same surface later.
 
+use crate::fractal::CitadelRack;
 use crate::rack::{Jack, Knob, Led, LedMeter, RackPanel};
 use leptos::prelude::*;
 use phazor_core::{Command, ParamId, Step, StepSequencer};
@@ -41,6 +42,14 @@ pub(crate) mod wiring {
     thread_local! {
         static PHAZOR: RefCell<Option<phazor_web::Phazor>> = const { RefCell::new(None) };
         static DROPPED: RefCell<u32> = const { RefCell::new(0) };
+        static LAST: std::cell::Cell<phazor_core::MeterFrame> =
+            std::cell::Cell::new(phazor_core::MeterFrame::default());
+    }
+
+    /// Latest engine telemetry, for anything outside the panel (fractal
+    /// sync, patchbay sources). Zero-cost snapshot of the drain loop.
+    pub fn last_meter() -> phazor_core::MeterFrame {
+        LAST.with(std::cell::Cell::get)
     }
 
     /// Boot the engine (must be a user gesture) and start the telemetry loop.
@@ -59,6 +68,7 @@ pub(crate) mod wiring {
                                     latest = Some(frame);
                                 }
                                 if let Some(f) = latest {
+                                    LAST.with(|l| l.set(f));
                                     meters.update(|m| {
                                         m.peak_l = f.peak_l;
                                         m.peak_r = f.peak_r;
@@ -150,6 +160,10 @@ pub(crate) mod wiring {
     pub fn power_on(_meters: RwSignal<Meters>, _powered: RwSignal<bool>) {}
     pub fn send(_cmd: Command) {}
     pub fn play_note(_note: u8) {}
+    #[allow(dead_code)] // consumed only by wasm render loops (fractal sync)
+    pub fn last_meter() -> phazor_core::MeterFrame {
+        phazor_core::MeterFrame::default()
+    }
 }
 
 /// The `/phazor` route.
@@ -266,6 +280,8 @@ pub fn PhazorPage() -> impl IntoView {
                         <path class="cable-core" d="M26.5 56 C 29 84, 40 72, 43.5 41"></path>
                         <path class="cable-sheen" d="M26.2 55.7 C 28.7 83.5, 39.7 71.5, 43.2 40.7"></path>
                     </svg>
+                    <CitadelRack />
+
                     <RackPanel title="sequence">
                         <section class="steps" style="width: 100%">
                             {(0..StepSequencer::LEN)

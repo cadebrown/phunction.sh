@@ -13,8 +13,26 @@ default:
     @just --list
 
 # Dev server with COOP/COEP headers (audio threads work locally).
+# Runs forever; each successful rebuild bumps .dev/last-build (Trunk hook).
+# Run this in your own terminal; agents watch the stamp, not the logs.
 dev:
     RUSTFLAGS='{{WASM_RUSTFLAGS}}' CARGO_UNSTABLE_BUILD_STD={{BUILD_STD}} trunk serve --open
+
+# Same as dev but headless on a fixed port (agents/CI smoke tests).
+serve port='8380':
+    RUSTFLAGS='{{WASM_RUSTFLAGS}}' CARGO_UNSTABLE_BUILD_STD={{BUILD_STD}} trunk serve --port {{port}}
+
+# Block until the next successful rebuild lands (used by agents).
+wait-build stamp='':
+    #!/usr/bin/env sh
+    old="{{stamp}}"
+    [ -z "$old" ] && old=$(cat .dev/last-build 2>/dev/null || echo 0)
+    for _ in $(seq 1 120); do
+        cur=$(cat .dev/last-build 2>/dev/null || echo 0)
+        [ "$cur" != "$old" ] && echo "built: $cur" && exit 0
+        sleep 2
+    done
+    echo "timeout waiting for rebuild" >&2; exit 1
 
 # Production build into dist/.
 build:
