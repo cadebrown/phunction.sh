@@ -1488,3 +1488,109 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
   color: oklch(0.8 0.15 calc(var(--mh, 280) * 1deg));
   text-shadow: 0 0 10px oklch(0.7 0.15 calc(var(--mh, 280) * 1deg) / 0.35);
 }
+
+/* ── the grimoire twin: warm parchment, ink, and fell types ───────────── */
+.theme-flip {
+  font-family: var(--font-mono, "Iosevka Web", monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  color: oklch(0.7 0.06 90);
+  background: none;
+  border: 1px solid oklch(0.45 0.05 90 / 0.5);
+  border-radius: 3px;
+  padding: 3px 10px;
+  cursor: pointer;
+}
+[data-theme="parchment"] body,
+[data-theme="parchment"] {
+  background: oklch(0.93 0.025 90);
+  color: oklch(0.24 0.03 60);
+}
+[data-theme="parchment"] .substrate,
+[data-theme="parchment"] .mind-field {
+  opacity: 0.14;
+  filter: saturate(0.8) contrast(0.9);
+}
+[data-theme="parchment"] nav.topbar {
+  background: oklch(0.9 0.03 90 / 0.92);
+  border-bottom: 1px solid oklch(0.55 0.06 70 / 0.4);
+}
+[data-theme="parchment"] nav.topbar a,
+[data-theme="parchment"] .brand-path,
+[data-theme="parchment"] .links a {
+  color: oklch(0.3 0.05 60);
+}
+[data-theme="parchment"] .transmission {
+  background: oklch(0.88 0.03 90);
+  color: oklch(0.42 0.05 60);
+  border-bottom: 1px solid oklch(0.6 0.05 70 / 0.35);
+}
+[data-theme="parchment"] .hero,
+[data-theme="parchment"] .page {
+  color: oklch(0.24 0.03 60);
+}
+[data-theme="parchment"] .hero .theorem,
+[data-theme="parchment"] .page p,
+[data-theme="parchment"] .page dd {
+  color: oklch(0.3 0.03 60);
+  font-family: "IM Fell English", Georgia, serif;
+}
+[data-theme="parchment"] .identity {
+  color: oklch(0.34 0.03 60);
+}
+[data-theme="parchment"] .mvar {
+  text-shadow: none;
+  filter: brightness(0.62) saturate(1.4);
+}
+[data-theme="parchment"] .fig,
+[data-theme="parchment"] .entry {
+  background: oklch(0.9 0.028 88);
+  border-color: oklch(0.55 0.08 60 / 0.5);
+  color: oklch(0.28 0.03 60);
+}
+[data-theme="parchment"] .fig-desc,
+[data-theme="parchment"] .page-lede,
+[data-theme="parchment"] .page-note,
+[data-theme="parchment"] .colophon {
+  color: oklch(0.42 0.04 60);
+}
+[data-theme="parchment"] .page h1,
+[data-theme="parchment"] .entry h2,
+[data-theme="parchment"] .fig-name {
+  color: oklch(0.2 0.04 50);
+}
+[data-theme="parchment"] .page a,
+[data-theme="parchment"] .entry a,
+[data-theme="parchment"] .info-grid dd a {
+  color: oklch(0.4 0.1 230);
+}
+[data-theme="parchment"] .info-grid dt,
+[data-theme="parchment"] .entry-date,
+[data-theme="parchment"] .fig-label {
+  color: oklch(0.45 0.08 40);
+}
+/* the stage keeps the night: phazor's fixed panel overrides parchment */
+[data-theme="parchment"] .panel .rack-panel {
+  /* unchanged — the pedalboard is lit gear in a dark room, by design */
+}
+
+/* parchment: everything that was light-on-dark flips to ink */
+[data-theme="parchment"] .wordmark .key {
+  color: oklch(0.22 0.04 60);
+  text-shadow: none;
+}
+[data-theme="parchment"] .wordmark .key.ph {
+  color: oklch(0.42 0.16 300);
+}
+[data-theme="parchment"] .tld { color: oklch(0.45 0.09 230); }
+[data-theme="parchment"] .aphorism,
+[data-theme="parchment"] .aphorism p,
+[data-theme="parchment"] blockquote {
+  color: oklch(0.3 0.03 60);
+}
+[data-theme="parchment"] .aphorism footer,
+[data-theme="parchment"] .aphorism cite {
+  color: oklch(0.45 0.05 60);
+}
+[data-theme="parchment"] .mark-sigil { opacity: 0.5; filter: invert(0.8) sepia(0.3); }
+[data-theme="parchment"] .qed { color: oklch(0.5 0.12 90); }

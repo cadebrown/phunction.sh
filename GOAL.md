@@ -173,7 +173,11 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 
 - [x] Hermetic formalism: midnight purple, eight stations, Redaction +
       Iosevka, machined rack, sigil, theorem voice. Words over glyphs.
-- [ ] The whiteboard/parchment twin theme (light mode of the grimoire).
+- [x] The parchment twin (canon round 1's grimoire light mode): 'ink' in
+      the nav flips the prose surfaces to warm parchment — fell serif
+      theorem, inked phasor figure, darkened station hues on the identity,
+      sepia sigil — persisted, verified both directions. The stage
+      (/phazor) stays night by design: lit gear in a dark room.
 - [x] Colorized math variables (sacred, canon round 1): the phasor
       identity on the hero — z(t) = A·e^{i(ωt+φ)} in KaTeX math italic,
       every variable in its station hue, above the live figure it

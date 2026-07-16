@@ -38,6 +38,35 @@ fn main() {
 /// Root: router + persistent chrome.
 #[component]
 fn App() -> impl IntoView {
+    // the grimoire twin: night (default) ↔ warm parchment. The stage
+    // (/phazor) stays dark by design — ink is for the prose surfaces.
+    let parchment = RwSignal::new(false);
+    #[cfg(target_arch = "wasm32")]
+    {
+        let saved = phazor_panel::wiring::load_state("phunction:theme");
+        if saved.as_deref() == Some("parchment") {
+            parchment.set(true);
+        }
+        Effect::new(move |_| {
+            let on = parchment.get();
+            if let Some(root) = web_sys::window()
+                .and_then(|w| w.document())
+                .and_then(|d| d.document_element())
+            {
+                if on {
+                    let _ = root.set_attribute("data-theme", "parchment");
+                } else {
+                    let _ = root.remove_attribute("data-theme");
+                }
+            }
+            phazor_panel::wiring::save_state(
+                "phunction:theme",
+                if on { "parchment" } else { "night" },
+            );
+        });
+    }
+    let flip_theme = move |_ev: leptos::ev::MouseEvent| parchment.update(|p| *p = !*p);
+
     view! {
         <Router>
             <substrate::Substrate />
@@ -50,6 +79,9 @@ fn App() -> impl IntoView {
                     <A href="/phazor">"phazor"</A>
                     <A href="/studio">"studio"</A>
                     <a href="https://github.com/cadebrown/phunction.sh" target="_blank" rel="noopener">"src"</a>
+                    <button class="theme-flip" on:click=flip_theme aria-label="switch between night and parchment">
+                        {move || if parchment.get() { "night" } else { "ink" }}
+                    </button>
                 </div>
             </nav>
             <fun::Transmission />
