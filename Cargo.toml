@@ -4,6 +4,7 @@ members = [
     "crates/phazor-core",
     "crates/phazor-web",
     "crates/phunction-gfx",
+    "crates/phunction-graph",
     "crates/phunction-app",
 ]
 
@@ -19,6 +20,7 @@ authors = ["phunction <brown.cade@gmail.com>"]
 phazor-core = { path = "crates/phazor-core" }
 phazor-web = { path = "crates/phazor-web" }
 phunction-gfx = { path = "crates/phunction-gfx" }
+phunction-graph = { path = "crates/phunction-graph" }
 
 # reactive UI
 leptos = { version = "0.8", features = ["csr"] }
