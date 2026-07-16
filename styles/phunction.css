@@ -1250,3 +1250,21 @@ nav, .panel-head, .rack > .rack-panel, .rack > .cable, .keyhints,
   stroke-linejoin: round;
   filter: drop-shadow(0 0 2px oklch(0.7 0.15 280 / 0.7));
 }
+
+/* ── the freeform workspace: panels live where your hand left them ────── */
+.rack { position: relative; min-height: 40vh; }
+.rack-panel.floating {
+  position: absolute;
+  z-index: 20;
+  box-shadow: 0 18px 48px oklch(0 0 0 / 0.55);
+}
+.rack-latch { touch-action: none; user-select: none; -webkit-user-select: none; }
+.rack-panel.dragover { outline: none; }
+
+/* rock-solid interaction basics */
+button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid oklch(0.7 0.15 280 / 0.85);
+  outline-offset: 2px;
+}
+.pb-node header, .pb-port, .fader svg, .knob svg { touch-action: none; }
+.pb-canvas, .pb-node { user-select: none; -webkit-user-select: none; }

@@ -453,33 +453,76 @@ pub fn RackPanel(
     children: Children,
 ) -> impl IntoView {
     let folded = RwSignal::new(folded);
-    let order = reorder::order_signal(title);
-    let over = RwSignal::new(false);
+    let float = reorder::float_signal(title);
+    let node = NodeRef::<leptos::html::Section>::new();
+    // click-vs-drag on one surface: fold on a tap, float on a real drag
+    let drag = StoredValue::new(reorder::DragState::default());
+
+    let on_down = move |ev: web_sys::PointerEvent| {
+        // only the header drags; ignore secondary buttons
+        if ev.button() != 0 {
+            return;
+        }
+        let Some(el) = node.get_untracked() else {
+            return;
+        };
+        let rect = el.get_bounding_client_rect();
+        let (px, py) = reorder::rack_origin(&el);
+        drag.set_value(reorder::DragState {
+            active: true,
+            moved: false,
+            grab_x: f64::from(ev.client_x()) - rect.left(),
+            grab_y: f64::from(ev.client_y()) - rect.top(),
+            rack_x: px,
+            rack_y: py,
+            width: rect.width(),
+        });
+        if let Some(t) = ev
+            .target()
+            .and_then(|t| wasm_bindgen::JsCast::dyn_into::<web_sys::Element>(t).ok())
+        {
+            let _ = t.set_pointer_capture(ev.pointer_id());
+        }
+    };
+    let on_move = move |ev: web_sys::PointerEvent| {
+        let mut st = drag.get_value();
+        if !st.active {
+            return;
+        }
+        let x = f64::from(ev.client_x()) - st.rack_x - st.grab_x;
+        let y = f64::from(ev.client_y()) - st.rack_y - st.grab_y;
+        // a few px of slop keeps taps folding instead of micro-dragging
+        if !st.moved {
+            let rect = node.get_untracked().map(|el| el.get_bounding_client_rect());
+            let (ox, oy) = rect.map_or((0.0, 0.0), |r| (r.left() - st.rack_x, r.top() - st.rack_y));
+            if (x - ox).abs() + (y - oy).abs() < 7.0 {
+                return;
+            }
+            st.moved = true;
+        }
+        drag.set_value(st);
+        float.set(Some((x.max(0.0), y.max(0.0), st.width)));
+    };
+    let on_up = move |ev: web_sys::PointerEvent| {
+        let st = drag.get_value();
+        if st.active {
+            drag.set_value(reorder::DragState::default());
+            if st.moved {
+                ev.prevent_default();
+                reorder::persist_float(title, float.get_untracked());
+            }
+        }
+    };
+
     view! {
         <section
+            node_ref=node
             class=format!("rack-panel {class}")
             class:folded=move || folded.get()
-            class:dragover=move || over.get()
-            style=("order", move || order.get().to_string())
-            draggable="true"
-            on:dragstart=move |ev: web_sys::DragEvent| {
-                reorder::begin(title);
-                if let Some(dt) = ev.data_transfer() {
-                    let _ = dt.set_data("text/plain", title);
-                    dt.set_effect_allowed("move");
-                }
-            }
-            on:dragover=move |ev: web_sys::DragEvent| {
-                ev.prevent_default();
-                over.set(true);
-            }
-            on:dragleave=move |_| over.set(false)
-            on:drop=move |ev: web_sys::DragEvent| {
-                ev.prevent_default();
-                over.set(false);
-                reorder::drop_on(title);
-            }
-            on:dragend=move |_| over.set(false)
+            class:floating=move || float.get().is_some()
+            style=("left", move || float.get().map_or(String::new(), |(x, _, _)| format!("{x:.0}px")))
+            style=("top", move || float.get().map_or(String::new(), |(_, y, _)| format!("{y:.0}px")))
+            style=("width", move || float.get().map_or(String::new(), |(_, _, w)| format!("{w:.0}px")))
         >
             <span class="screw tl"></span>
             <span class="screw tr"></span>
@@ -488,7 +531,21 @@ pub fn RackPanel(
             <button
                 class="rack-latch"
                 aria-expanded=move || (!folded.get()).to_string()
-                on:click=move |_| folded.update(|f| *f = !*f)
+                on:pointerdown=on_down
+                on:pointermove=on_move
+                on:pointerup=on_up
+                on:pointercancel=move |_| drag.set_value(reorder::DragState::default())
+                on:click=move |_| {
+                    // a drag is not a fold request
+                    if !drag.get_value().moved {
+                        folded.update(|f| *f = !*f);
+                    }
+                }
+                on:dblclick=move |_| {
+                    // double-tap the latch: dock the panel back into the grid
+                    float.set(None);
+                    reorder::persist_float(title, None);
+                }
             >
                 <span class="rack-fold" aria-hidden="true">
                     {move || if folded.get() { "▸" } else { "▾" }}
@@ -500,86 +557,73 @@ pub fn RackPanel(
     }
 }
 
-/// Rack rearrangement: every panel is draggable; dropping one panel onto
-/// another swaps their CSS grid `order`. The arrangement is the user's —
-/// it persists in `localStorage` under `rack-order`.
+/// The freeform workspace: grab any panel by its latch and it detaches
+/// from the grid onto the canvas — position: wherever your hand left it,
+/// persisted per title. Double-tap the latch to dock it back. Pointer
+/// events end-to-end, so a thumb on an iPad is as first-class as a mouse.
 mod reorder {
     use leptos::prelude::*;
     use std::cell::RefCell;
     use std::collections::HashMap;
 
-    thread_local! {
-        static ORDERS: RefCell<HashMap<&'static str, RwSignal<i32>>> =
-            RefCell::new(HashMap::new());
-        static DRAGGING: std::cell::Cell<Option<&'static str>> = const { std::cell::Cell::new(None) };
-        static NEXT: std::cell::Cell<i32> = const { std::cell::Cell::new(0) };
+    /// One in-flight panel drag.
+    #[derive(Clone, Copy, Default)]
+    pub struct DragState {
+        pub active: bool,
+        pub moved: bool,
+        pub grab_x: f64,
+        pub grab_y: f64,
+        pub rack_x: f64,
+        pub rack_y: f64,
+        pub width: f64,
     }
 
-    /// The order signal for a panel title, created (and restored from
-    /// storage) on first sight. Declaration order is the default.
-    pub fn order_signal(title: &'static str) -> RwSignal<i32> {
-        ORDERS.with(|o| {
-            *o.borrow_mut().entry(title).or_insert_with(|| {
-                let default = NEXT.with(|n| {
-                    let v = n.get();
-                    n.set(v + 1);
-                    v
-                });
-                RwSignal::new(stored(title).unwrap_or(default))
-            })
+    /// A detached panel's place on the canvas: (x, y, width).
+    pub type Float = Option<(f64, f64, f64)>;
+
+    thread_local! {
+        static FLOATS: RefCell<HashMap<&'static str, RwSignal<Float>>> =
+            RefCell::new(HashMap::new());
+    }
+
+    /// The float signal for a panel: `Some((x, y, width))` when detached.
+    pub fn float_signal(title: &'static str) -> RwSignal<Float> {
+        FLOATS.with(|f| {
+            *f.borrow_mut()
+                .entry(title)
+                .or_insert_with(|| RwSignal::new(stored_float(title)))
         })
     }
 
-    pub fn begin(title: &'static str) {
-        DRAGGING.with(|d| d.set(Some(title)));
+    /// The `.rack` container's viewport origin (floats are rack-relative).
+    pub fn rack_origin(el: &web_sys::Element) -> (f64, f64) {
+        el.closest(".rack").ok().flatten().map_or((0.0, 0.0), |r| {
+            let b = r.get_bounding_client_rect();
+            (b.left(), b.top())
+        })
     }
 
-    /// Swap the dragged panel's order with the drop target's.
-    pub fn drop_on(target: &'static str) {
-        let Some(source) = DRAGGING.with(std::cell::Cell::take) else {
-            return;
-        };
-        if source == target {
-            return;
-        }
-        ORDERS.with(|o| {
-            let o = o.borrow();
-            if let (Some(a), Some(b)) = (o.get(source), o.get(target)) {
-                let (va, vb) = (a.get_untracked(), b.get_untracked());
-                a.set(vb);
-                b.set(va);
-                persist(source, vb);
-                persist(target, va);
+    pub fn persist_float(title: &str, float: Float) {
+        let key = format!("rack-float:{title}");
+        match float {
+            Some((x, y, w)) => {
+                crate::phazor_panel::wiring::save_state(&key, &format!("{x:.0},{y:.0},{w:.0}"));
             }
-        });
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    fn storage() -> Option<web_sys::Storage> {
-        web_sys::window()?.local_storage().ok()?
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    fn stored(title: &str) -> Option<i32> {
-        storage()?
-            .get_item(&format!("rack-order:{title}"))
-            .ok()??
-            .parse()
-            .ok()
-    }
-
-    #[cfg(target_arch = "wasm32")]
-    fn persist(title: &str, order: i32) {
-        if let Some(s) = storage() {
-            let _ = s.set_item(&format!("rack-order:{title}"), &order.to_string());
+            None => {
+                if let Some(s) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
+                    let _ = s.remove_item(&key);
+                }
+            }
         }
     }
 
-    #[cfg(not(target_arch = "wasm32"))]
-    fn stored(_title: &str) -> Option<i32> {
-        None
+    fn stored_float(title: &str) -> Float {
+        let t = crate::phazor_panel::wiring::load_state(&format!("rack-float:{title}"))?;
+        let mut it = t.split(',');
+        Some((
+            it.next()?.parse().ok()?,
+            it.next()?.parse().ok()?,
+            it.next()?.parse().ok()?,
+        ))
     }
-
-    #[cfg(not(target_arch = "wasm32"))]
-    fn persist(_title: &str, _order: i32) {}
 }
