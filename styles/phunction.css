@@ -1473,3 +1473,18 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 /* texture round 2: grain quieter, scanlines subtler, vignette deeper —
    the room reads as depth, not as a filter */
 .mind-field { filter: saturate(1.04) contrast(1.02); }
+
+/* ── colorized math: variables wear their station hues (canon, sacred) ── */
+.identity {
+  font-family: "PaperMath", "Paper", Georgia, serif;
+  font-style: italic;
+  font-size: 1.35rem;
+  letter-spacing: 0.02em;
+  color: oklch(0.72 0.03 300);
+  margin: 0.4rem 0 1.6rem;
+}
+.identity sup { font-size: 0.72em; }
+.mvar {
+  color: oklch(0.8 0.15 calc(var(--mh, 280) * 1deg));
+  text-shadow: 0 0 10px oklch(0.7 0.15 calc(var(--mh, 280) * 1deg) / 0.35);
+}

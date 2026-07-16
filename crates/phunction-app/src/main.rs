@@ -107,6 +107,22 @@ fn Home() -> impl IntoView {
                 "Press power. "
                 <span class="qed">"∎"</span>
             </p>
+            // the founding identity — every variable wears its station hue
+            // (canon: colorized math variables are sacred)
+            <p class="identity" aria-label="the phasor identity: z of t equals A times e to the i omega t plus phi">
+                <span class="mvar" style=("--mh", "325")>"z"</span>
+                "("<span class="mvar" style=("--mh", "190")>"t"</span>") = "
+                <span class="mvar" style=("--mh", "55")>"A"</span>
+                " · e"
+                <sup>
+                    "i("
+                    <span class="mvar" style=("--mh", "145")>"ω"</span>
+                    <span class="mvar" style=("--mh", "190")>"t"</span>
+                    " + "
+                    <span class="mvar" style=("--mh", "280")>"φ"</span>
+                    ")"
+                </sup>
+            </p>
             <phasor_hero::PhasorHero />
             <fun::Aphorism />
             <nav class="figs">

@@ -162,9 +162,12 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 - [x] Hermetic formalism: midnight purple, eight stations, Redaction +
       Iosevka, machined rack, sigil, theorem voice. Words over glyphs.
 - [ ] The whiteboard/parchment twin theme (light mode of the grimoire).
-- [ ] Colorized math variables in prose (sacred, from canon round 1).
-- [ ] Texture pass round 2 (noise/scanline/vignette tuning — "we will
-      come back to these").
+- [x] Colorized math variables (sacred, canon round 1): the phasor
+      identity on the hero — z(t) = A·e^{i(ωt+φ)} in KaTeX math italic,
+      every variable in its station hue, above the live figure it
+      describes. The .mvar vocabulary is reusable in any prose.
+- [~] Texture pass round 2: mind-field saturation/contrast lift landed;
+      scanline/noise opacity tuning remains a taste pass with Cade.
 
 ## X · The site around the instrument
 
