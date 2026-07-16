@@ -41,6 +41,9 @@ web-sys = { workspace = true, features = [
     "MediaStreamConstraints",
     "HtmlVideoElement",
     "HtmlMediaElement",
+    "Storage",
+    "DragEvent",
+    "DataTransfer",
 ] }
 
 [lints]

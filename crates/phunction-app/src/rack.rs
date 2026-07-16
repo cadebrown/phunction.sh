@@ -453,8 +453,34 @@ pub fn RackPanel(
     children: Children,
 ) -> impl IntoView {
     let folded = RwSignal::new(folded);
+    let order = reorder::order_signal(title);
+    let over = RwSignal::new(false);
     view! {
-        <section class=format!("rack-panel {class}") class:folded=move || folded.get()>
+        <section
+            class=format!("rack-panel {class}")
+            class:folded=move || folded.get()
+            class:dragover=move || over.get()
+            style=("order", move || order.get().to_string())
+            draggable="true"
+            on:dragstart=move |ev: web_sys::DragEvent| {
+                reorder::begin(title);
+                if let Some(dt) = ev.data_transfer() {
+                    let _ = dt.set_data("text/plain", title);
+                    dt.set_effect_allowed("move");
+                }
+            }
+            on:dragover=move |ev: web_sys::DragEvent| {
+                ev.prevent_default();
+                over.set(true);
+            }
+            on:dragleave=move |_| over.set(false)
+            on:drop=move |ev: web_sys::DragEvent| {
+                ev.prevent_default();
+                over.set(false);
+                reorder::drop_on(title);
+            }
+            on:dragend=move |_| over.set(false)
+        >
             <span class="screw tl"></span>
             <span class="screw tr"></span>
             <span class="screw bl"></span>
@@ -472,4 +498,88 @@ pub fn RackPanel(
             <div class="rack-body" class:hidden=move || folded.get()>{children()}</div>
         </section>
     }
+}
+
+/// Rack rearrangement: every panel is draggable; dropping one panel onto
+/// another swaps their CSS grid `order`. The arrangement is the user's —
+/// it persists in `localStorage` under `rack-order`.
+mod reorder {
+    use leptos::prelude::*;
+    use std::cell::RefCell;
+    use std::collections::HashMap;
+
+    thread_local! {
+        static ORDERS: RefCell<HashMap<&'static str, RwSignal<i32>>> =
+            RefCell::new(HashMap::new());
+        static DRAGGING: std::cell::Cell<Option<&'static str>> = const { std::cell::Cell::new(None) };
+        static NEXT: std::cell::Cell<i32> = const { std::cell::Cell::new(0) };
+    }
+
+    /// The order signal for a panel title, created (and restored from
+    /// storage) on first sight. Declaration order is the default.
+    pub fn order_signal(title: &'static str) -> RwSignal<i32> {
+        ORDERS.with(|o| {
+            *o.borrow_mut().entry(title).or_insert_with(|| {
+                let default = NEXT.with(|n| {
+                    let v = n.get();
+                    n.set(v + 1);
+                    v
+                });
+                RwSignal::new(stored(title).unwrap_or(default))
+            })
+        })
+    }
+
+    pub fn begin(title: &'static str) {
+        DRAGGING.with(|d| d.set(Some(title)));
+    }
+
+    /// Swap the dragged panel's order with the drop target's.
+    pub fn drop_on(target: &'static str) {
+        let Some(source) = DRAGGING.with(std::cell::Cell::take) else {
+            return;
+        };
+        if source == target {
+            return;
+        }
+        ORDERS.with(|o| {
+            let o = o.borrow();
+            if let (Some(a), Some(b)) = (o.get(source), o.get(target)) {
+                let (va, vb) = (a.get_untracked(), b.get_untracked());
+                a.set(vb);
+                b.set(va);
+                persist(source, vb);
+                persist(target, va);
+            }
+        });
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn storage() -> Option<web_sys::Storage> {
+        web_sys::window()?.local_storage().ok()?
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn stored(title: &str) -> Option<i32> {
+        storage()?
+            .get_item(&format!("rack-order:{title}"))
+            .ok()??
+            .parse()
+            .ok()
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    fn persist(title: &str, order: i32) {
+        if let Some(s) = storage() {
+            let _ = s.set_item(&format!("rack-order:{title}"), &order.to_string());
+        }
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn stored(_title: &str) -> Option<i32> {
+        None
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    fn persist(_title: &str, _order: i32) {}
 }

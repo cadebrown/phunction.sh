@@ -1185,3 +1185,9 @@ nav, .panel-head, .rack > .rack-panel, .rack > .cable, .keyhints,
   color: oklch(0.62 0.06 300);
   padding-top: 6px;
 }
+
+/* ── rack rearrangement: drag a panel onto another to swap places ─────── */
+.rack-panel.dragover {
+  outline: 2px dashed oklch(0.7 0.15 100 / 0.7);
+  outline-offset: 3px;
+}
