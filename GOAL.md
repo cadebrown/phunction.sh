@@ -143,9 +143,10 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
       room; screenshot sweep.*
 
 - [x] Full-res spectrum: 96 log-spaced Goertzel bands as one lit curve.
-- [~] Dense + straightforward: compact panes, smaller controls, everything
-      visible without hunting. *Remaining: inline numeric entry on every
-      control; per-pane compact/expanded modes; clearer grouping labels.*
+- [~] Dense + straightforward: compact panes, smaller controls, inline
+      numeric entry on knob readouts (click the value, type, Enter —
+      verified 90→92 bpm). *Remaining: entry on faders; per-pane
+      compact modes; grouping labels.*
 - [~] Robustness: Escape cancels any in-flight gesture (verified), node
       drags hold pointer capture. Remaining: hit-target ≥ 24px sweep,
       aria audit. *Test: gesture-interrupt suite.*

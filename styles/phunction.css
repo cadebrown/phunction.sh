@@ -1434,3 +1434,22 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
   margin: 8px 0 0;
   white-space: pre-wrap;
 }
+
+/* inline numeric entry: the readout is a door */
+.knob-value-btn {
+  background: none;
+  border: none;
+  cursor: text;
+  padding: 0;
+}
+.knob-entry {
+  width: 62px;
+  font-family: var(--font-mono, "Iosevka Web", monospace);
+  font-size: 0.68rem;
+  text-align: center;
+  color: oklch(0.88 0.12 calc(var(--hue, 280) * 1deg));
+  background: oklch(0.14 0.02 300);
+  border: 1px solid oklch(0.5 0.1 calc(var(--hue, 280) * 1deg));
+  border-radius: 3px;
+  padding: 2px 4px;
+}

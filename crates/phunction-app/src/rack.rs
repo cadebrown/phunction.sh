@@ -86,6 +86,8 @@ pub fn Knob(
 
     // drag state: (position at grab, pointer y at grab)
     let grab = StoredValue::new(None::<(f32, f32)>);
+    // inline numeric entry: the readout is a button; Enter commits
+    let editing = RwSignal::new(false);
 
     view! {
         <div class="knob" style=("--hue", format!("{hue}"))>
@@ -176,7 +178,44 @@ pub fn Knob(
                 </g>
             </svg>
             <span class="knob-label">{label}</span>
-            <span class="knob-value">{move || fmt(value())}</span>
+            {move || {
+                if editing.get() {
+                    view! {
+                        <input
+                            class="knob-entry"
+                            type="text"
+                            inputmode="decimal"
+                            prop:value=format!("{}", map_pos(pos.get_untracked(), min, max, log))
+                            aria-label=format!("{label} value")
+                            on:keydown=move |ev: web_sys::KeyboardEvent| {
+                                match ev.key().as_str() {
+                                    "Enter" => {
+                                        if let Ok(v) = event_target_value(&ev).trim().parse::<f32>() {
+                                            apply(unmap(v.clamp(min, max), min, max, log));
+                                        }
+                                        editing.set(false);
+                                    }
+                                    "Escape" => editing.set(false),
+                                    _ => {}
+                                }
+                            }
+                            on:blur=move |_| editing.set(false)
+                        />
+                    }
+                    .into_any()
+                } else {
+                    view! {
+                        <button
+                            class="knob-value knob-value-btn"
+                            title="click to type a value"
+                            on:click=move |_| editing.set(true)
+                        >
+                            {fmt(value())}
+                        </button>
+                    }
+                    .into_any()
+                }
+            }}
         </div>
     }
 }
