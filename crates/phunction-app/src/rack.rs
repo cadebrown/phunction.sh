@@ -477,7 +477,7 @@ pub fn RackPanel(
     /// Module contents.
     children: Children,
 ) -> impl IntoView {
-    let folded = RwSignal::new(folded);
+    let folded = reorder::fold_signal(title, folded);
     let float = reorder::float_signal(title);
     let node = NodeRef::<leptos::html::Section>::new();
     // click-vs-drag on one surface: fold on a tap, float on a real drag
@@ -587,7 +587,7 @@ pub fn RackPanel(
 /// from the grid onto the canvas — position: wherever your hand left it,
 /// persisted per title. Double-tap the latch to dock it back. Pointer
 /// events end-to-end, so a thumb on an iPad is as first-class as a mouse.
-mod reorder {
+pub mod reorder {
     use leptos::prelude::*;
     use std::cell::RefCell;
     use std::collections::HashMap;
@@ -610,6 +610,28 @@ mod reorder {
     thread_local! {
         static FLOATS: RefCell<HashMap<&'static str, RwSignal<Float>>> =
             RefCell::new(HashMap::new());
+        static FOLDS: RefCell<HashMap<&'static str, RwSignal<bool>>> =
+            RefCell::new(HashMap::new());
+    }
+
+    /// The fold signal for a panel, creatable from outside (layouts).
+    pub fn fold_signal(title: &'static str, default: bool) -> RwSignal<bool> {
+        FOLDS.with(|f| {
+            *f.borrow_mut()
+                .entry(title)
+                .or_insert_with(|| RwSignal::new(default))
+        })
+    }
+
+    /// A named workspace layout: which panels stand open. Panels not
+    /// listed fold; unknown titles are ignored (routes without the panel).
+    #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))] // wasm key handler only
+    pub fn apply_layout(open: &[&'static str]) {
+        FOLDS.with(|f| {
+            for (title, sig) in f.borrow().iter() {
+                sig.set(!open.contains(title));
+            }
+        });
     }
 
     /// The float signal for a panel: `Some((x, y, width))` when detached.

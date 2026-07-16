@@ -307,6 +307,26 @@ pub fn PhazorPage() -> impl IntoView {
                             let _ = root.class_list().toggle("zen");
                         }
                     }
+                    "1" => crate::rack::reorder::apply_layout(&[
+                        "transport",
+                        "mind",
+                        "weather · the score writes itself",
+                    ]),
+                    "2" => crate::rack::reorder::apply_layout(&[
+                        "patchbay · the constructive graph",
+                        "expr · a little language",
+                        "shader · live wgsl",
+                        "transport",
+                    ]),
+                    "3" => crate::rack::reorder::apply_layout(&[
+                        "transport",
+                        "voice",
+                        "mix",
+                        "weather · the score writes itself",
+                        "fx · space",
+                        "spectrum · 50 Hz → 14 kHz · 96 bands",
+                        "scope",
+                    ]),
                     " " => {
                         // the keyhint is a promise: space toggles transport
                         ev.prevent_default();
@@ -698,6 +718,7 @@ pub fn PhazorPage() -> impl IntoView {
                     <span><kbd>"space"</kbd>" play/stop"</span>
                     <span><kbd>"esc"</kbd>" panic"</span>
                     <span><kbd>"z"</kbd>" zen"</span>
+                    <span><kbd>"1/2/3"</kbd>" perform · patch · mix"</span>
                     <span><kbd>"shift"</kbd>"+drag knobs for fine control · double-click resets"</span>
                     <span><kbd>"`"</kbd>" debug"</span>
                 </div>

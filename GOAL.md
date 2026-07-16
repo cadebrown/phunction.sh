@@ -27,8 +27,9 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 - [x] Freeform workspace: any pane drags by its latch to float anywhere
       (pointer events — touch included), double-tap docks, positions persist.
       *Test: drag → floats at hand; tap ≠ drag; reload restores; dock clears.*
-- [ ] Pane layout presets ("perform", "patch", "mix") — one key each.
-      *Test: switching layouts rearranges panes without losing state.*
+- [x] Pane layout presets: 1 = perform (transport/weather/mind), 2 =
+      patch (bay/expr/shader), 3 = mix (full console) — folds drive from
+      a registry, no state lost. *Verified: all three via keyboard.*
 
 ## II · The sound (dark, evolving, never a toy)
 
