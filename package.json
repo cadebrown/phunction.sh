@@ -1,0 +1,8 @@
+{
+  "name": "phunction-ui-tests",
+  "private": true,
+  "description": "Playwright UI-functionality suite for /phazor (see tests/ui)",
+  "devDependencies": {
+    "@playwright/test": "^1.54.0"
+  }
+}

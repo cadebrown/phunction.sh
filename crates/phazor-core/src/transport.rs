@@ -12,8 +12,12 @@ pub struct Transport {
     sample_rate: f64,
     /// Frames rendered since the transport last started from zero.
     frame: u64,
-    /// Tempo in beats per minute.
+    /// Tempo in beats per minute (the user's setting).
     bpm: f64,
+    /// The score's era tempo drift, multiplied onto `bpm`. The weather
+    /// breathes the tempo a few percent per era; the user's number stays
+    /// the base truth.
+    drift: f64,
     /// Whether the musical clock advances.
     playing: bool,
 }
@@ -26,6 +30,7 @@ impl Transport {
             sample_rate,
             frame: 0,
             bpm,
+            drift: 1.0,
             playing: false,
         }
     }
@@ -36,10 +41,19 @@ impl Transport {
         self.sample_rate
     }
 
-    /// Current tempo in BPM.
+    /// Current EFFECTIVE tempo in BPM (user setting × era drift) — the
+    /// rate the clock actually runs at; delay sync and meters follow it.
     #[must_use]
     pub fn bpm(&self) -> f64 {
-        self.bpm
+        self.bpm * self.drift
+    }
+
+    /// Set the era tempo drift (clamped to ±6%). Beat position is
+    /// preserved exactly as in [`Self::set_bpm`].
+    pub fn set_drift(&mut self, drift: f64) {
+        let beats_now = self.beats();
+        self.drift = drift.clamp(0.94, 1.06);
+        self.frame = self.beats_to_frames(beats_now);
     }
 
     /// Set tempo. Takes effect at the next block; beat position is preserved
@@ -85,7 +99,7 @@ impl Transport {
     /// Convert an absolute frame count to beats at the current tempo.
     #[must_use]
     pub fn frames_to_beats(&self, frame: u64) -> f64 {
-        frame as f64 / self.sample_rate * (self.bpm / 60.0)
+        frame as f64 / self.sample_rate * (self.bpm * self.drift / 60.0)
     }
 
     /// Jump to a musical position (a session resuming where it left off).
@@ -97,7 +111,7 @@ impl Transport {
     /// Convert beats to frames at the current tempo (rounded to nearest).
     #[must_use]
     pub fn beats_to_frames(&self, beats: f64) -> u64 {
-        (beats * 60.0 / self.bpm * self.sample_rate).round() as u64
+        (beats * 60.0 / (self.bpm * self.drift) * self.sample_rate).round() as u64
     }
 
     /// Advance by `n` rendered frames. Only `Engine::process` calls this.

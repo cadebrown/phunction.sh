@@ -5,3 +5,6 @@
 node_modules
 .wrangler
 .dev/
+node_modules/
+test-results/
+playwright-report/

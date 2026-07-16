@@ -136,6 +136,26 @@ const CHORD_ARP_TONES: [i16; 4] = [0, 7, 12, 15];
 /// Lead gate length in steps (sixteenths).
 const LEAD_GATE_STEPS: f64 = 1.6;
 
+/// One era's weather: mood and character targets, all pure functions of
+/// the era seed. The engine glides toward these — the music changes mode,
+/// timbre, space, and tempo era over era without ever looping.
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct EraWeather {
+    /// This era's mode — usually the user's scale, sometimes a sibling
+    /// borrowed for the era (modal interchange as weather).
+    pub mode: Scale,
+    /// Tempo multiplier, ±4% around the user's BPM.
+    pub tempo_mul: f64,
+    /// Brightness bias added to the user's oscillator brightness.
+    pub bright: f32,
+    /// Filter cutoff multiplier.
+    pub cutoff_mul: f32,
+    /// Reverb size multiplier.
+    pub verb_mul: f32,
+    /// Delay feedback multiplier.
+    pub feedback_mul: f32,
+}
+
 /// The generative score. Cheap `Copy` state — all mutation is via commands.
 #[derive(Debug, Clone, Copy)]
 pub struct Score {
@@ -170,10 +190,37 @@ impl Score {
         ((beats / CHORD_BEATS) as usize) % 4
     }
 
+    /// This era's mode: mostly the user's scale, with a ~1/3 chance the
+    /// era borrows a sibling minor mode (interchange, seed-deterministic).
+    #[must_use]
+    pub fn mode(&self) -> Scale {
+        let pick = hash01(self.seed, 90);
+        if pick < 0.66 {
+            self.scale
+        } else {
+            // rotate through the minor family, away from the user's pick
+            let shift = 1 + u8::from(pick > 0.83);
+            Scale::from_u8((self.scale as u8 + shift) % 3)
+        }
+    }
+
+    /// This era's full weather (see [`EraWeather`]). Pure in the seed.
+    #[must_use]
+    pub fn weather(&self) -> EraWeather {
+        EraWeather {
+            mode: self.mode(),
+            tempo_mul: 1.0 + f64::from(hash01(self.seed, 91) - 0.5) * 0.08,
+            bright: (hash01(self.seed, 92) - 0.5) * 0.3,
+            cutoff_mul: 0.8 + hash01(self.seed, 93) * 0.5,
+            verb_mul: 0.85 + hash01(self.seed, 94) * 0.3,
+            feedback_mul: 0.85 + hash01(self.seed, 95) * 0.3,
+        }
+    }
+
     /// The chord's tones as MIDI notes (low root, root, fifth, minor tenth).
     #[must_use]
     fn chord_tones(self, chord: usize) -> [u8; 4] {
-        let semis = self.scale.semis()[self.progression()[chord] % 7];
+        let semis = self.mode().semis()[self.progression()[chord] % 7];
         let base = i16::from(self.root) + semis;
         [
             clamp_midi(base - 12),
@@ -329,7 +376,7 @@ impl Score {
     ) {
         let frames_per_slot = frames_per_beat / 2.0;
         let lead_seed = self.seed ^ 0x001E_AD00;
-        let semis = self.scale.semis();
+        let semis = self.mode().semis();
         // era-scale long walks: the seed (which hash-steps every 64 beats)
         // biases how high the lead sings and how much it talks — evolution
         // in register and density, not just note choice
@@ -396,6 +443,45 @@ fn clamp_midi(n: i16) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn weather_is_bounded_and_deterministic() {
+        for seed in (0..2000u32).map(|i| i.wrapping_mul(0x9E37_79B9)) {
+            let sc = Score {
+                seed,
+                ..Score::default()
+            };
+            let w = sc.weather();
+            assert!(
+                (0.94..=1.06).contains(&w.tempo_mul),
+                "tempo {}",
+                w.tempo_mul
+            );
+            assert!((-0.16..=0.16).contains(&w.bright));
+            assert!((0.79..=1.31).contains(&w.cutoff_mul));
+            assert!((0.84..=1.16).contains(&w.verb_mul));
+            assert!((0.84..=1.16).contains(&w.feedback_mul));
+            assert_eq!(w, sc.weather(), "weather must be pure in the seed");
+        }
+    }
+
+    #[test]
+    fn eras_traverse_moods() {
+        // hash-step the seed as the engine does; across 12 eras the mode
+        // must actually change (interchange fires) and the timbre must
+        // spread — the weather never sits still
+        let mut sc = Score::default();
+        let mut modes = std::collections::BTreeSet::new();
+        let mut brights = std::collections::BTreeSet::new();
+        for _ in 0..12 {
+            sc.seed = sc.seed.wrapping_mul(0x9E37_79B9).wrapping_add(1);
+            let w = sc.weather();
+            modes.insert(w.mode as u8);
+            brights.insert((w.bright * 40.0) as i32);
+        }
+        assert!(modes.len() >= 2, "modes never changed: {modes:?}");
+        assert!(brights.len() >= 3, "timbre never moved: {brights:?}");
+    }
 
     #[test]
     fn snap_lands_on_scale_tones_only() {

@@ -59,6 +59,13 @@ pub struct Engine {
     note_counter: u64,
     /// Last 64-beat era the score evolved in (see `process`).
     era: u64,
+    /// Slewed weather biases (brightness add, cutoff/verb/feedback muls) —
+    /// the engine glides toward each era's [`crate::score::EraWeather`]
+    /// targets so character changes are swells, never steps.
+    wx_bright: f32,
+    wx_cutoff: f32,
+    wx_verb: f32,
+    wx_fb: f32,
     /// Scratch for the per-block events (audio path: no alloc).
     events: heapless::Vec<SeqEvent, MAX_EVENTS_PER_BLOCK>,
 }
@@ -90,6 +97,10 @@ impl Engine {
             spectrum: Spectrum::new(sample_rate),
             note_counter: 0,
             era: 0,
+            wx_bright: 0.0,
+            wx_cutoff: 1.0,
+            wx_verb: 1.0,
+            wx_fb: 1.0,
             events: heapless::Vec::new(),
         }
     }
@@ -166,18 +177,22 @@ impl Engine {
         let block_len = left.len().min(right.len());
 
         // 1. Block-rate parameter update (see new() for why block rate).
-        let cutoff = self.smooth_block(ParamId::FilterCutoff);
+        let cutoff =
+            (self.smooth_block(ParamId::FilterCutoff) * self.wx_cutoff).clamp(80.0, 12_000.0);
         let q = self.smooth_block(ParamId::FilterQ);
         let att = self.smooth_block(ParamId::EnvAttackMs);
         let dec = self.smooth_block(ParamId::EnvDecayMs);
         let sus = self.smooth_block(ParamId::EnvSustain);
         let rel = self.smooth_block(ParamId::EnvReleaseMs);
-        let user_brightness = self.smooth_block(ParamId::OscBrightness);
+        // the era's weather leans on the user's timbre without owning it:
+        // brightness bias and cutoff multiplier ride ON the CV values
+        let user_brightness =
+            (self.smooth_block(ParamId::OscBrightness) + self.wx_bright).clamp(0.0, 1.0);
         let master = self.smooth_block(ParamId::MasterGain);
         let delay_mix = self.smooth_block(ParamId::DelayMix);
-        let delay_fb = self.smooth_block(ParamId::DelayFeedback);
+        let delay_fb = (self.smooth_block(ParamId::DelayFeedback) * self.wx_fb).clamp(0.0, 0.95);
         let reverb_mix = self.smooth_block(ParamId::ReverbMix);
-        let reverb_size = self.smooth_block(ParamId::ReverbSize);
+        let reverb_size = (self.smooth_block(ParamId::ReverbSize) * self.wx_verb).clamp(0.0, 1.0);
         let drv = self.smooth_block(ParamId::Drive);
         let layer_gain = [
             self.smooth_block(ParamId::DroneLevel),
@@ -250,7 +265,18 @@ impl Engine {
                     v.note_off();
                 }
             }
+            // tempo weather steps once per era (the delay's tape-glide
+            // absorbs the retune; sparse set_drift calls keep the
+            // beat-rebase rounding negligible)
+            self.transport.set_drift(self.score.weather().tempo_mul);
         }
+        // timbre and space glide toward this era's weather (~4s swells)
+        let wx = self.score.weather();
+        let k = 0.0007;
+        self.wx_bright += (wx.bright - self.wx_bright) * k;
+        self.wx_cutoff += (wx.cutoff_mul - self.wx_cutoff) * k;
+        self.wx_verb += (wx.verb_mul - self.wx_verb) * k;
+        self.wx_fb += (wx.feedback_mul - self.wx_fb) * k;
 
         // 2. This block's events: the user pattern + the generative score,
         //    offset-sorted, note-offs before note-ons at equal offsets so a
@@ -479,6 +505,27 @@ mod tests {
         render_seconds(&mut e, 6.0); // release + delay echoes + reverb wash
         let (tail, _) = render_seconds(&mut e, 0.2);
         assert!(tail < 1e-3, "silent after tails die, got {tail}");
+    }
+
+    #[test]
+    fn eras_breathe_the_tempo() {
+        // run the clock across several eras: the effective bpm must drift
+        // off the user's 120 (weather) yet never leave the ±6% band
+        let mut e = Engine::new(48_000.0);
+        e.apply(Command::Play);
+        let mut l = [0.0f32; 128];
+        let mut r = [0.0f32; 128];
+        let mut bpms = std::collections::BTreeSet::new();
+        // 3 eras at 64 beats each @120bpm ≈ 96s ≈ 36k blocks
+        for _ in 0..36_000 {
+            e.process(&mut l, &mut r);
+            bpms.insert((e.transport.bpm() * 10.0) as i64);
+        }
+        assert!(
+            bpms.iter().all(|b| (1128..=1272).contains(b)),
+            "tempo left the band: {bpms:?}"
+        );
+        assert!(bpms.len() >= 2, "tempo never drifted: {bpms:?}");
     }
 
     #[test]

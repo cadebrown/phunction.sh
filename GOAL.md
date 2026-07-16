@@ -86,6 +86,18 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
       palette; screenshots on record. The maw glide is bounded (±1.8
       sine) so hours-deep sessions can't march out of f32.*
 
+- [x] **The weather owns more of the music** ("constantly evolving and
+      changing tones, timbre, notes, tempo"): every 64-beat era now sets
+      an EraWeather — modal interchange (~1/3 of eras borrow a sibling
+      minor mode), tempo breathing (±4% around the user's BPM, stepped at
+      era edges where the delay's tape-glide absorbs the retune), and
+      timbre/space walks (brightness bias, cutoff/reverb/feedback
+      multipliers) that GLIDE over ~4s. All pure functions of the era
+      seed; user CVs stay the base truth. *Tested: weather bounded +
+      deterministic over 2000 seeds; 12-era traversal changes mode ≥2×
+      and spreads timbre; engine test proves effective BPM drifts within
+      ±6% and never leaves the band; storm suite still green.*
+
 ## IV · The constructive graph (everything is patchable)
 
 - [x] Typed dataflow: 8 port types, station hues, Direct/Adapter/Never
@@ -139,6 +151,16 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
       (gfx-gate fallback included), state+patch persist, reload resumes.
       `just smoke` locally; a smoke job gates ship in CI. *Verified: all
       green locally; CI proves itself on this very push.*
+
+- [x] **Automated UI-functionality testing, CI + local** (stack chosen
+      after verifying the 2026 landscape: Playwright — faster and lighter
+      in CI than Cypress, first-class traces, honest pointer gestures):
+      `tests/ui/phazor.spec.mjs` covers boot+clock, all three step-editor
+      gestures, v3 pattern reload, topbar mind lighting + persistence,
+      zen enter/exit, and transport stop/start — 6 specs, ~11s, against
+      the same COOP/COEP dist server CI uses. `just ui-test` locally; the
+      smoke CI job runs it with traces uploaded on failure.
+      *The suite IS the test.*
 
 ## VII · Multimodal (one bus, every hand)
 

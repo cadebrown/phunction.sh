@@ -46,6 +46,11 @@ rebuild:
 smoke:
     node scripts/smoke.mjs
 
+# UI-functionality suite (Playwright, Chromium) against dist/ — build first.
+# First run: `npm install && npx playwright install chromium`.
+ui-test:
+    npx playwright test
+
 # Production build into dist/.
 build:
     RUSTFLAGS='{{WASM_RUSTFLAGS}}' CARGO_UNSTABLE_BUILD_STD={{BUILD_STD}} trunk build --release
