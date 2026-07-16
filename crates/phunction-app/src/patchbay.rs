@@ -18,14 +18,16 @@ use leptos::prelude::*;
 /// Board keys a `param-out` sink can drive. `mind.*` modulate the viewport
 /// bus additively; `voice.*`/`fx.*` are forwarded to the audio engine.
 #[cfg_attr(not(target_arch = "wasm32"), allow(dead_code))] // consumed by the wasm node UI
-pub const TARGET_KEYS: [&str; 7] = [
+pub const TARGET_KEYS: [&str; 9] = [
     "mind.scale",
     "mind.warp",
     "mind.hue",
     "mind.dolly",
     "voice.cutoff",
     "fx.echo",
+    "fx.regen",
     "fx.wash",
+    "fx.size",
 ];
 
 /// Additive viewport modulation produced by the patch this frame, indexed

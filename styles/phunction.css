@@ -1594,3 +1594,22 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 }
 [data-theme="parchment"] .mark-sigil { opacity: 0.5; filter: invert(0.8) sepia(0.3); }
 [data-theme="parchment"] .qed { color: oklch(0.5 0.12 90); }
+
+/* ── texture round 2, executed: grain breathes finer, scanlines recede,
+   a true vignette holds the corners — depth, not a filter. Taste dials:
+   grain 0.10→0.07, lines 0.13→0.09/4px, vignette added at 0.5 strength.
+   (Adjust these three numbers by eye; they are the whole round.) ─────── */
+body::before {
+  opacity: 0.07;
+}
+body::after {
+  background:
+    radial-gradient(ellipse 130% 110% at 50% 42%, transparent 58%, oklch(0.05 0.02 300 / 0.5) 100%),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.09) 0 1px, transparent 1px 4px);
+  opacity: 1;
+}
+[data-theme="parchment"] body::after {
+  background:
+    radial-gradient(ellipse 130% 110% at 50% 42%, transparent 62%, oklch(0.5 0.05 70 / 0.22) 100%),
+    repeating-linear-gradient(0deg, rgba(60, 40, 10, 0.25) 0 1px, transparent 1px 5px);
+}

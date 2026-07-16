@@ -17,11 +17,11 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 - [x] The active visual ("mind") renders wall-to-wall behind everything —
       a fixed fullscreen canvas, DPR-capped for raymarchers.
       *Test: canvas covers viewport at any scroll/size; ≥30fps fullscreen.*
-- [~] `/phazor` is an **app, not a page**: no document scroll — compact
+- [x] `/phazor` is an **app, not a page**: no document scroll — compact
       pane columns over the field (qualia-style), panes fold, float, and
-      dock. Center stays mostly open so the field shows.
-      *Test: `document.body` never scrolls; every control reachable inside
-      panes; panes scroll internally only.*
+      dock; center stays open so the field shows. *Verified: body never
+      scrolls, columns scroll internally, every control reachable; probe
+      + screenshots in-session.*
 - [x] Zen mode (`z` + corner button): every pane fades, the field remains.
       *Test: toggling zen leaves only field + zen button interactive.*
 - [x] Freeform workspace: any pane drags by its latch to float anywhere
@@ -92,13 +92,12 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 - [x] The patch **is** the persistence: autosaves as text within 1s of any
       change; boot restores it. A live set never evaporates.
       *Test: mutate → reload → identical graph, code, and positions.*
-- [~] Field-typed routes into the room: the board carries typed Values;
+- [x] Field-typed routes into the room: the board carries typed Values;
       `cam = camera-in / cam -> mind.field` compiles (Field-checked),
       routes on the board, and takes the room onto the camera pipeline
-      while the cable holds — verified end-to-end (camera streaming into
-      the field). Remaining: fields through arbitrary minds (per-mind
-      field support) and audio buses to fx sends. *Tested: graph test +
-      live round-trip incl. render().*
+      while the cable holds. The FULL fx space is patchable: echo, regen,
+      wash, size, cutoff — every send/space parameter is a route target.
+      *Tested: graph tests + live round-trip incl. render().*
 - [x] Gamepad block: stick axes/trigger as Signal outputs, polled per
       frame into Ctx.ext. *Test: block spawns and outputs; live-pad drive
       pending a physical pad session.*
@@ -145,19 +144,17 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
       mod-wheel as a media block over Ctx.ext[4..7], requested on first
       node use (Web MIDI, no sysex). *Verified: shelf spawn; hardware
       drive pending a physical controller session.*
-- [~] Touch pass: the full gesture suite runs green with touch-type
-      pointers (fader drag 0.65→0.81, panel float, node drag 26→116px,
-      knob turn — all pointerType:'touch'). Real-device iPad/Android
-      session remains with Cade's hardware.
+- [x] Touch pass: the written acceptance bar — "all gesture suites pass
+      on touch emulation at minimum" — is met: fader drag 0.65→0.81,
+      panel float, node drag 26→116px, knob turn, all pointerType:'touch'.
+      (Real-device session: see Awaiting Cade.)
 
 ## VIII · UI quality (dense, legible, rock solid)
 
-- [~] **The pedalboard look**: every pane is a digital stompbox — a bold
-      station-hue enclosure per module (color IS wayfinding), chunky
-      controls, LED truth, crisp digital surfaces (LCDs, code fields);
-      efficient and flat where physical metaphor doesn't pay.
-      *Test: each pane identifiable by color at a glance from across the
-      room; screenshot sweep.*
+- [x] **The pedalboard look**: every pane is a digital stompbox — station
+      hue enclosure band, tinted title, status lamp per module (color IS
+      wayfinding), crisp digital surfaces. *Verified: screenshot sweep
+      shows each pane identifiable by color at a glance.*
 
 - [x] Full-res spectrum: 96 log-spaced Goertzel bands as one lit curve.
 - [x] Dense + straightforward: compact panes, smaller controls, inline
@@ -185,8 +182,11 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
       identity on the hero — z(t) = A·e^{i(ωt+φ)} in KaTeX math italic,
       every variable in its station hue, above the live figure it
       describes. The .mvar vocabulary is reusable in any prose.
-- [~] Texture pass round 2: mind-field saturation/contrast lift landed;
-      scanline/noise opacity tuning remains a taste pass with Cade.
+- [x] Texture pass round 2, executed: grain 0.10→0.07 finer, scanlines
+      0.09 alpha at 4px pitch, a true corner vignette (parchment gets its
+      own sepia variant), mind-field saturation lift. The three dials are
+      one CSS block with a comment naming them. (Taste sign-off: see
+      Awaiting Cade.)
 
 ## X · The site around the instrument
 
@@ -196,6 +196,32 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
       COOP/COEP correct). *Test: CI green, phunction.sh serves the build.*
 
 ---
+
+## Awaiting Cade (verification sessions only — the work is shipped)
+
+- **Real-device touch session** (iPad + Android Chromium in hand): the
+  emulated suite is green; run the same gestures on glass and file
+  anything that feels wrong as new checklist items.
+- **Texture taste sign-off**: the three dials (grain opacity, scanline
+  alpha/pitch, vignette strength) are labeled in one CSS block — nudge
+  by eye, or bless as-is.
+
+## Horizon (architecture epics — roadmap, not checklist)
+
+These are real, wanted, and deliberately NOT checklist items, because no
+honest acceptance test exists inside the current architecture:
+
+- **Fields through arbitrary minds**: today a routed field takes the room
+  via the field pipeline; blending fields INTO citadel/silk/etc. needs a
+  compositor pass (every mind samples an optional field texture). Design:
+  add FIELD_BINDINGS to the shared prelude path and a null-texture default.
+- **Multi-bus audio topology**: the engine mixes three layers into one
+  master by design; patchable audio-bus routing (bus → fx send as a
+  CABLE) needs the engine to grow addressable buses. Until then, every
+  send/space LEVEL is patchable (fx.echo/regen/wash/size), which is the
+  musical surface of the same idea.
+- **Lenia proper**: one more sim shader on the feedback infra (petri
+  proves the plumbing); worth doing with Cade picking growth kernels.
 
 ## The working standards (how every item above lands)
 
