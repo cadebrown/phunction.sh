@@ -507,7 +507,7 @@ pub fn PhazorPage() -> impl IntoView {
             >
                 <div class="rack">
                     <div class="ws-col">
-                    <RackPanel title="transport" class="span4">
+                    <RackPanel title="transport" class="span4" hue=235.0>
                         <button
                             class="xport"
                             class:lit=move || meters.get().playing
@@ -536,7 +536,7 @@ pub fn PhazorPage() -> impl IntoView {
                         </div>
                     </RackPanel>
 
-                    <RackPanel title="voice" class="span5" folded=true>
+                    <RackPanel title="voice" class="span5" folded=true hue=145.0>
                         <Jack label="cv" />
                         <Knob
                             label="cutoff"
@@ -561,7 +561,7 @@ pub fn PhazorPage() -> impl IntoView {
                         {cv_knob!("brightness", cv.brightness, ParamId::OscBrightness, 0.0, 1.0, 100.0)}
                     </RackPanel>
 
-                    <RackPanel title="mix" class="span3" folded=true>
+                    <RackPanel title="mix" class="span3" folded=true hue=55.0>
                         {cv_knob!("master", cv.master, ParamId::MasterGain, 0.0, 1.2, 55.0)}
                         <LedMeter label="L" level={Signal::derive(move || (meters.get().rms_l * 3.0).min(1.0))} />
                         <LedMeter label="R" level={Signal::derive(move || (meters.get().rms_r * 3.0).min(1.0))} />
@@ -572,7 +572,7 @@ pub fn PhazorPage() -> impl IntoView {
                         />
                     </RackPanel>
 
-                    <RackPanel title="weather · the score writes itself" class="span5">
+                    <RackPanel title="weather · the score writes itself" class="span5" hue=280.0>
                         {cv_knob!("drone", cv.drone, ParamId::DroneLevel, 0.0, 1.0, 280.0)}
                         {cv_knob!("arps", cv.arps, ParamId::ArpLevel, 0.0, 1.0, 145.0)}
                         {cv_knob!("lead", cv.lead, ParamId::LeadLevel, 0.0, 1.0, 55.0)}
@@ -603,7 +603,7 @@ pub fn PhazorPage() -> impl IntoView {
                         </div>
                     </RackPanel>
 
-                    <RackPanel title="fx · space" class="span4" folded=true>
+                    <RackPanel title="fx · space" class="span4" folded=true hue=190.0>
                         {cv_knob!("echo", cv.delay_mix, ParamId::DelayMix, 0.0, 1.0, 190.0)}
                         {cv_knob!("regen", cv.delay_fb, ParamId::DelayFeedback, 0.0, 0.9, 235.0)}
                         {cv_knob!("wash", cv.verb_mix, ParamId::ReverbMix, 0.0, 1.0, 280.0)}
@@ -613,7 +613,7 @@ pub fn PhazorPage() -> impl IntoView {
                     </div>
                     <div class="ws-mid">
                         <div class="ws-mid-spacer"></div>
-                    <RackPanel title="worlds · whole-machine presets" class="span12" folded=true>
+                    <RackPanel title="worlds · whole-machine presets" class="span12" folded=true hue=10.0>
                         {PRESETS
                             .iter()
                             .map(|preset| {
@@ -633,7 +633,7 @@ pub fn PhazorPage() -> impl IntoView {
                         </span>
                     </RackPanel>
 
-                    <RackPanel title="sequence · your riff over the weather" folded=true>
+                    <RackPanel title="sequence · your riff over the weather" folded=true hue=100.0>
                         <section class="steps" style="width: 100%">
                             {(0..StepSequencer::LEN)
                                 .map(|i| {
@@ -659,7 +659,7 @@ pub fn PhazorPage() -> impl IntoView {
                     <div class="ws-col">
                     <CitadelRack params=citadel />
 
-                    <RackPanel title="scope" class="span3">
+                    <RackPanel title="scope" class="span3" hue=145.0>
                         <svg class="scope-lcd" viewBox="0 0 64 32" preserveAspectRatio="none" aria-label="oscilloscope: the master bus waveform">
                             <line class="scope-axis" x1="0" y1="16" x2="64" y2="16"></line>
                             <polyline class="scope-trace" points=scope_points></polyline>
@@ -667,7 +667,7 @@ pub fn PhazorPage() -> impl IntoView {
                         <Led on=Signal::derive(move || meters.get().rms_l + meters.get().rms_r > 0.005) hue=145.0 label="sig" />
                     </RackPanel>
 
-                    <RackPanel title="spectrum · 50 Hz → 14 kHz · 96 bands" class="span12">
+                    <RackPanel title="spectrum · 50 Hz → 14 kHz · 96 bands" class="span12" hue=325.0>
                         <svg
                             class="analyzer"
                             viewBox="0 0 95 32"
@@ -726,6 +726,8 @@ pub struct Preset {
     seed: u32,
     scale: u8,
     citadel: crate::fractal::CitadelParams,
+    mind: &'static str,
+    patch: &'static str,
 }
 
 /// The shipped worlds. Dark by default — the machine should loom, not chirp.
@@ -757,6 +759,8 @@ pub static PRESETS: [Preset; 3] = [
             auto: true,
             gen: 0,
         },
+        mind: "silk",
+        patch: "k = knob 0.3\nl = lfo rate=k depth=0.35\nl -> mind.hue\nb = beat\ns = slew in=b amount=0.95\ns -> mind.warp",
     },
     Preset {
         name: "pale arps",
@@ -788,6 +792,8 @@ pub static PRESETS: [Preset; 3] = [
             auto: true,
             gen: 0,
         },
+        mind: "gyroid",
+        patch: "a = audio-in\ns = slew in=a amount=0.9\ns -> mind.warp",
     },
     Preset {
         name: "black rain",
@@ -819,6 +825,8 @@ pub static PRESETS: [Preset; 3] = [
             auto: true,
             gen: 0,
         },
+        mind: "gasket",
+        patch: "a = audio-in\ne = expr \"a*0.6 + 0.2*tri(t*0.05)\" a=a\ne -> mind.dolly",
     },
 ];
 
@@ -874,6 +882,9 @@ fn apply_preset(
         *c = p.citadel;
         c.gen = gen;
     });
+    // a world rewrites the WHOLE machine — the mind and the patch too
+    crate::fractal::request_mind(p.mind);
+    crate::patchbay::request_patch(p.patch);
 }
 
 /// The expr rack: a text field that is a patch cable. Type a formula in
@@ -905,7 +916,7 @@ fn ExprRack(
     install();
 
     view! {
-        <RackPanel title="expr · a little language" class="span9" folded=true>
+        <RackPanel title="expr · a little language" class="span9" folded=true hue=145.0>
             <div class="expr-row">
                 <input
                     class="expr-input"

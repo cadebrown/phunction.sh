@@ -449,6 +449,9 @@ pub fn RackPanel(
     /// Start folded (compact workspaces).
     #[prop(default = false)]
     folded: bool,
+    /// Enclosure hue (pedal color-coding; 0 disables the tint).
+    #[prop(default = 280.0)]
+    hue: f64,
     /// Module contents.
     children: Children,
 ) -> impl IntoView {
@@ -518,6 +521,7 @@ pub fn RackPanel(
         <section
             node_ref=node
             class=format!("rack-panel {class}")
+            style=("--enclosure", format!("{hue}"))
             class:folded=move || folded.get()
             class:floating=move || float.get().is_some()
             style=("left", move || float.get().map_or(String::new(), |(x, _, _)| format!("{x:.0}px")))

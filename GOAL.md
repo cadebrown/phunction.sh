@@ -128,6 +128,13 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 
 ## VIII · UI quality (dense, legible, rock solid)
 
+- [~] **The pedalboard look**: every pane is a digital stompbox — a bold
+      station-hue enclosure per module (color IS wayfinding), chunky
+      controls, LED truth, crisp digital surfaces (LCDs, code fields);
+      efficient and flat where physical metaphor doesn't pay.
+      *Test: each pane identifiable by color at a glance from across the
+      room; screenshot sweep.*
+
 - [x] Full-res spectrum: 96 log-spaced Goertzel bands as one lit curve.
 - [~] Dense + straightforward: compact panes, smaller controls, everything
       visible without hunting. *Remaining: inline numeric entry on every

@@ -8,6 +8,23 @@
 use crate::rack::{Fader, Led, RackPanel};
 use leptos::prelude::*;
 
+#[cfg(target_arch = "wasm32")]
+thread_local! {
+    /// A pending mind switch from outside the component (worlds/presets).
+    static REQUEST: std::cell::Cell<Option<&'static str>> =
+        const { std::cell::Cell::new(None) };
+}
+
+/// Ask the viewport to switch minds (applied on the next frame).
+#[cfg(target_arch = "wasm32")]
+pub fn request_mind(id: &'static str) {
+    REQUEST.with(|r| r.set(Some(id)));
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(dead_code)]
+pub fn request_mind(_id: &'static str) {}
+
 /// Shared viewport parameter block (base values; modulation stacks on top).
 #[derive(Clone, Copy)]
 pub struct CitadelParams {
@@ -121,6 +138,9 @@ pub fn CitadelRack(
                 crate::raf::raf_loop(move || {
                     if !canvas.is_connected() {
                         return false;
+                    }
+                    if let Some(m) = REQUEST.with(std::cell::Cell::take) {
+                        mind.set(m);
                     }
                     let want = mind.get_untracked();
                     if want != current {
@@ -334,7 +354,7 @@ pub fn CitadelRack(
             class="mind-field"
             aria-label="the mind field: fractal, gyroid, neural field, or your own kaleidoscoped camera, wall to wall"
         ></canvas>
-        <RackPanel title="mind" class="span7">
+        <RackPanel title="mind" class="span7" hue=325.0>
             <div class="vp-select">
                 {MINDS
                     .map(|(id, label, _)| {
@@ -351,7 +371,7 @@ pub fn CitadelRack(
             </div>
             {move || error.get().map(|e| view! { <p class="gfx-error">"✗ " {e}</p> })}
         </RackPanel>
-        <RackPanel title="mind controls" class="span5">
+        <RackPanel title="mind controls" class="span5" hue=235.0>
             {move || {
                 let l = labels.get();
                 view! {

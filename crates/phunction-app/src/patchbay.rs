@@ -35,6 +35,17 @@ pub fn mind_mods() -> [f32; 4] {
     state::MIND_MODS.with(std::cell::Cell::get)
 }
 
+/// Ask the patchbay to replace the whole graph with `text` (a world's
+/// signature patch). Applied on the next graph tick.
+#[cfg(target_arch = "wasm32")]
+pub fn request_patch(text: &str) {
+    state::REQUEST_PATCH.with(|r| *r.borrow_mut() = Some(text.to_string()));
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(dead_code)]
+pub fn request_patch(_text: &str) {}
+
 #[cfg(not(target_arch = "wasm32"))]
 #[allow(dead_code)] // wasm render paths only
 pub fn mind_mods() -> [f32; 4] {
@@ -73,6 +84,8 @@ mod state {
         pub static TICKING: Cell<bool> = const { Cell::new(false) };
         pub static SAVED_REV: Cell<u64> = const { Cell::new(u64::MAX) };
         pub static SAVE_TICK: Cell<u32> = const { Cell::new(0) };
+        /// A pending whole-patch install from outside (worlds/presets).
+        pub static REQUEST_PATCH: RefCell<Option<String>> = const { RefCell::new(None) };
         /// Set when a cable just landed, so the click that follows the
         /// pointerup doesn't immediately unplug the fresh connection.
         pub static JUST_LANDED: Cell<bool> = const { Cell::new(false) };
@@ -85,7 +98,7 @@ mod state {
 pub fn Patchbay() -> impl IntoView {
     #[cfg(not(target_arch = "wasm32"))]
     return view! {
-        <RackPanel title="patchbay · the constructive graph" class="span12" folded=true>
+        <RackPanel title="patchbay · the constructive graph" class="span12" folded=true hue=280.0>
             <p class="pb-status">"the patchbay wakes in the browser"</p>
         </RackPanel>
     };
@@ -203,6 +216,10 @@ pub fn Patchbay() -> impl IntoView {
         state::TICKING.with(|t| t.set(true));
         if !already_ticking {
             crate::raf::raf_loop(move || {
+                if let Some(text) = state::REQUEST_PATCH.with(|r| r.borrow_mut().take()) {
+                    let _ = install_patch(&text);
+                    code_src.set(text);
+                }
                 let met = crate::phazor_panel::wiring::last_meter();
                 let ctx = Ctx {
                     time: t0.elapsed().as_secs_f32(),
@@ -418,7 +435,7 @@ pub fn Patchbay() -> impl IntoView {
         };
 
         view! {
-            <RackPanel title="patchbay · the constructive graph" class="span12" folded=true>
+            <RackPanel title="patchbay · the constructive graph" class="span12" folded=true hue=280.0>
                 <div class="pb-shelf">
                     {library::SHELF
                         .iter()
