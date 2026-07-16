@@ -279,6 +279,7 @@ pub fn PhazorPage() -> impl IntoView {
     let meters = RwSignal::new(Meters::default());
     let steps = RwSignal::new([false; 16]);
     let citadel = RwSignal::new(crate::fractal::CitadelParams::default());
+    let mind = RwSignal::new("silk");
     let tempo = RwSignal::new(120.0f32);
     let cv = Cv::new();
 
@@ -566,7 +567,7 @@ pub fn PhazorPage() -> impl IntoView {
                         {crate::fractal::MINDS.map(|(id, label, _)| view! {
                             <button
                                 class="ctrl-btn"
-                                class:lit=move || crate::fractal::active_mind() == id
+                                class:lit=move || mind.get() == id
                                 on:click=move |_| crate::fractal::request_mind(id)
                             >{label}</button>
                         })}
@@ -685,7 +686,7 @@ pub fn PhazorPage() -> impl IntoView {
                     <crate::patchbay::Patchbay />
                     </div>
                     <div class="ws-col">
-                    <CitadelRack params=citadel />
+                    <CitadelRack params=citadel mind=mind />
 
                     <RackPanel title="scope" class="span3" hue=145.0>
                         <svg class="scope-lcd" viewBox="0 0 64 32" preserveAspectRatio="none" aria-label="oscilloscope: the master bus waveform">

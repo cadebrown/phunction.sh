@@ -66,16 +66,6 @@ thread_local! {
     static ROUTED_FIELD: std::cell::Cell<Option<u32>> = const { std::cell::Cell::new(None) };
 }
 
-thread_local! {
-    /// Mirror of the active mind for chrome (topbar lit state).
-    static ACTIVE_MIND: std::cell::Cell<&'static str> = const { std::cell::Cell::new("silk") };
-}
-
-/// The currently active mind id (topbar lit state).
-pub fn active_mind() -> &'static str {
-    ACTIVE_MIND.with(std::cell::Cell::get)
-}
-
 /// The patchbay routes (or unroutes) a field into the room.
 #[cfg(target_arch = "wasm32")]
 pub fn route_field(id: Option<u32>) {
@@ -142,6 +132,8 @@ pub const MINDS: [(&str, &str, [&str; 4]); 12] = [
 pub fn CitadelRack(
     /// Lifted so presets can rewrite the whole viewport state.
     params: RwSignal<CitadelParams>,
+    /// Lifted so chrome (the topbar) can read AND light the active mind.
+    mind: RwSignal<&'static str>,
 ) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
     let error = RwSignal::new(None::<String>);
@@ -150,22 +142,16 @@ pub fn CitadelRack(
         crate::phazor_panel::wiring::load_state("phazor:wgsl")
             .unwrap_or_else(|| WGSL_STARTER.to_string()),
     );
-    let mind = RwSignal::new(
-        crate::phazor_panel::wiring::load_state("phazor:mind")
-            .and_then(|m| {
-                MINDS
-                    .iter()
-                    .find(|(id, _, _)| *id == m)
-                    .map(|(id, _, _)| *id)
-            })
-            .unwrap_or("silk"),
-    );
+    if let Some(saved) = crate::phazor_panel::wiring::load_state("phazor:mind").and_then(|m| {
+        MINDS
+            .iter()
+            .find(|(id, _, _)| *id == m)
+            .map(|(id, _, _)| *id)
+    }) {
+        mind.set(saved);
+    }
     Effect::new(move |_| {
-        let m = mind.get();
-        crate::phazor_panel::wiring::save_state("phazor:mind", m);
-        if let Some(known) = MINDS.iter().find(|(id, _, _)| *id == m) {
-            ACTIVE_MIND.with(|a| a.set(known.0));
-        }
+        crate::phazor_panel::wiring::save_state("phazor:mind", mind.get());
     });
 
     #[cfg(target_arch = "wasm32")]
