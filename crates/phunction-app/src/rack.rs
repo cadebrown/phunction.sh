@@ -297,6 +297,7 @@ pub fn Fader(
     sync: Option<Signal<f32>>,
 ) -> impl IntoView {
     let pos = RwSignal::new(init.clamp(0.0, 1.0));
+    let editing = RwSignal::new(false);
     let dragging = StoredValue::new(false);
     if let Some(sync) = sync {
         Effect::new(move |_| {
@@ -386,7 +387,44 @@ pub fn Fader(
                 </g>
             </svg>
             <span class="knob-label">{label}</span>
-            <span class="knob-value">{move || format!("{:.2}", pos.get())}</span>
+            {move || {
+                if editing.get() {
+                    view! {
+                        <input
+                            class="knob-entry"
+                            type="text"
+                            inputmode="decimal"
+                            prop:value=format!("{:.2}", pos.get_untracked())
+                            aria-label=format!("{label} value")
+                            on:keydown=move |ev: web_sys::KeyboardEvent| {
+                                match ev.key().as_str() {
+                                    "Enter" => {
+                                        if let Ok(v) = event_target_value(&ev).trim().parse::<f32>() {
+                                            apply(v);
+                                        }
+                                        editing.set(false);
+                                    }
+                                    "Escape" => editing.set(false),
+                                    _ => {}
+                                }
+                            }
+                            on:blur=move |_| editing.set(false)
+                        />
+                    }
+                    .into_any()
+                } else {
+                    view! {
+                        <button
+                            class="knob-value knob-value-btn"
+                            title="click to type a value"
+                            on:click=move |_| editing.set(true)
+                        >
+                            {format!("{:.2}", pos.get())}
+                        </button>
+                    }
+                    .into_any()
+                }
+            }}
         </div>
     }
 }

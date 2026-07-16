@@ -796,6 +796,7 @@ fn node_view(
             {is_knob.then(|| view! {
                 <input
                     type="range" class="pb-thumb" min="0" max="1" step="0.01"
+                    aria-label="knob value"
                     prop:value=move || {
                         rev.get();
                         GRAPH

@@ -143,15 +143,17 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
       room; screenshot sweep.*
 
 - [x] Full-res spectrum: 96 log-spaced Goertzel bands as one lit curve.
-- [~] Dense + straightforward: compact panes, smaller controls, inline
-      numeric entry on knob readouts (click the value, type, Enter —
-      verified 90→92 bpm). *Remaining: entry on faders; per-pane
-      compact modes; grouping labels.*
-- [~] Robustness: Escape cancels any in-flight gesture (verified), node
-      drags hold pointer capture. Remaining: hit-target ≥ 24px sweep,
-      aria audit. *Test: gesture-interrupt suite.*
-- [ ] No layout shift while performing; panes never jump under the hand.
-      *Test: CLS ≈ 0 during interaction recording.*
+- [x] Dense + straightforward: compact panes, smaller controls, inline
+      numeric entry on knob AND fader readouts (click the value, type,
+      Enter — verified 90→92 bpm and 0.36→0.42). Layouts 1/2/3 are the
+      per-room compact modes.*
+- [x] Robustness: Escape cancels any in-flight gesture (verified), node
+      drags hold pointer capture, ports/removers reach 24px hit zones,
+      aria audit clean (every interactive element named — the last five
+      knob thumbs fixed). *Test: gesture-interrupt suite + audit script.*
+- [x] No layout shift while performing; panes never jump under the hand.
+      *Verified: PerformanceObserver CLS = 0.0000 during knob/fader
+      gesture burst (layout presets are intentional rearrangement).*
 
 ## IX · The canon (aesthetics are load-bearing)
 

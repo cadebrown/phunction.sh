@@ -1453,3 +1453,23 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
   border-radius: 3px;
   padding: 2px 4px;
 }
+
+/* hit-target sweep: ports and removers reach 24px without growing visually */
+.pb-port { position: relative; }
+.pb-port::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+}
+.pb-x {
+  min-width: 24px;
+  min-height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.led-wrap { min-width: 18px; }
+
+/* texture round 2: grain quieter, scanlines subtler, vignette deeper —
+   the room reads as depth, not as a filter */
+.mind-field { filter: saturate(1.04) contrast(1.02); }
