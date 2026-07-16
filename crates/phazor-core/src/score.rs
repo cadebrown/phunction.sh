@@ -287,10 +287,20 @@ impl Score {
         let frames_per_slot = frames_per_beat / 2.0;
         let lead_seed = self.seed ^ 0x001E_AD00;
         let semis = self.scale.semis();
+        // era-scale long walks: the seed (which hash-steps every 64 beats)
+        // biases how high the lead sings and how much it talks — evolution
+        // in register and density, not just note choice
+        let high_bias = hash01(self.seed ^ 0x0C7A_0000, 1);
+        let density = (density + (hash01(self.seed ^ 0x0DE1_0000, 1) - 0.5) * 0.25).clamp(0.0, 1.0)
+            * if density > 0.0 { 1.0 } else { 0.0 };
         let note_of = |k: u64| -> u8 {
             let h = hash(lead_seed, k);
             let deg = LEAD_DEGREES[((h >> 8) % 5) as usize];
-            let oct = if h & 1 == 1 { 24 } else { 12 };
+            let oct = if hash01(lead_seed ^ 0x0C7, k) < high_bias {
+                24
+            } else {
+                12
+            };
             clamp_midi(i16::from(self.root) + semis[deg] + oct)
         };
         let fires = |k: u64| hash01(lead_seed, k) < density;

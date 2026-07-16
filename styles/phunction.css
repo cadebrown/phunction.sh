@@ -1412,3 +1412,25 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
   padding-top: 0.15rem;
 }
 .info-grid dd a, .entry a { color: oklch(0.75 0.11 190); }
+
+/* library + help in the bay */
+.pb-shelf-label {
+  font-family: var(--font-mono, "Iosevka Web", monospace);
+  font-size: 0.62rem;
+  letter-spacing: 0.12em;
+  color: oklch(0.6 0.06 300);
+  align-self: center;
+}
+.pb-help {
+  width: 100%;
+  font-family: var(--font-mono, "Iosevka Web", monospace);
+  font-size: 0.68rem;
+  line-height: 1.55;
+  color: oklch(0.72 0.08 190);
+  background: oklch(0.13 0.02 300 / 0.9);
+  border: 1px solid oklch(0.3 0.03 300);
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin: 8px 0 0;
+  white-space: pre-wrap;
+}

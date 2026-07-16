@@ -136,6 +136,7 @@ pub fn Patchbay() -> impl IntoView {
             "the patch as text · run rebuilds the graph · to code writes the graph back",
         ));
         let code_bad = RwSignal::new(false);
+        let help_open = RwSignal::new(false);
         let status = RwSignal::new(String::from(
             "drag headers to move · drag an out-port onto an in-port to patch · click an in-port to unplug",
         ));
@@ -560,6 +561,41 @@ pub fn Patchbay() -> impl IntoView {
                     }}
                 </div>
                 <p class="pb-status">{move || status.get()}</p>
+                <div class="pb-shelf">
+                    <span class="pb-shelf-label">"library:"</span>
+                    {phunction_graph::patch::LIBRARY
+                        .iter()
+                        .map(|(name, text)| {
+                            view! {
+                                <button
+                                    class="xport pb-add"
+                                    on:click=move |_| {
+                                        crate::patchbay::request_patch(text);
+                                    }
+                                >
+                                    {*name}
+                                </button>
+                            }
+                        })
+                        .collect_view()}
+                    <button
+                        class="xport pb-add"
+                        on:click=move |_| help_open.update(|h| *h = !*h)
+                    >"?"</button>
+                </div>
+                {move || help_open.get().then(|| view! {
+                    <pre class="pb-help">
+"the patch language, whole:
+  name = kind arg=ref …      declare a node; literals become knobs
+  name = expr \"a*2\" a=ref    expr nodes take code in quotes
+  name -> mind.warp          route first output to a board key
+  refs: name or name.port    (beat.phase, pads.trig)
+kinds: knob lfo beat audio-in camera-in mic-in pads expr
+       scale mix slew split param-out
+keys:  mind.scale/warp/hue/dolly · voice.cutoff · fx.echo/wash
+expr vars: a b c t beat rms · sin cos tri sqr saw min max clamp lerp"
+                    </pre>
+                })}
                 <div class="pb-codebar">
                     <textarea
                         class="pb-script"
@@ -610,6 +646,12 @@ fn node_view(
 
     let start_drag = move |ev: web_sys::PointerEvent| {
         ev.prevent_default();
+        if let Some(t) = ev
+            .target()
+            .and_then(|t| wasm_bindgen::JsCast::dyn_into::<web_sys::Element>(t).ok())
+        {
+            let _ = t.set_pointer_capture(ev.pointer_id());
+        }
         NODES.with(|n| {
             if let Some(nd) = n.borrow().iter().find(|nd| nd.id == id) {
                 // offset from node origin so the grab point stays under the thumb

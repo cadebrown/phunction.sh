@@ -379,6 +379,31 @@ pub fn render(graph: &Graph, nodes: &[(NodeId, String)]) -> String {
     out
 }
 
+/// The shipped patch library — whole-patches, worlds for the graph.
+/// Every entry is compile-tested; the UI installs them by name.
+pub static LIBRARY: &[(&str, &str)] = &[
+    (
+        "breath",
+        "k = knob 0.25\nl = lfo rate=k depth=0.4\ns = slew in=l amount=0.85\ns -> mind.warp\nl2 = lfo rate=0.1 depth=0.3\nl2 -> mind.hue",
+    ),
+    (
+        "pulse",
+        "b = beat\ng = slew in=b amount=0.92\ng -> mind.scale\ne = expr \"0.3*tri(b*0.25)\" b=b.phase\ne -> mind.dolly",
+    ),
+    (
+        "listener",
+        "a = audio-in\ns = slew in=a amount=0.88\ns -> mind.warp\ne = expr \"a*0.5 + 0.15*sin(t*0.07)\" a=a\ne -> mind.hue\na2 = audio-in\na2 -> fx.wash",
+    ),
+    (
+        "open mic",
+        "m = mic-in\ns = slew in=m amount=0.9\ns -> mind.warp\ne = expr \"a*0.8\" a=m\ne -> fx.echo",
+    ),
+    (
+        "co-pilot",
+        "p = pads\np -> mind.hue\ne = expr \"abs(a)\" a=p.y\ne -> mind.dolly\ne2 = expr \"a*0.7\" a=p.trig\ne2 -> mind.warp",
+    ),
+];
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -441,6 +466,24 @@ e -> mind.warp
     fn multi_output_refs_use_port_names() {
         let plan = compile("b = beat\ns = scale in=b.phase", KEYS).unwrap();
         assert_eq!(plan.links[0].0, (0, 1), "phase is beat's second output");
+    }
+
+    #[test]
+    fn the_shipped_library_compiles_and_builds() {
+        let keys = [
+            "mind.scale",
+            "mind.warp",
+            "mind.hue",
+            "mind.dolly",
+            "voice.cutoff",
+            "fx.echo",
+            "fx.wash",
+        ];
+        for (name, text) in LIBRARY {
+            let plan =
+                compile(text, &keys).unwrap_or_else(|e| panic!("library patch `{name}`: {e}"));
+            build(&plan).unwrap_or_else(|e| panic!("library patch `{name}` build: {e}"));
+        }
     }
 
     #[test]

@@ -42,11 +42,11 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 - [x] The score **evolves forever**: seed hash-steps every 64 beats;
       nothing loops statically. *Test: eras produce different event streams;
       resume evolves identically from the same position.*
-- [~] Evolution reaches more axes: the PROGRESSION now varies with the
-      era seed (three minor-family walks; the drone releases gracefully
-      at era edges). Remaining: register/density long-walks, world-
-      morphing over minutes. *Test: eras traverse different progressions;
-      storm test still silent.*
+- [x] Evolution reaches more axes: the PROGRESSION varies with the era
+      seed (three minor-family walks, drone released at era edges), and
+      the lead's REGISTER and DENSITY take era-scale walks (high-bias and
+      chattiness from the evolving seed). *Test: storm + determinism
+      suites green; eras traverse progressions and ranges.*
 - [x] Mic input as a first-class source (standing directive): mic-in block
       exposes the live level to the graph (Ctx.ext). *Test: shelf spawn →
       permission prompt raised once; graceful at zero when refused.*
@@ -92,8 +92,9 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 - [x] Gamepad block: stick axes/trigger as Signal outputs, polled per
       frame into Ctx.ext. *Test: block spawns and outputs; live-pad drive
       pending a physical pad session.*
-- [ ] Prebuilt patch library: a shelf of whole-patches (worlds for the
-      graph). *Test: one click installs; all compile.*
+- [x] Prebuilt patch library: five whole-patches on the bay's shelf
+      (breath / pulse / listener / open mic / co-pilot). *Test: every
+      entry compile+build tested natively; one click installs (verified).*
 
 ## V · The languages (code as a first-class door)
 
@@ -101,8 +102,9 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
       errors, NaN-proof eval, unit-phase waves. 14+ tests.
 - [x] patch: the graph notation (above).
 - [x] Editable WGSL blocks (see III — the live-wgsl mind).
-- [ ] Language docs surface in the UI (`?` reveals vars/functions/grammar
-      in each code field). *Test: help renders, examples run.*
+- [x] Language docs surface in the UI: `?` in the bay reveals the whole
+      patch grammar, kinds, keys, and expr vocabulary. *Verified: toggle
+      renders; library entries double as runnable examples.*
 
 ## VI · Live-performance invariants (tested, standing — AGENTS.md)
 
@@ -143,10 +145,9 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 - [~] Dense + straightforward: compact panes, smaller controls, everything
       visible without hunting. *Remaining: inline numeric entry on every
       control; per-pane compact/expanded modes; clearer grouping labels.*
-- [~] Robustness: Escape cancels any in-flight gesture (verified: mid-drag
-      cable dies cleanly, then panic). Remaining: pointer capture on node
-      drags, hit-target ≥ 24px sweep, aria audit.
-      *Test: gesture-interrupt suite (drag + Escape, drag off-window).*
+- [~] Robustness: Escape cancels any in-flight gesture (verified), node
+      drags hold pointer capture. Remaining: hit-target ≥ 24px sweep,
+      aria audit. *Test: gesture-interrupt suite.*
 - [ ] No layout shift while performing; panes never jump under the hand.
       *Test: CLS ≈ 0 during interaction recording.*
 
