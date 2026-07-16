@@ -110,6 +110,34 @@ test("topbar lights the active mind and switches live", async ({ page }) => {
   );
 });
 
+test("the research minds compile and switch cleanly (indra, hopf, lenia)", async ({
+  page,
+}) => {
+  // a broken WGSL mind surfaces as a GPU validation error in the console
+  // (create_shader_module / pipeline creation) and renders black; catch it
+  const gpuErrors = [];
+  page.on("console", (m) => {
+    if (m.type() === "error" && /shader|wgsl|pipeline|validation/i.test(m.text()))
+      gpuErrors.push(m.text());
+  });
+  page.on("pageerror", (e) => gpuErrors.push(String(e)));
+
+  await powerOn(page);
+  for (const mind of ["indra", "hopf", "lenia"]) {
+    await page
+      .locator(".phz-topbar .ctrl-btn", { hasText: new RegExp(`^${mind}$`) })
+      .click();
+    // the lit state only follows if the swap actually took
+    await expect(
+      page.locator(".phz-topbar .ctrl-btn.lit", {
+        hasText: new RegExp(`^${mind}$`),
+      }),
+    ).toBeVisible();
+    await page.waitForTimeout(2500); // let feedback sims run / cameras orbit
+  }
+  expect(gpuErrors, gpuErrors.join("\n")).toHaveLength(0);
+});
+
 test("zen hides the chrome and z brings it back", async ({ page }) => {
   await powerOn(page);
   // zen slides the strip away with transform+opacity (still "visible" to

@@ -2,3 +2,5 @@
 # `nd` is the patchbay's node-binding abbreviation, not a typo of "and"
 nd = "nd"
 thm = "thm"
+precesses = "precesses"
+precess = "precess"

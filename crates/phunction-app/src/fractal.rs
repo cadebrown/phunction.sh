@@ -112,7 +112,7 @@ impl Default for CitadelParams {
 
 /// The selectable minds and their per-mind control names — every fader
 /// tells the truth about what it does *for this visual*.
-pub const MINDS: [(&str, &str, [&str; 4]); 12] = [
+pub const MINDS: [(&str, &str, [&str; 4]); 15] = [
     ("silk", "silk", ["depth", "grain", "hue", "drift"]),
     ("current", "current", ["flow", "eddies", "hue", "drift"]),
     ("petri", "petri", ["feed", "kill", "hue", "speed"]),
@@ -125,6 +125,9 @@ pub const MINDS: [(&str, &str, [&str; 4]); 12] = [
     ("specter", "specter", ["folds", "paint", "hue", "zoom"]),
     ("maw", "maw", ["vault", "ceiling", "hue", "glide"]),
     ("bulb", "bulb", ["power", "detail", "hue", "orbit"]),
+    ("indra", "indra", ["knot", "weave", "hue", "drift"]),
+    ("hopf", "hopf", ["fibers", "precess", "hue", "orbit"]),
+    ("lenia", "lenia", ["mood", "width", "hue", "speed"]),
 ];
 
 /// The viewport + control panels, as one rack row.
@@ -303,6 +306,17 @@ pub fn CitadelRack(
                                 "bulb" => {
                                     Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::BULB_WGSL))
                                 }
+                                "indra" => {
+                                    Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::INDRA_WGSL))
+                                }
+                                "hopf" => {
+                                    Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::HOPF_WGSL))
+                                }
+                                "lenia" => Vp::Feedback(FeedbackPhunctor::new(
+                                    &ctx,
+                                    phunction_gfx::LENIA_SIM_WGSL,
+                                    phunction_gfx::LENIA_PRESENT_WGSL,
+                                )),
                                 "cortex" => Vp::Shader(ShaderPhunctor::new(
                                     &ctx,
                                     phunction_gfx::CORTEX_WGSL,

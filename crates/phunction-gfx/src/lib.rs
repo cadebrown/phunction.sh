@@ -88,6 +88,14 @@ pub const GASKET_WGSL: &str = include_str!("../shaders/gasket.wgsl");
 pub const MAW_WGSL: &str = include_str!("../shaders/maw.wgsl");
 /// The bulb mind: a power-morphing Mandelbulb with orbit-trap veins.
 pub const BULB_WGSL: &str = include_str!("../shaders/bulb.wgsl");
+/// The indra mind: a Kleinian limit set (Maskit slice), Leys's algorithm.
+pub const INDRA_WGSL: &str = include_str!("../shaders/indra.wgsl");
+/// The hopf mind: the Hopf fibration drawn as glowing fiber circles.
+pub const HOPF_WGSL: &str = include_str!("../shaders/hopf.wgsl");
+/// The lenia mind (sim pass): continuous cellular life on feedback infra.
+pub const LENIA_SIM_WGSL: &str = include_str!("../shaders/lenia.wgsl");
+/// The lenia mind (present pass).
+pub const LENIA_PRESENT_WGSL: &str = include_str!("../shaders/lenia_present.wgsl");
 /// The silk mind: domain-warped flow noise — the flowy one.
 pub const SILK_WGSL: &str = include_str!("../shaders/silk.wgsl");
 /// The current mind: curl-noise flow — slow water in the dark.

@@ -85,6 +85,28 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
       repro: 13/13 rays hit in ≤73 steps) — then verified live in canon
       palette; screenshots on record. The maw glide is bounded (±1.8
       sine) so hours-deep sessions can't march out of f32.*
+- [x] **Three world-class research visuals** ("research really cool
+      mathematical ideas and iterate until 3 world-class visuals"):
+      **indra** — a Kleinian limit set on the Maskit slice (Jos Leys's
+      fast algorithm: wrap+fold+invert; the tangent-circle necklace of
+      Indra's Pearls, the parameter t walking Maskit space so the lace
+      rewires); **hopf** — the Hopf fibration, S³ as a sphere of disjoint
+      circles, each fiber stereographically projected and ray-marched as
+      a glowing tube so the nested Villarceau tori braid as the base
+      sphere precesses; **lenia** — Bert Chan's continuous cellular
+      automaton on the feedback infra, tuned to the SPOT regime (soft
+      ciliated amoebas, not petri's connected coral), self-sustaining
+      forever. Fifteen minds. *Tested: every formula verified natively
+      first (scratchpad: Kleinian set is thin+present at 4% of the strip;
+      Hopf fibers are exact circles equidistant+coplanar to 1e-6; Lenia
+      morphology swept for an alive spot-producing config — run-length ~2
+      vs the labyrinth's long stripes). Then iterated in-browser from
+      screenshots (indra reframed to a horizontal necklace, hopf rebuilt
+      from sparse dots to marched glow + brightened, lenia moved from
+      labyrinth → grain → soft amoebas via kernel spacing). FPS measured:
+      indra/lenia 120, hopf 107 (cut to 40 steps × 24 fibers for
+      headroom). Playwright guards all three against shader-compile
+      breakage.*
 
 - [x] **The weather owns more of the music** ("constantly evolving and
       changing tones, timbre, notes, tempo"): every 64-beat era now sets
