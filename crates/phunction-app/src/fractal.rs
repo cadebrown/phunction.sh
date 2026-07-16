@@ -41,12 +41,12 @@ impl Default for CitadelParams {
 /// The selectable minds and their per-mind control names — every fader
 /// tells the truth about what it does *for this visual*.
 const MINDS: [(&str, &str, [&str; 4]); 6] = [
-    ("citadel", "◬ citadel", ["scale", "warp", "hue", "dolly"]),
-    ("gyroid", "▚ gyroid", ["thickness", "twist", "hue", "speed"]),
-    ("basilica", "⛫ basilica", ["scale", "fold", "hue", "orbit"]),
-    ("gasket", "◍ gasket", ["ratio", "zoom", "hue", "drift"]),
-    ("cortex", "ψ cortex", ["seed", "zoom", "hue", "flow"]),
-    ("specter", "☉ specter", ["folds", "paint", "hue", "zoom"]),
+    ("citadel", "citadel", ["scale", "warp", "hue", "dolly"]),
+    ("gyroid", "gyroid", ["thickness", "twist", "hue", "speed"]),
+    ("basilica", "basilica", ["scale", "fold", "hue", "orbit"]),
+    ("gasket", "gasket", ["ratio", "zoom", "hue", "drift"]),
+    ("cortex", "cortex", ["seed", "zoom", "hue", "flow"]),
+    ("specter", "specter", ["folds", "paint", "hue", "zoom"]),
 ];
 
 /// The viewport + control panels, as one rack row.
@@ -138,11 +138,16 @@ pub fn CitadelRack(
                         };
                     }
 
-                    let dpr = web_sys::window().map_or(1.0, |w| w.device_pixel_ratio());
+                    // qualia lesson: cap effective DPR — fullscreen
+                    // raymarchers render at ~half res and upscale; nobody
+                    // can tell at motion, everybody can tell at 12 fps
+                    let dpr = web_sys::window()
+                        .map_or(1.0, |w| w.device_pixel_ratio())
+                        .min(1.5);
                     #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
                     let size = (
-                        (f64::from(canvas.client_width()) * dpr * 0.6).max(1.0) as u32,
-                        (f64::from(canvas.client_height()) * dpr * 0.6).max(1.0) as u32,
+                        (f64::from(canvas.client_width()) * dpr * 0.5).max(1.0) as u32,
+                        (f64::from(canvas.client_height()) * dpr * 0.5).max(1.0) as u32,
                     );
                     if size.0 == 0 || size.1 == 0 {
                         return true;
@@ -236,7 +241,15 @@ pub fn CitadelRack(
                         coarse(8, 12),
                         coarse(12, 16),
                     ];
-                    // the little language gets the last word on the bus
+                    // the patch speaks first, then the little language
+                    let patch = crate::patchbay::mind_mods();
+                    for (i, p) in patch.iter().enumerate() {
+                        if i == 2 {
+                            mods[2] += p; // hue is a phase: wrap, don't pin
+                        } else {
+                            mods[i] = (mods[i] + p).clamp(0.0, 1.0);
+                        }
+                    }
                     #[allow(clippy::cast_possible_truncation)]
                     crate::expr_slot::apply(
                         &mut mods,
@@ -274,7 +287,14 @@ pub fn CitadelRack(
     });
 
     view! {
-        <RackPanel title="viewport · four minds" class="span7">
+        // qualia move: the mind IS the room. Fixed fullscreen canvas under
+        // the rack; every panel floats translucent above the visual field.
+        <canvas
+            node_ref=canvas_ref
+            class="mind-field"
+            aria-label="the mind field: fractal, gyroid, neural field, or your own kaleidoscoped camera, wall to wall"
+        ></canvas>
+        <RackPanel title="mind" class="span7">
             <div class="vp-select">
                 {MINDS
                     .map(|(id, label, _)| {
@@ -290,11 +310,6 @@ pub fn CitadelRack(
                     })}
             </div>
             {move || error.get().map(|e| view! { <p class="gfx-error">"✗ " {e}</p> })}
-            <canvas
-                node_ref=canvas_ref
-                class="scene-canvas fractal-canvas"
-                aria-label="the workstation viewport: fractal, gyroid, neural field, or your own kaleidoscoped camera"
-            ></canvas>
         </RackPanel>
         <RackPanel title="mind controls" class="span5">
             {move || {
@@ -320,7 +335,7 @@ pub fn CitadelRack(
                     class:lit=move || params.get().auto
                     on:click=move |_| params.update(|p| p.auto = !p.auto)
                 >
-                    "∞ explore"
+                    "explore"
                 </button>
                 <Led on={Signal::derive(move || params.get().auto)} hue=280.0 label="drift" />
             </div>

@@ -245,6 +245,49 @@ pub fn PhazorPage() -> impl IntoView {
     let tempo = RwSignal::new(120.0f32);
     let cv = Cv::new();
 
+    // zen mode: `z` (outside inputs) or the floating button drops every
+    // panel away and leaves the mind field wall to wall
+    #[cfg(target_arch = "wasm32")]
+    {
+        use wasm_bindgen::prelude::*;
+        use wasm_bindgen::JsCast;
+        let on_key =
+            Closure::<dyn FnMut(web_sys::KeyboardEvent)>::new(move |ev: web_sys::KeyboardEvent| {
+                let tag = ev
+                    .target()
+                    .and_then(|t| t.dyn_into::<web_sys::Element>().ok())
+                    .map(|e| e.tag_name())
+                    .unwrap_or_default();
+                if tag == "INPUT" || tag == "TEXTAREA" {
+                    return;
+                }
+                if ev.key() == "z" {
+                    if let Some(root) = web_sys::window()
+                        .and_then(|w| w.document())
+                        .and_then(|d| d.document_element())
+                    {
+                        let _ = root.class_list().toggle("zen");
+                    }
+                }
+            });
+        if let Some(w) = web_sys::window() {
+            let _ = w.add_event_listener_with_callback("keydown", on_key.as_ref().unchecked_ref());
+        }
+        on_key.forget();
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    let toggle_zen = move |_ev: web_sys::MouseEvent| {
+        if let Some(root) = web_sys::window()
+            .and_then(|w| w.document())
+            .and_then(|d| d.document_element())
+        {
+            let _ = root.class_list().toggle("zen");
+        }
+    };
+    #[cfg(not(target_arch = "wasm32"))]
+    let toggle_zen = move |_ev: leptos::ev::MouseEvent| {};
+
     // Power-on is ignition into a *world*, not silence — but the world
     // waits for the viewport to claim its GPU device first (see gfx_gate:
     // audible playback can stall requestAdapter). A fallback timer starts
@@ -421,7 +464,7 @@ pub fn PhazorPage() -> impl IntoView {
                                     cv.seed.set(next);
                                     wiring::send(Command::SetSeed(next));
                                 }
-                            >"⚄ reseed"</button>
+                            >"reseed"</button>
                             <div class="lcd"><span>{move || format!("wx {:08x}", cv.seed.get())}</span></div>
                         </div>
                         <div class="vp-select">
@@ -456,6 +499,8 @@ pub fn PhazorPage() -> impl IntoView {
                     </RackPanel>
 
                     <ExprRack meters=meters />
+
+                    <crate::patchbay::Patchbay />
 
                     <svg class="cable" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                         <path class="cable-shadow" d="M26.5 57 C 29 86, 40 74, 43.5 42"></path>
@@ -528,9 +573,11 @@ pub fn PhazorPage() -> impl IntoView {
                 <div class="keyhints">
                     <span><kbd>"space"</kbd>" play/stop"</span>
                     <span><kbd>"esc"</kbd>" panic"</span>
+                    <span><kbd>"z"</kbd>" zen"</span>
                     <span><kbd>"shift"</kbd>"+drag knobs for fine control · double-click resets"</span>
                     <span><kbd>"`"</kbd>" debug"</span>
                 </div>
+                <button class="zen-toggle" on:click=toggle_zen>"zen"</button>
             </Show>
         </main>
     }
@@ -563,7 +610,7 @@ pub struct Preset {
 /// The shipped worlds. Dark by default — the machine should loom, not chirp.
 pub static PRESETS: [Preset; 3] = [
     Preset {
-        name: "⌾ undervoid",
+        name: "undervoid",
         tempo: 66.0,
         pattern: [false; 16],
         cutoff: 1800.0,
@@ -591,7 +638,7 @@ pub static PRESETS: [Preset; 3] = [
         },
     },
     Preset {
-        name: "∿ pale arps",
+        name: "pale arps",
         tempo: 84.0,
         pattern: [
             true, false, false, false, false, false, true, false, false, false, true, false, false,
@@ -622,7 +669,7 @@ pub static PRESETS: [Preset; 3] = [
         },
     },
     Preset {
-        name: "◬ black rain",
+        name: "black rain",
         tempo: 106.0,
         pattern: [
             true, false, true, false, false, true, false, false, true, false, true, false, false,

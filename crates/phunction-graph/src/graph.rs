@@ -219,6 +219,24 @@ impl Graph {
     pub fn preview(&self, id: NodeId, port: usize) -> Option<Value> {
         self.last_out.get(id.0)?.get(port).copied()
     }
+
+    /// Mutable access to a live block (the patchbay's settings surface).
+    pub fn block_mut(&mut self, id: NodeId) -> Option<&mut Box<dyn Block>> {
+        self.nodes.get_mut(id.0)?.as_mut()
+    }
+
+    /// Read access to a live block.
+    #[must_use]
+    pub fn block(&self, id: NodeId) -> Option<&dyn Block> {
+        self.nodes.get(id.0)?.as_deref()
+    }
+
+    /// Every cable, for rendering: (from, to, adapter).
+    pub fn cables(
+        &self,
+    ) -> impl Iterator<Item = ((NodeId, usize), (NodeId, usize), Option<AdapterKind>)> + '_ {
+        self.edges.iter().map(|e| (e.from, e.to, e.adapter))
+    }
 }
 
 #[cfg(test)]
@@ -281,6 +299,38 @@ mod tests {
         let b = g.add(library::build("scale").unwrap());
         g.connect((a, 0), (b, 0)).unwrap();
         assert_eq!(g.connect((b, 0), (a, 0)).unwrap_err(), ConnectError::Cycle);
+    }
+
+    #[test]
+    fn knob_feeds_expr_which_is_reprogrammable() {
+        let mut g = Graph::new();
+        let knob = g.add(library::build("knob").unwrap());
+        let expr = g.add(library::build("expr").unwrap());
+        g.connect((knob, 0), (expr, 0)).unwrap();
+        g.block_mut(knob).unwrap().set_param(0.8);
+        g.block_mut(expr).unwrap().set_code("a * 2").unwrap();
+        g.tick(&Ctx::default());
+        let Some(crate::value::Value::Signal(v)) = g.preview(expr, 0) else {
+            panic!("expr must output a signal");
+        };
+        assert!((v - 1.6).abs() < 1e-6, "knob 0.8 through a*2, got {v}");
+        // bad code is refused with an addressed reason, program unchanged
+        let err = g.block_mut(expr).unwrap().set_code("a +").unwrap_err();
+        assert!(err.contains("char"), "{err}");
+        g.tick(&Ctx::default());
+        assert!(matches!(
+            g.preview(expr, 0),
+            Some(crate::value::Value::Signal(_))
+        ));
+    }
+
+    #[test]
+    fn param_out_key_is_repointable() {
+        let mut g = Graph::new();
+        let sink = g.add(library::build("param-out").unwrap());
+        assert_eq!(g.block(sink).unwrap().key(), Some("mind.warp"));
+        g.block_mut(sink).unwrap().set_key("mind.hue");
+        assert_eq!(g.block(sink).unwrap().key(), Some("mind.hue"));
     }
 
     #[test]

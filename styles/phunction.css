@@ -981,3 +981,207 @@ html.fnord body { animation: fnord-storm 4s ease-in-out; }
 .expr-status.err {
   color: oklch(0.68 0.19 10);
 }
+
+/* ── maximum immersion: the mind field is the room ────────────────────── */
+.mind-field {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  pointer-events: none;
+}
+/* the rack floats above the field on glass */
+.panel { position: relative; z-index: 1; }
+.panel .rack-panel {
+  background:
+    linear-gradient(oklch(0.19 0.03 300 / 0.62), oklch(0.16 0.03 300 / 0.7));
+  backdrop-filter: blur(10px) saturate(1.15);
+  -webkit-backdrop-filter: blur(10px) saturate(1.15);
+}
+
+/* ── zen mode: the field, nothing else ────────────────────────────────── */
+/* fade panels one by one — the mind-field canvas lives inside .rack and
+   must survive zen (a parent opacity would drag it down too) */
+nav, .panel-head, .rack > .rack-panel, .rack > .cable, .keyhints,
+.transmission, .power {
+  transition: opacity 0.6s ease;
+}
+.zen nav, .zen .panel-head, .zen .rack > .rack-panel, .zen .rack > .cable,
+.zen .keyhints, .zen .transmission, .zen .power {
+  opacity: 0;
+  pointer-events: none;
+}
+.zen-toggle {
+  position: fixed;
+  right: 18px;
+  bottom: 14px;
+  z-index: 40;
+  font-family: var(--font-mono, "Iosevka Web", monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  color: oklch(0.7 0.05 300);
+  background: oklch(0.18 0.03 300 / 0.55);
+  border: 1px solid oklch(0.35 0.04 300 / 0.6);
+  border-radius: 4px;
+  padding: 5px 12px;
+  cursor: pointer;
+  backdrop-filter: blur(8px);
+  opacity: 0.6;
+}
+.zen-toggle:hover { opacity: 1; }
+.zen .zen-toggle { opacity: 0.28; }
+
+/* ── the patchbay ─────────────────────────────────────────────────────── */
+.pb-shelf {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  width: 100%;
+  padding-bottom: 8px;
+}
+.pb-add { font-size: 0.66rem; padding: 4px 8px; }
+.pb-canvas {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  border: 1px solid oklch(0.3 0.03 300 / 0.7);
+  border-radius: 6px;
+  background:
+    radial-gradient(circle at 1px 1px, oklch(0.32 0.03 300 / 0.5) 1px, transparent 1.5px)
+    0 0 / 22px 22px,
+    linear-gradient(oklch(0.14 0.02 300 / 0.75), oklch(0.12 0.02 300 / 0.85));
+  overflow: hidden;
+  touch-action: none;
+}
+.pb-wires {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.pb-cable-shadow {
+  fill: none;
+  stroke: oklch(0 0 0 / 0.55);
+  stroke-width: 4;
+  transform: translateY(1.5px);
+}
+.pb-cable {
+  fill: none;
+  stroke: oklch(0.72 0.17 calc(var(--hue) * 1deg));
+  stroke-width: 2.25;
+  filter: drop-shadow(0 0 3px oklch(0.65 0.17 calc(var(--hue) * 1deg) / 0.7));
+}
+.pb-cable.adapted { stroke-dasharray: 7 3; }
+.pb-cable.live { stroke-dasharray: 4 4; opacity: 0.85; }
+.pb-node {
+  position: absolute;
+  width: 170px;
+  background: linear-gradient(oklch(0.22 0.03 300 / 0.94), oklch(0.18 0.03 300 / 0.96));
+  border: 1px solid oklch(0.36 0.04 300);
+  border-radius: 6px;
+  box-shadow: 0 6px 18px oklch(0 0 0 / 0.45);
+  user-select: none;
+}
+.pb-node header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  font-family: var(--font-mono, "Iosevka Web", monospace);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: oklch(0.8 0.04 300);
+  background: oklch(0.27 0.035 300 / 0.85);
+  border-radius: 6px 6px 0 0;
+  cursor: grab;
+}
+.pb-node header:active { cursor: grabbing; }
+.pb-x {
+  background: none;
+  border: none;
+  color: oklch(0.6 0.1 10);
+  font-size: 0.7rem;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.pb-ports {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  min-height: 26px;
+}
+.pb-col { display: flex; flex-direction: column; gap: 4px; }
+.pb-col.out { align-items: flex-end; }
+.pb-portrow { display: flex; align-items: center; gap: 5px; height: 16px; }
+.pb-port {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid oklch(0.72 0.17 calc(var(--hue) * 1deg));
+  background: oklch(0.16 0.02 300);
+  box-shadow: 0 0 5px oklch(0.65 0.17 calc(var(--hue) * 1deg) / 0.55);
+  cursor: crosshair;
+  padding: 0;
+}
+.pb-port.in { margin-left: -7px; }
+.pb-port.out { margin-right: -7px; }
+.pb-portname {
+  font-family: var(--font-mono, "Iosevka Web", monospace);
+  font-size: 0.6rem;
+  color: oklch(0.65 0.04 300);
+}
+.pb-spark {
+  display: block;
+  width: calc(100% - 16px);
+  height: 22px;
+  margin: 2px 8px 6px;
+  background: oklch(0.13 0.02 300 / 0.9);
+  border-radius: 3px;
+}
+.pb-spark polyline {
+  fill: none;
+  stroke: oklch(0.78 0.19 145);
+  stroke-width: 1.1;
+}
+.pb-thumb { width: calc(100% - 16px); margin: 0 8px 8px; accent-color: oklch(0.7 0.15 280); }
+.pb-code {
+  width: calc(100% - 16px);
+  margin: 0 8px 8px;
+  font-family: var(--font-mono, "Iosevka Web", monospace);
+  font-size: 0.68rem;
+  color: oklch(0.85 0.16 145);
+  background: oklch(0.13 0.02 300);
+  border: 1px solid oklch(0.3 0.03 300);
+  border-radius: 3px;
+  padding: 4px 6px;
+}
+.pb-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 0 8px 8px;
+}
+.pb-key {
+  font-family: var(--font-mono, "Iosevka Web", monospace);
+  font-size: 0.58rem;
+  padding: 2px 5px;
+  color: oklch(0.68 0.04 300);
+  background: oklch(0.2 0.02 300);
+  border: 1px solid oklch(0.32 0.03 300);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.pb-key.lit {
+  color: oklch(0.92 0.18 100);
+  border-color: oklch(0.7 0.15 100);
+  box-shadow: 0 0 6px oklch(0.7 0.15 100 / 0.5);
+}
+.pb-status {
+  font-family: var(--font-mono, "Iosevka Web", monospace);
+  font-size: 0.68rem;
+  color: oklch(0.62 0.06 300);
+  padding-top: 6px;
+}
