@@ -35,11 +35,11 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
     var p = in.uv * vec2<f32>(u.aspect, 1.0) * zoom;
 
     // the bass pumps the radius
-    p = p * (1.0 - u.mod4 * 0.35 * sin(length(p) * 9.0 - u.time * 3.0));
+    p = p * (1.0 - u.mod4 * 0.18 * sin(length(p) * 5.0 - u.time * 1.2));
     p = kaleido(p, folds, u.time);
 
     // chromatic split: r/g/b sampled at slightly rotated folds
-    let split = 0.015 + u.mod7 * 0.12;
+    let split = 0.01 + u.mod7 * 0.06;
     let cr = sample_cam(rot2s(p, split)).r;
     let cg = sample_cam(p).g;
     let cb = sample_cam(rot2s(p, -split)).b;

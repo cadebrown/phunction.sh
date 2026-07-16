@@ -40,7 +40,8 @@ impl Default for CitadelParams {
 
 /// The selectable minds and their per-mind control names — every fader
 /// tells the truth about what it does *for this visual*.
-const MINDS: [(&str, &str, [&str; 4]); 6] = [
+const MINDS: [(&str, &str, [&str; 4]); 7] = [
+    ("silk", "silk", ["depth", "grain", "hue", "drift"]),
     ("citadel", "citadel", ["scale", "warp", "hue", "dolly"]),
     ("gyroid", "gyroid", ["thickness", "twist", "hue", "speed"]),
     ("basilica", "basilica", ["scale", "fold", "hue", "orbit"]),
@@ -57,7 +58,7 @@ pub fn CitadelRack(
 ) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
     let error = RwSignal::new(None::<String>);
-    let mind = RwSignal::new("citadel");
+    let mind = RwSignal::new("silk");
 
     #[cfg(target_arch = "wasm32")]
     {
@@ -93,11 +94,15 @@ pub fn CitadelRack(
                     }
                 };
                 let webgpu = ctx.backend() == "webgpu";
-                let mut current = "citadel";
-                let mut vp = Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::CITADEL_WGSL));
+                let mut current = "silk";
+                let mut vp = Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::SILK_WGSL));
                 let t0 = web_time::Instant::now();
                 let mut last_beat = 0u64;
                 let mut pulse = 0.0f32;
+                // the flow filter: one-pole slew on the whole mod bus, so
+                // per-block spectrum jitter arrives as swells, not spasms
+                let mut flow = [0.0f32; 8];
+                let mut flow_primed = false;
 
                 crate::raf::raf_loop(move || {
                     if !canvas.is_connected() {
@@ -110,6 +115,9 @@ pub fn CitadelRack(
                         vp = match want {
                             "gyroid" => {
                                 Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::GYROID_WGSL))
+                            }
+                            "silk" => {
+                                Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::SILK_WGSL))
                             }
                             "basilica" => {
                                 Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::BASILICA_WGSL))
@@ -213,18 +221,18 @@ pub fn CitadelRack(
                         last_beat = beat_now;
                         pulse = 1.0;
                     }
-                    pulse *= 0.94;
+                    pulse *= 0.97; // long decay: a swell, not a strobe
 
                     let (ds, dw, dd) = if par.auto {
                         (
-                            0.16 * (now * 0.043).sin(),
-                            0.18 * (now * 0.031 + 1.7).sin(),
-                            0.12 * (now * 0.019 + 4.2).sin(),
+                            0.1 * (now * 0.017).sin(),
+                            0.12 * (now * 0.013 + 1.7).sin(),
+                            0.08 * (now * 0.009 + 4.2).sin(),
                         )
                     } else {
                         (0.0, 0.0, 0.0)
                     };
-                    let rms = (met.rms_l + met.rms_r) * 1.5;
+                    let rms = (met.rms_l + met.rms_r) * 0.8;
                     let bands = met.bands;
                     #[allow(clippy::cast_precision_loss)]
                     let coarse = |a: usize, z: usize| -> f32 {
@@ -234,7 +242,7 @@ pub fn CitadelRack(
                     let mut mods = [
                         (par.scale + ds).clamp(0.0, 1.0),
                         (par.warp + dw + rms).clamp(0.0, 1.0),
-                        par.hue + pulse * 0.12,
+                        par.hue + pulse * 0.05,
                         (par.dolly + dd).clamp(0.0, 1.0),
                         coarse(0, 4),
                         coarse(4, 8),
@@ -262,10 +270,18 @@ pub fn CitadelRack(
                             rms,
                         ],
                     );
+                    if !flow_primed {
+                        flow = mods;
+                        flow_primed = true;
+                    }
+                    for (f, m) in flow.iter_mut().zip(mods) {
+                        // ~0.5s to 95% at 60fps: musical, never twitchy
+                        *f += (m - *f) * 0.06;
+                    }
                     let input = FrameInput {
                         time: now,
                         aspect: size.0 as f32 / size.1 as f32,
-                        mods,
+                        mods: flow,
                     };
                     match &mut vp {
                         Vp::Shader(s) => s.frame(&ctx, &view, &input),

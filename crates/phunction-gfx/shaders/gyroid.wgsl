@@ -50,7 +50,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
     // stay lace-like: the channel (|g| ≈ 1) must remain open space
     let thick = mix(0.04, 0.30, clamp(u.mod0, 0.0, 1.0)) + u.mod4 * 0.12;
     let twist = (u.mod1 - 0.5) * 2.4;
-    let speed = mix(0.2, 2.2, clamp(u.mod3, 0.0, 1.0));
+    let speed = mix(0.08, 0.9, clamp(u.mod3, 0.0, 1.0));
 
     // fly down the labyrinth's throat, hugging the channel center
     // (g = +1 at scaled x = π/2, so world x = π/2 / GFREQ) — small wobble,

@@ -28,7 +28,7 @@ fn gasket_de(p0: vec3<f32>, ratio: f32) -> vec2<f32> {
 fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
     let ratio = mix(1.0, 1.22, clamp(u.mod0, 0.0, 1.0)) + u.mod4 * 0.05;
     let zoom = mix(1.8, 0.7, clamp(u.mod1, 0.0, 1.0));
-    let t = u.time * mix(0.02, 0.3, clamp(u.mod3, 0.0, 1.0));
+    let t = u.time * mix(0.008, 0.12, clamp(u.mod3, 0.0, 1.0));
 
     // drift through the packing
     let eye = vec3<f32>(t * 0.4, 0.12 * sin(t * 0.7), t * 0.23);

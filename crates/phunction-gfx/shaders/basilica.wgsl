@@ -42,7 +42,7 @@ fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
     // scale in the classic chaotic band; bass leans on the fold
     let scale = mix(-1.6, -2.9, clamp(u.mod0, 0.0, 1.0));
     let fold = mix(0.6, 1.25, clamp(u.mod1, 0.0, 1.0)) + u.mod4 * 0.1;
-    let spin = u.time * mix(0.02, 0.35, clamp(u.mod3, 0.0, 1.0));
+    let spin = u.time * mix(0.008, 0.12, clamp(u.mod3, 0.0, 1.0));
 
     // orbit camera
     let dist = 6.0;

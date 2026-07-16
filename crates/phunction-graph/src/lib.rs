@@ -26,6 +26,7 @@
 pub mod expr;
 pub mod graph;
 pub mod library;
+pub mod patch;
 pub mod value;
 
 pub use graph::{ConnectError, Ctx, Graph, NodeId};

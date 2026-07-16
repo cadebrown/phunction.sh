@@ -19,7 +19,7 @@ fn whash(seed: f32, a: f32, b: f32) -> f32 {
 fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
     let seed = floor(u.mod0 * 32.0) + 7.0;
     let zoom = mix(2.4, 0.7, clamp(u.mod1, 0.0, 1.0));
-    let tf = u.time * mix(0.05, 0.6, clamp(u.mod3, 0.0, 1.0));
+    let tf = u.time * mix(0.02, 0.25, clamp(u.mod3, 0.0, 1.0));
 
     let p = in.uv * vec2<f32>(u.aspect, 1.0) * zoom;
     // network inputs: position, radius, and *oscillating* coordinates — the

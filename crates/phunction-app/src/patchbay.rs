@@ -101,6 +101,11 @@ pub fn Patchbay() -> impl IntoView {
 
         let rev = RwSignal::new(0u64);
         let frame = RwSignal::new(0u64);
+        let code_src = RwSignal::new(String::new());
+        let code_msg = RwSignal::new(String::from(
+            "the patch as text · run rebuilds the graph · to code writes the graph back",
+        ));
+        let code_bad = RwSignal::new(false);
         let status = RwSignal::new(String::from(
             "drag headers to move · drag an out-port onto an in-port to patch · click an in-port to unplug",
         ));
@@ -273,6 +278,85 @@ pub fn Patchbay() -> impl IntoView {
             bump();
         };
 
+        // code → graph: compile, build, lay nodes out by dependency depth
+        let run_patch = move |_ev: web_sys::MouseEvent| {
+            let src = code_src.get_untracked();
+            let plan = match phunction_graph::patch::compile(&src, &crate::patchbay::TARGET_KEYS) {
+                Ok(p) => p,
+                Err(e) => {
+                    code_bad.set(true);
+                    code_msg.set(format!("✗ line {}: {}", e.line, e.msg));
+                    return;
+                }
+            };
+            match phunction_graph::patch::build(&plan) {
+                Err(e) => {
+                    code_bad.set(true);
+                    code_msg.set(format!("✗ {e}"));
+                }
+                Ok((graph, ids)) => {
+                    code_bad.set(false);
+                    code_msg.set(format!(
+                        "patched · {} nodes, {} cables, {} routes",
+                        plan.nodes.len(),
+                        plan.links.len(),
+                        plan.routes.len()
+                    ));
+                    let n = plan.nodes.len();
+                    let total = ids.len();
+                    let mut depth = vec![0usize; total];
+                    for _ in 0..n {
+                        for ((si, _), (di, _)) in &plan.links {
+                            if depth[*di] <= depth[*si] {
+                                depth[*di] = depth[*si] + 1;
+                            }
+                        }
+                    }
+                    for (r, (si, _, _)) in plan.routes.iter().enumerate() {
+                        depth[n + r] = depth[*si] + 1;
+                    }
+                    GRAPH.with(|g| *g.borrow_mut() = graph);
+                    NODES.with(|nlist| {
+                        let mut nlist = nlist.borrow_mut();
+                        nlist.clear();
+                        let mut rows = std::collections::HashMap::<usize, usize>::new();
+                        for (i, id) in ids.iter().enumerate() {
+                            let kind = if i < n {
+                                plan.nodes[i].kind.to_string()
+                            } else {
+                                "param-out".to_string()
+                            };
+                            let row = rows.entry(depth[i]).or_insert(0);
+                            *row += 1;
+                            #[allow(clippy::cast_precision_loss)]
+                            nlist.push(NodeUi {
+                                id: *id,
+                                kind,
+                                x: 26.0 + depth[i] as f64 * 210.0,
+                                y: 24.0 + (*row - 1) as f64 * 128.0,
+                                ring: Vec::new(),
+                            });
+                        }
+                    });
+                    bump();
+                }
+            }
+        };
+
+        // graph → code: the inverse door
+        let to_code = move |_ev: web_sys::MouseEvent| {
+            let listed: Vec<(NodeId, String)> = NODES.with(|nl| {
+                nl.borrow()
+                    .iter()
+                    .map(|nd| (nd.id, nd.kind.clone()))
+                    .collect()
+            });
+            let text = GRAPH.with(|g| phunction_graph::patch::render(&g.borrow(), &listed));
+            code_src.set(text);
+            code_bad.set(false);
+            code_msg.set("the graph, written down — edit and run".into());
+        };
+
         // pointer plumbing on the canvas: node drags and cable drags both
         // end here, so one surface owns the gesture state
         let on_move = move |ev: web_sys::PointerEvent| {
@@ -388,6 +472,22 @@ pub fn Patchbay() -> impl IntoView {
                     }}
                 </div>
                 <p class="pb-status">{move || status.get()}</p>
+                <div class="pb-codebar">
+                    <textarea
+                        class="pb-script"
+                        spellcheck="false"
+                        rows="5"
+                        placeholder="k = knob 0.8\nl = lfo rate=k\nl -> mind.warp"
+                        prop:value=move || code_src.get()
+                        on:input=move |ev| code_src.set(event_target_value(&ev))
+                        aria-label="patch script"
+                    ></textarea>
+                    <div class="pb-codeside">
+                        <button class="xport" on:click=run_patch>"run patch"</button>
+                        <button class="xport" on:click=to_code>"to code"</button>
+                        <p class="pb-status" class:err=move || code_bad.get()>{move || code_msg.get()}</p>
+                    </div>
+                </div>
             </RackPanel>
         }
     }
