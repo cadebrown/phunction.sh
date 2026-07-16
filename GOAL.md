@@ -119,8 +119,11 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
       resumes mid-set. *Test: browser reload round-trip, verified per axis.*
 - [x] Reroutes are silent; the UI never blocks the audio thread.
       *Test: storm test + ring drop-counting.*
-- [ ] The invariants run in CI against the wasm build too (headless
-      chrome smoke: boot, patch, reload-resume). *Test: CI job green.*
+- [x] The invariants run in CI against the wasm build: scripts/smoke.mjs
+      drives headless Chrome over raw CDP (no deps) — boot, world plays
+      (gfx-gate fallback included), state+patch persist, reload resumes.
+      `just smoke` locally; a smoke job gates ship in CI. *Verified: all
+      green locally; CI proves itself on this very push.*
 
 ## VII · Multimodal (one bus, every hand)
 

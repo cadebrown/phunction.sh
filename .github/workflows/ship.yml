@@ -26,8 +26,25 @@ jobs:
       - name: fmt + clippy (native & wasm) + tests
         run: just check
 
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install pinned toolchain
+        run: rustup show
+      - uses: Swatinem/rust-cache@v2
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: just,trunk
+      - name: Build (threaded wasm, release)
+        run: just build
+      - name: Browser smoke — boot, play, persist, resume
+        run: node scripts/smoke.mjs
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+
   ship:
-    needs: check
+    needs: [check, smoke]
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:

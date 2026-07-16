@@ -42,6 +42,10 @@ wait-build stamp='':
 rebuild:
     RUSTFLAGS='{{WASM_RUSTFLAGS}}' CARGO_UNSTABLE_BUILD_STD={{BUILD_STD}} trunk build
 
+# Browser smoke against dist/ (build first): boot → play → persist → resume.
+smoke:
+    node scripts/smoke.mjs
+
 # Production build into dist/.
 build:
     RUSTFLAGS='{{WASM_RUSTFLAGS}}' CARGO_UNSTABLE_BUILD_STD={{BUILD_STD}} trunk build --release
