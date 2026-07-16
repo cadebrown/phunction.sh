@@ -8,12 +8,51 @@
 use crate::rack::{Fader, Led, RackPanel};
 use leptos::prelude::*;
 
+/// The live-wgsl starter: enough to see the mods breathe, small enough
+/// to read whole. The prelude (U uniforms, palette, TAU, hash21) is
+/// prepended automatically — authors write only the fragment.
+pub const WGSL_STARTER: &str = "@fragment
+fn fs_main(in: VsOut) -> @location(0) vec4<f32> {
+    let p = in.uv * vec2<f32>(u.aspect, 1.0);
+    let r = length(p);
+    let a = atan2(p.y, p.x) / TAU;
+    let v = 0.5 + 0.5 * sin(r * 9.0 - u.time * 0.4 + a * 6.0 + u.mod0 * 6.0);
+    let col = palette(v * 0.5 + u.mod2 + u.time * 0.01, vec3<f32>(0.0)) * (0.25 + 0.75 * v);
+    return vec4<f32>(col, 1.0);
+}
+";
+
 #[cfg(target_arch = "wasm32")]
 thread_local! {
     /// A pending mind switch from outside the component (worlds/presets).
     static REQUEST: std::cell::Cell<Option<&'static str>> =
         const { std::cell::Cell::new(None) };
+    /// The live-wgsl source of truth (persisted as phazor:wgsl).
+    static WGSL_SRC: std::cell::RefCell<String> = const { std::cell::RefCell::new(String::new()) };
+    /// Source changed: rebuild the pipeline next frame.
+    static WGSL_DIRTY: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    /// Last compile error, for the pane's status line.
+    static WGSL_ERR: std::cell::RefCell<Option<String>> = const { std::cell::RefCell::new(None) };
+    /// A validated candidate approved by the async error scope.
+    static WGSL_APPROVED: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+    /// The candidate pipeline awaiting validation.
+    static WGSL_PENDING: std::cell::RefCell<Option<phunction_gfx::ShaderPhunctor>> =
+        const { std::cell::RefCell::new(None) };
+    /// Build generation, so a stale approval can't swap a newer candidate.
+    static WGSL_GEN: std::cell::Cell<u32> = const { std::cell::Cell::new(0) };
 }
+
+/// Submit new live-wgsl source (compiled next frame, kept only if valid).
+#[cfg(target_arch = "wasm32")]
+pub fn submit_wgsl(src: &str) {
+    WGSL_SRC.with(|s| src.clone_into(&mut s.borrow_mut()));
+    WGSL_DIRTY.with(|d| d.set(true));
+    crate::phazor_panel::wiring::save_state("phazor:wgsl", src);
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(dead_code)]
+pub fn submit_wgsl(_src: &str) {}
 
 /// Ask the viewport to switch minds (applied on the next frame).
 #[cfg(target_arch = "wasm32")]
@@ -57,8 +96,9 @@ impl Default for CitadelParams {
 
 /// The selectable minds and their per-mind control names — every fader
 /// tells the truth about what it does *for this visual*.
-const MINDS: [(&str, &str, [&str; 4]); 7] = [
+const MINDS: [(&str, &str, [&str; 4]); 8] = [
     ("silk", "silk", ["depth", "grain", "hue", "drift"]),
+    ("wgsl", "wgsl", ["a", "b", "hue", "c"]),
     ("citadel", "citadel", ["scale", "warp", "hue", "dolly"]),
     ("gyroid", "gyroid", ["thickness", "twist", "hue", "speed"]),
     ("basilica", "basilica", ["scale", "fold", "hue", "orbit"]),
@@ -75,6 +115,11 @@ pub fn CitadelRack(
 ) -> impl IntoView {
     let canvas_ref = NodeRef::<leptos::html::Canvas>::new();
     let error = RwSignal::new(None::<String>);
+    let wgsl_status = RwSignal::new(None::<String>);
+    let wgsl_source = RwSignal::new(
+        crate::phazor_panel::wiring::load_state("phazor:wgsl")
+            .unwrap_or_else(|| WGSL_STARTER.to_string()),
+    );
     let mind = RwSignal::new(
         crate::phazor_panel::wiring::load_state("phazor:mind")
             .and_then(|m| {
@@ -143,41 +188,104 @@ pub fn CitadelRack(
                         mind.set(m);
                     }
                     let want = mind.get_untracked();
+                    // live wgsl: build candidates through a validation error
+                    // scope; the running pipeline only swaps on approval, so
+                    // broken code never blanks the room (GOAL III)
+                    if want == "wgsl" && WGSL_DIRTY.with(std::cell::Cell::take) {
+                        let src = WGSL_SRC.with(|s| {
+                            let mut b = s.borrow_mut();
+                            if b.is_empty() {
+                                *b = crate::phazor_panel::wiring::load_state("phazor:wgsl")
+                                    .unwrap_or_else(|| WGSL_STARTER.to_string());
+                            }
+                            b.clone()
+                        });
+                        let my_gen = WGSL_GEN.with(|g| {
+                            let v = g.get().wrapping_add(1);
+                            g.set(v);
+                            v
+                        });
+                        // wgpu 30: push returns a guard; .pop() yields the future
+                        let scope = ctx.device.push_error_scope(wgpu::ErrorFilter::Validation);
+                        let candidate = ShaderPhunctor::new(&ctx, &src);
+                        let fut = scope.pop();
+                        WGSL_PENDING.with(|p| *p.borrow_mut() = Some(candidate));
+                        leptos::task::spawn_local(async move {
+                            match fut.await {
+                                None => {
+                                    if WGSL_GEN.with(std::cell::Cell::get) == my_gen {
+                                        WGSL_ERR.with(|e| *e.borrow_mut() = None);
+                                        WGSL_APPROVED.with(|a| a.set(true));
+                                    }
+                                }
+                                Some(e) => {
+                                    if WGSL_GEN.with(std::cell::Cell::get) == my_gen {
+                                        WGSL_ERR.with(|er| *er.borrow_mut() = Some(format!("{e}")));
+                                        WGSL_PENDING.with(|p| p.borrow_mut().take());
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    if want == "wgsl" && WGSL_APPROVED.with(std::cell::Cell::take) {
+                        if let Some(candidate) = WGSL_PENDING.with(|p| p.borrow_mut().take()) {
+                            vp = Vp::Shader(candidate);
+                            current = "wgsl";
+                        }
+                    }
+                    wgsl_status.set(WGSL_ERR.with(|e| e.borrow().clone()));
                     if want != current {
                         current = want;
                         error.set(None);
-                        vp = match want {
-                            "gyroid" => {
-                                Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::GYROID_WGSL))
-                            }
-                            "silk" => {
-                                Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::SILK_WGSL))
-                            }
-                            "basilica" => {
-                                Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::BASILICA_WGSL))
-                            }
-                            "gasket" => {
-                                Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::GASKET_WGSL))
-                            }
-                            "cortex" => {
-                                Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::CORTEX_WGSL))
-                            }
-                            "specter" => {
-                                if webgpu {
-                                    crate::camera::request();
-                                    Vp::Field(FieldPhunctor::new(&ctx, phunction_gfx::SPECTER_WGSL))
-                                } else {
-                                    error.set(Some(
+                        if want == "wgsl" {
+                            // guarded path below; the previous pipeline keeps
+                            // rendering until the candidate approves
+                            WGSL_DIRTY.with(|d| d.set(true));
+                        } else {
+                            vp = match want {
+                                "gyroid" => Vp::Shader(ShaderPhunctor::new(
+                                    &ctx,
+                                    phunction_gfx::GYROID_WGSL,
+                                )),
+                                "silk" => {
+                                    Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::SILK_WGSL))
+                                }
+
+                                "basilica" => Vp::Shader(ShaderPhunctor::new(
+                                    &ctx,
+                                    phunction_gfx::BASILICA_WGSL,
+                                )),
+                                "gasket" => Vp::Shader(ShaderPhunctor::new(
+                                    &ctx,
+                                    phunction_gfx::GASKET_WGSL,
+                                )),
+                                "cortex" => Vp::Shader(ShaderPhunctor::new(
+                                    &ctx,
+                                    phunction_gfx::CORTEX_WGSL,
+                                )),
+                                "specter" => {
+                                    if webgpu {
+                                        crate::camera::request();
+                                        Vp::Field(FieldPhunctor::new(
+                                            &ctx,
+                                            phunction_gfx::SPECTER_WGSL,
+                                        ))
+                                    } else {
+                                        error.set(Some(
                                         "specter needs WebGPU for the camera→GPU path; this browser fell back to WebGL2".into(),
                                     ));
-                                    Vp::Shader(ShaderPhunctor::new(
-                                        &ctx,
-                                        phunction_gfx::CITADEL_WGSL,
-                                    ))
+                                        Vp::Shader(ShaderPhunctor::new(
+                                            &ctx,
+                                            phunction_gfx::CITADEL_WGSL,
+                                        ))
+                                    }
                                 }
-                            }
-                            _ => Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::CITADEL_WGSL)),
-                        };
+                                _ => Vp::Shader(ShaderPhunctor::new(
+                                    &ctx,
+                                    phunction_gfx::CITADEL_WGSL,
+                                )),
+                            };
+                        }
                     }
 
                     // qualia lesson: cap effective DPR — fullscreen
@@ -399,6 +507,39 @@ pub fn CitadelRack(
                 </button>
                 <Led on={Signal::derive(move || params.get().auto)} hue=280.0 label="drift" />
             </div>
+        </RackPanel>
+        <RackPanel title="shader · live wgsl" class="span5" folded=true hue=190.0>
+            <textarea
+                class="pb-script wgsl-editor"
+                spellcheck="false"
+                rows="10"
+                prop:value=wgsl_source
+                on:input=move |ev| wgsl_source.set(event_target_value(&ev))
+                aria-label="live wgsl fragment source"
+            ></textarea>
+            <div class="expr-row">
+                <button
+                    class="xport"
+                    on:click=move |_| {
+                        crate::fractal::submit_wgsl(&wgsl_source.get_untracked());
+                        mind.set("wgsl");
+                    }
+                >"run shader"</button>
+                <button
+                    class="xport"
+                    on:click=move |_| {
+                        wgsl_source.set(WGSL_STARTER.to_string());
+                        crate::fractal::submit_wgsl(WGSL_STARTER);
+                        mind.set("wgsl");
+                    }
+                >"starter"</button>
+            </div>
+            <p class="expr-status" class:err=move || wgsl_status.get().is_some()>
+                {move || wgsl_status.get().map_or_else(
+                    || "⊢ prelude gives you: u.time · u.aspect · u.mod0..7 · palette(t, _) · TAU · hash21".to_string(),
+                    |e| format!("✗ {}", e.lines().next().unwrap_or("compile error")),
+                )}
+            </p>
         </RackPanel>
     }
 }

@@ -61,10 +61,11 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
       flight), basilica (mandelbox), gasket (apollonian), cortex (CPPN),
       specter (live camera kaleido). *Test: all seven render non-black,
       respond to their four labeled controls, and react to audio.*
-- [ ] WGSL live-coding mind: fragment source editable in the UI, compiled
-      over the prelude at runtime, errors shown in place, source persisted.
-      *Test: edit → visual changes < 1s; bad WGSL shows the error, keeps
-      the last good pipeline running.*
+- [x] WGSL live-coding mind: fragment source editable in the UI, compiled
+      over the prelude at runtime through a validation error scope, errors
+      shown in place, source persisted. *Verified: starter compiles and
+      takes the room; 'nonsense_symbol' shows the parse error while the
+      last good pipeline keeps rendering.*
 - [ ] More generative-geometry minds tuned for flow (curl-noise advection,
       reaction-diffusion, lenia-like). *Test: same as minds above.*
 
@@ -97,7 +98,7 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 - [x] expr: the little signal language — Pratt parser, byte-addressed
       errors, NaN-proof eval, unit-phase waves. 14+ tests.
 - [x] patch: the graph notation (above).
-- [ ] Editable WGSL blocks (see III).
+- [x] Editable WGSL blocks (see III — the live-wgsl mind).
 - [ ] Language docs surface in the UI (`?` reveals vars/functions/grammar
       in each code field). *Test: help renders, examples run.*
 
