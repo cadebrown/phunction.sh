@@ -76,6 +76,15 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
       genesis so the dish can never die). Ten minds. *Verified live:
       coral-maze growth wall to wall; lenia proper can now be one more
       sim shader on the same infra.*
+- [x] **Shocking geometry** ("all the geometries are too basic — i want
+      shocking, crazy"): maw (pseudo-Kleinian cavity, Knighty fold — the
+      camera glides INSIDE the set on a closed bounded loop, orbit-trap
+      paints the vaulting) and bulb (power-morphing Mandelbulb 6→10 with
+      orbit-trap veins, key+rim+AO and cheap soft shadows). Twelve minds.
+      *Tested: both DEs verified natively first (scratchpad raymarch
+      repro: 13/13 rays hit in ≤73 steps) — then verified live in canon
+      palette; screenshots on record. The maw glide is bounded (±1.8
+      sine) so hours-deep sessions can't march out of f32.*
 
 ## IV · The constructive graph (everything is patchable)
 
@@ -171,6 +180,22 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 - [x] No layout shift while performing; panes never jump under the hand.
       *Verified: PerformanceObserver CLS = 0.0000 during knob/fader
       gesture burst (layout presets are intentional rearrangement).*
+- [x] **The qualia topbar** (total UI rehaul, voidstar-style): one fixed
+      dense strip owns the chrome — title row (wordmark + beat/vox/drop
+      LCDs + zen corner) over a wrapping controls row (▶ ■ ✕ transport,
+      ∓4 bpm steppers with LCD, all twelve minds, all worlds) — replacing
+      three whole panels. The transmission marquee yields to the app
+      (`body:has(.panel)`), zen slides the strip away qualia-style and
+      the floating handle remains as the exit. *Verified live: strip
+      renders at 58px, play/mind lit-states track the engine, marquee
+      display:none on /phazor; smoke's beat-readout contract still green.*
+- [x] **No invisible UI**: restored float positions are clamped into the
+      current viewport (a panel dragged wide on a big window can't come
+      back off-screen on a laptop), panel glass is near-opaque, titles
+      and control labels brightened. Density v2+v3: 30px knobs, 22×68
+      faders, slim latches, capped step pads, 252px columns. *Test:
+      stored_float clamps to innerWidth/Height margins by construction;
+      panel height 232→198px measured.*
 
 ## IX · The canon (aesthetics are load-bearing)
 

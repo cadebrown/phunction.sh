@@ -66,6 +66,16 @@ thread_local! {
     static ROUTED_FIELD: std::cell::Cell<Option<u32>> = const { std::cell::Cell::new(None) };
 }
 
+thread_local! {
+    /// Mirror of the active mind for chrome (topbar lit state).
+    static ACTIVE_MIND: std::cell::Cell<&'static str> = const { std::cell::Cell::new("silk") };
+}
+
+/// The currently active mind id (topbar lit state).
+pub fn active_mind() -> &'static str {
+    ACTIVE_MIND.with(std::cell::Cell::get)
+}
+
 /// The patchbay routes (or unroutes) a field into the room.
 #[cfg(target_arch = "wasm32")]
 pub fn route_field(id: Option<u32>) {
@@ -112,7 +122,7 @@ impl Default for CitadelParams {
 
 /// The selectable minds and their per-mind control names — every fader
 /// tells the truth about what it does *for this visual*.
-const MINDS: [(&str, &str, [&str; 4]); 10] = [
+pub const MINDS: [(&str, &str, [&str; 4]); 12] = [
     ("silk", "silk", ["depth", "grain", "hue", "drift"]),
     ("current", "current", ["flow", "eddies", "hue", "drift"]),
     ("petri", "petri", ["feed", "kill", "hue", "speed"]),
@@ -123,6 +133,8 @@ const MINDS: [(&str, &str, [&str; 4]); 10] = [
     ("gasket", "gasket", ["ratio", "zoom", "hue", "drift"]),
     ("cortex", "cortex", ["seed", "zoom", "hue", "flow"]),
     ("specter", "specter", ["folds", "paint", "hue", "zoom"]),
+    ("maw", "maw", ["vault", "ceiling", "hue", "glide"]),
+    ("bulb", "bulb", ["power", "detail", "hue", "orbit"]),
 ];
 
 /// The viewport + control panels, as one rack row.
@@ -149,7 +161,11 @@ pub fn CitadelRack(
             .unwrap_or("silk"),
     );
     Effect::new(move |_| {
-        crate::phazor_panel::wiring::save_state("phazor:mind", mind.get());
+        let m = mind.get();
+        crate::phazor_panel::wiring::save_state("phazor:mind", m);
+        if let Some(known) = MINDS.iter().find(|(id, _, _)| *id == m) {
+            ACTIVE_MIND.with(|a| a.set(known.0));
+        }
     });
 
     #[cfg(target_arch = "wasm32")]
@@ -295,6 +311,12 @@ pub fn CitadelRack(
                                     &ctx,
                                     phunction_gfx::GASKET_WGSL,
                                 )),
+                                "maw" => {
+                                    Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::MAW_WGSL))
+                                }
+                                "bulb" => {
+                                    Vp::Shader(ShaderPhunctor::new(&ctx, phunction_gfx::BULB_WGSL))
+                                }
                                 "cortex" => Vp::Shader(ShaderPhunctor::new(
                                     &ctx,
                                     phunction_gfx::CORTEX_WGSL,
@@ -499,23 +521,7 @@ pub fn CitadelRack(
             class="mind-field"
             aria-label="the mind field: fractal, gyroid, neural field, or your own kaleidoscoped camera, wall to wall"
         ></canvas>
-        <RackPanel title="mind" class="span7" hue=325.0>
-            <div class="vp-select">
-                {MINDS
-                    .map(|(id, label, _)| {
-                        view! {
-                            <button
-                                class="xport vp"
-                                class:lit=move || mind.get() == id
-                                on:click=move |_| mind.set(id)
-                            >
-                                {label}
-                            </button>
-                        }
-                    })}
-            </div>
-            {move || error.get().map(|e| view! { <p class="gfx-error">"✗ " {e}</p> })}
-        </RackPanel>
+        {move || error.get().map(|e| view! { <p class="gfx-error">"✗ " {e}</p> })}
         <RackPanel title="mind controls" class="span5" hue=235.0>
             {move || {
                 let l = labels.get();

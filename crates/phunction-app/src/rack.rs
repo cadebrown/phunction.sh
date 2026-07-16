@@ -745,10 +745,19 @@ pub mod reorder {
     fn stored_float(title: &str) -> Float {
         let t = crate::phazor_panel::wiring::load_state(&format!("rack-float:{title}"))?;
         let mut it = t.split(',');
+        let x: f64 = it.next()?.parse().ok()?;
+        let y: f64 = it.next()?.parse().ok()?;
+        let w: f64 = it.next()?.parse().ok()?;
+        // A position saved on a wider window can land outside this one —
+        // an invisible panel that still eats its layout slot. Clamp into
+        // the current viewport so every restored float stays reachable.
+        let win = web_sys::window()?;
+        let vw = win.inner_width().ok()?.as_f64()?;
+        let vh = win.inner_height().ok()?.as_f64()?;
         Some((
-            it.next()?.parse().ok()?,
-            it.next()?.parse().ok()?,
-            it.next()?.parse().ok()?,
+            x.clamp(0.0, (vw - 120.0).max(0.0)),
+            y.clamp(0.0, (vh - 160.0).max(0.0)),
+            w,
         ))
     }
 }

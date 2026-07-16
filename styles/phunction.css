@@ -1613,3 +1613,159 @@ body::after {
     radial-gradient(ellipse 130% 110% at 50% 42%, transparent 62%, oklch(0.5 0.05 70 / 0.22) 100%),
     repeating-linear-gradient(0deg, rgba(60, 40, 10, 0.25) 0 1px, transparent 1px 5px);
 }
+
+/* ── density v2: pro-audio tight. Controls in packed rows, small caps,
+   thin chrome — a rack you read like a mixing desk, not a brochure. ──── */
+.rack-latch { padding: 3px 7px; font-size: 0.56rem; letter-spacing: 0.09em; }
+.rack-panel { border-top-width: 2px; border-radius: 5px; }
+.rack-panel .rack-body { padding: 6px 8px 8px; gap: 5px; }
+.rack-panel .rack-body { display: flex; flex-wrap: wrap; align-items: flex-end; }
+.knob svg { width: 34px; height: 34px; }
+.knob { gap: 1px; }
+.knob-label, .fader .knob-label { font-size: 0.5rem; letter-spacing: 0.08em; }
+.knob-value, .knob-value-btn { font-size: 0.58rem; }
+.fader svg { width: 24px; height: 78px; }
+.lcd { font-size: 0.56rem; padding: 3px 6px; gap: 6px; }
+.xport { font-size: 0.6rem; padding: 3px 7px; }
+.xport.vp { font-size: 0.58rem; padding: 3px 6px; }
+.vp-select { gap: 4px; }
+.led-wrap { min-width: 14px; }
+.led { width: 7px; height: 7px; }
+.scope-lcd { height: 40px; }
+.analyzer { height: 46px; }
+.spec-band { display: none; }
+.steps { gap: 3px; }
+.step { padding: 3px 0 2px; font-size: 0.5rem; }
+.step .note { font-size: 0.48rem; }
+.keyhints { font-size: 0.56rem; gap: 8px; }
+.keyhints kbd { padding: 1px 4px; font-size: 0.52rem; }
+.ws-col { width: 252px; gap: 6px; }
+.panel .rack { gap: 8px; }
+.pb-canvas { height: 280px; }
+.pb-node { width: 148px; }
+.pb-node header { font-size: 0.56rem; padding: 3px 6px; }
+.pb-portname { font-size: 0.52rem; }
+.pb-port { width: 11px; height: 11px; }
+.pb-spark { height: 16px; }
+.pb-add { font-size: 0.56rem; padding: 3px 6px; }
+.pb-script { min-height: 72px; font-size: 0.66rem; }
+.pb-status { font-size: 0.58rem; padding-top: 3px; }
+.expr-status { font-size: 0.6rem; }
+.expr-input { font-size: 0.78rem; padding: 6px 9px; }
+.wgsl-editor { font-size: 0.62rem; }
+.preset-hint { font-size: 0.56rem; }
+.fold-side { gap: 5px; }
+.jack { transform: scale(0.8); }
+
+/* ── the qualia topbar: one dense strip owns transport, minds, worlds ──── */
+.phz-topbar {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: -10px -12px 8px;
+  padding: 6px 12px 7px;
+  background: linear-gradient(180deg, oklch(0.19 0.035 300 / 0.97), oklch(0.16 0.03 300 / 0.94));
+  border-bottom: 1px solid oklch(0.42 0.08 300 / 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  font-family: var(--term);
+  transition: opacity 0.4s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.zen .phz-topbar {
+  opacity: 0;
+  transform: translateY(-110%);
+  pointer-events: none;
+}
+.phz-titlerow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.phz-left {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.phz-name {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: oklch(0.86 0.06 300);
+  text-shadow: 0 0 12px oklch(0.6 0.18 300 / 0.55);
+}
+.phz-lcd {
+  font-size: 0.66rem;
+  font-variant-numeric: tabular-nums;
+  color: oklch(0.78 0.1 190);
+  background: oklch(0.12 0.02 280 / 0.9);
+  border: 1px solid oklch(0.32 0.05 280 / 0.7);
+  border-radius: 3px;
+  padding: 1px 7px;
+  text-shadow: 0 0 6px oklch(0.7 0.14 190 / 0.5);
+}
+.phz-lcd.warn { color: oklch(0.75 0.16 50); border-color: oklch(0.55 0.14 50 / 0.7); }
+.phz-corner { display: flex; align-items: center; gap: 6px; flex: none; }
+.phz-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.phz-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 5px;
+  background: oklch(0.4 0.06 300 / 0.55);
+}
+.ctrl-btn {
+  font-family: var(--term);
+  font-size: 0.64rem;
+  letter-spacing: 0.06em;
+  padding: 3px 9px;
+  color: oklch(0.82 0.03 300);
+  background: oklch(0.24 0.035 295 / 0.9);
+  border: 1px solid oklch(0.38 0.06 295 / 0.8);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, color 0.12s ease, background 0.12s ease;
+}
+.ctrl-btn:hover { border-color: oklch(0.62 0.12 300); color: oklch(0.94 0.03 300); }
+.ctrl-btn.lit {
+  color: oklch(0.95 0.05 190);
+  background: oklch(0.32 0.07 220 / 0.95);
+  border-color: oklch(0.68 0.12 200);
+  box-shadow: 0 0 10px oklch(0.6 0.13 200 / 0.45), inset 0 0 6px oklch(0.6 0.13 200 / 0.25);
+}
+.ctrl-btn.panic:hover { border-color: oklch(0.62 0.18 25); color: oklch(0.8 0.16 25); }
+.ctrl-btn.world { color: oklch(0.8 0.08 280); }
+
+/* visibility: labels bright enough to read over anything */
+.rack-title { color: oklch(0.8 0.05 300); }
+.lcd, .fader-label, .knob-label { color: oklch(0.84 0.04 295); }
+
+/* topbar era: the app pane owns its band — page chrome yields */
+.panel { z-index: 5; }
+body:has(.panel) .transmission { display: none; }
+/* zen exit handle only lives IN zen; the topbar owns entry */
+.zen-toggle { display: none; }
+.zen .zen-toggle { display: block; }
+
+/* density v3: slimmer latches, tighter cells */
+.rack-latch { padding: 2px 8px 3px; font-size: 0.54rem; letter-spacing: 0.18em; }
+.rack-title { margin: 0 0 4px; }
+.rack-panel .rack-body { padding: 4px 8px 7px; gap: 4px 9px; }
+.knob svg { width: 30px; height: 30px; }
+.fader svg { width: 22px; height: 68px; }
+.jack { transform: scale(0.85); transform-origin: bottom left; }
+.rack-panel { padding: 5px 9px 8px; }
+.rack-panel.folded { padding-bottom: 6px; }
+/* steps: pads, not monoliths — wide columns must not inflate them */
+.step { aspect-ratio: 1 / 0.8; max-height: 64px; }
+.knob { max-width: 64px; }
+.knob-label { max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -528,37 +528,62 @@ pub fn PhazorPage() -> impl IntoView {
                     </button>
                 }
             >
-                <div class="rack">
-                    <div class="ws-col">
-                    <RackPanel title="transport" class="span4" hue=235.0>
-                        <button
-                            class="xport"
-                            class:lit=move || meters.get().playing
-                            on:click=move |_| wiring::send(Command::Play)
-                        >"▶ play"</button>
-                        <button class="xport" on:click=move |_| wiring::send(Command::Stop)>"■ stop"</button>
-                        <button class="xport panic" on:click=move |_| wiring::send(Command::AllNotesOff)>"✕ panic"</button>
-                        <Led on=Signal::derive(move || meters.get().playing) hue=145.0 label="run" />
-                        <Knob
-                            label="tempo"
-                            min=50.0 max=200.0 init=120.0 hue=190.0
-                            fmt=|v| format!("{v:.0} bpm")
-                            sync=Signal::derive(move || tempo.get())
-                            on_value=move |v: f32| {
-                                tempo.set(v);
-                                wiring::send(Command::SetTempo(f64::from(v)));
-                            }
-                        />
-                        <Jack label="clk" />
-                        <div class="lcd">
-                            <span>{move || format!("beat {:>6.2}", meters.get().beats)}</span>
-                            <span>{move || format!("vox {}", meters.get().voices)}</span>
-                            <span class:warn={move || meters.get().dropped > 0}>
+                <header class="phz-topbar">
+                    <div class="phz-titlerow">
+                        <div class="phz-left">
+                            <span class="phz-name">"phazor"</span>
+                            <span class="phz-lcd">{move || format!("beat {:>7.2}", meters.get().beats)}</span>
+                            <span class="phz-lcd">{move || format!("vox {:>2}", meters.get().voices)}</span>
+                            <span class="phz-lcd" class:warn={move || meters.get().dropped > 0}>
                                 {move || format!("drop {}", meters.get().dropped)}
                             </span>
                         </div>
-                    </RackPanel>
-
+                        <div class="phz-corner">
+                            <button class="ctrl-btn" on:click=toggle_zen>"zen"</button>
+                        </div>
+                    </div>
+                    <div class="phz-controls">
+                        <button
+                            class="ctrl-btn hot"
+                            class:lit=move || meters.get().playing
+                            on:click=move |_| wiring::send(Command::Play)
+                        >"▶"</button>
+                        <button class="ctrl-btn" on:click=move |_| wiring::send(Command::Stop)>"■"</button>
+                        <button class="ctrl-btn panic" on:click=move |_| wiring::send(Command::AllNotesOff)>"✕"</button>
+                        <span class="phz-sep"></span>
+                        <button class="ctrl-btn" on:click=move |_| {
+                            let t = (tempo.get_untracked() - 4.0).max(50.0);
+                            tempo.set(t);
+                            wiring::send(Command::SetTempo(f64::from(t)));
+                        }>"−"</button>
+                        <span class="phz-lcd">{move || format!("{:>3.0} bpm", tempo.get())}</span>
+                        <button class="ctrl-btn" on:click=move |_| {
+                            let t = (tempo.get_untracked() + 4.0).min(200.0);
+                            tempo.set(t);
+                            wiring::send(Command::SetTempo(f64::from(t)));
+                        }>"+"</button>
+                        <span class="phz-sep"></span>
+                        {crate::fractal::MINDS.map(|(id, label, _)| view! {
+                            <button
+                                class="ctrl-btn"
+                                class:lit=move || crate::fractal::active_mind() == id
+                                on:click=move |_| crate::fractal::request_mind(id)
+                            >{label}</button>
+                        })}
+                        <span class="phz-sep"></span>
+                        {PRESETS.iter().map(|preset| {
+                            let name = preset.name;
+                            view! {
+                                <button
+                                    class="ctrl-btn world"
+                                    on:click=move |_| apply_preset(preset, steps, citadel, tempo, cv)
+                                >{name}</button>
+                            }
+                        }).collect_view()}
+                    </div>
+                </header>
+                <div class="rack">
+                    <div class="ws-col">
                     <RackPanel title="voice" class="span5" folded=true hue=145.0>
                         <Jack label="cv" />
                         <Knob
@@ -636,26 +661,6 @@ pub fn PhazorPage() -> impl IntoView {
                     </div>
                     <div class="ws-mid">
                         <div class="ws-mid-spacer"></div>
-                    <RackPanel title="worlds · whole-machine presets" class="span12" folded=true hue=10.0>
-                        {PRESETS
-                            .iter()
-                            .map(|preset| {
-                                let name = preset.name;
-                                view! {
-                                    <button
-                                        class="xport preset"
-                                        on:click=move |_| apply_preset(preset, steps, citadel, tempo, cv)
-                                    >
-                                        {name}
-                                    </button>
-                                }
-                            })
-                            .collect_view()}
-                        <span class="preset-hint">
-                            "each world rewrites the whole machine: score, tempo, voice, space, minds"
-                        </span>
-                    </RackPanel>
-
                     <RackPanel title="sequence · your riff over the weather" folded=true hue=100.0>
                         <section class="steps" style="width: 100%">
                             {(0..StepSequencer::LEN)
