@@ -921,3 +921,26 @@ html.fnord body { animation: fnord-storm 4s ease-in-out; }
 /* viewport mind selector */
 .vp-select { display: flex; gap: 0.5rem; flex-wrap: wrap; width: 100%; margin-bottom: 0.6rem; }
 .xport.vp { font-size: 0.82rem; padding: 0.35rem 0.9rem; }
+
+/* ── the scope: master-bus waveform on a little green LCD ─────────────── */
+.scope-lcd {
+  width: 100%;
+  height: 72px;
+  background:
+    linear-gradient(oklch(0.16 0.02 300 / 0.9), oklch(0.13 0.02 300 / 0.95));
+  border: 1px solid oklch(0.3 0.03 300);
+  border-radius: 4px;
+  box-shadow: inset 0 2px 8px oklch(0 0 0 / 0.5);
+}
+.scope-axis {
+  stroke: oklch(0.35 0.04 145 / 0.5);
+  stroke-width: 0.4;
+  stroke-dasharray: 1 1.5;
+}
+.scope-trace {
+  fill: none;
+  stroke: oklch(0.78 0.19 145);
+  stroke-width: 0.7;
+  stroke-linejoin: round;
+  filter: drop-shadow(0 0 2px oklch(0.7 0.2 145 / 0.8));
+}

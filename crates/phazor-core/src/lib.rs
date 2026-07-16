@@ -24,8 +24,10 @@
 
 pub mod engine;
 pub mod event;
+pub mod fx;
 pub mod math;
 pub mod meter;
+pub mod score;
 pub mod seq;
 pub mod spectrum;
 pub mod transport;
@@ -34,9 +36,19 @@ pub mod voice;
 pub use engine::Engine;
 pub use event::{Command, ParamId};
 pub use meter::MeterFrame;
+pub use score::{Scale, Score};
 pub use seq::{Step, StepSequencer};
 pub use spectrum::{Spectrum, BANDS};
 pub use transport::Transport;
+
+/// The drone layer: chord roots in geological time, long envelopes, wide.
+pub const LAYER_DRONE: u8 = 0;
+/// The arp/pattern layer: the user's 16 pads + the score's arp, snappy.
+pub const LAYER_ARP: u8 = 1;
+/// The lead layer: semirandom pentatonic calls an octave or two up.
+pub const LAYER_LEAD: u8 = 2;
+/// Number of voice layers.
+pub const LAYER_COUNT: usize = 3;
 
 /// One audio sample. The engine is `f32` end to end, matching Web Audio.
 pub type Sample = f32;

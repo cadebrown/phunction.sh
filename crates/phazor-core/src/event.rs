@@ -31,10 +31,28 @@ pub enum ParamId {
     /// Oscillator brightness: blend from pure phasor sine (0) toward
     /// phase-stacked harmonics (1).
     OscBrightness,
+    /// Ping-pong delay return level, 0..=1.
+    DelayMix,
+    /// Delay feedback, 0..=0.9 (engine clamps; runaway loops are not art).
+    DelayFeedback,
+    /// Reverb return level, 0..=1.
+    ReverbMix,
+    /// Reverb size (comb feedback), 0..=1.
+    ReverbSize,
+    /// Master saturation depth, 0..=1.
+    Drive,
+    /// Drone layer gain, 0..=1.
+    DroneLevel,
+    /// Arp/pattern layer gain, 0..=1.
+    ArpLevel,
+    /// Lead layer gain, 0..=1.
+    LeadLevel,
+    /// Probability that a lead slot fires, 0..=1.
+    LeadDensity,
 }
 
 /// Number of `ParamId` variants (for tables indexed by parameter).
-pub const PARAM_COUNT: usize = 8;
+pub const PARAM_COUNT: usize = 17;
 
 impl ParamId {
     /// All parameters, in declaration order. Enables the inspector to walk
@@ -48,6 +66,15 @@ impl ParamId {
         Self::EnvSustain,
         Self::EnvReleaseMs,
         Self::OscBrightness,
+        Self::DelayMix,
+        Self::DelayFeedback,
+        Self::ReverbMix,
+        Self::ReverbSize,
+        Self::Drive,
+        Self::DroneLevel,
+        Self::ArpLevel,
+        Self::LeadLevel,
+        Self::LeadDensity,
     ];
 
     /// Stable index of this parameter (its discriminant).
@@ -60,14 +87,19 @@ impl ParamId {
     #[must_use]
     pub fn default_value(self) -> f32 {
         match self {
-            Self::MasterGain => 0.8,
+            Self::MasterGain | Self::DroneLevel => 0.8,
             Self::FilterCutoff => 9_000.0,
             Self::FilterQ => 0.707,
             Self::EnvAttackMs => 4.0,
             Self::EnvDecayMs => 180.0,
-            Self::EnvSustain => 0.6,
+            Self::EnvSustain | Self::LeadLevel => 0.6,
             Self::EnvReleaseMs => 220.0,
-            Self::OscBrightness => 0.35,
+            Self::OscBrightness | Self::DelayMix => 0.35,
+            Self::DelayFeedback => 0.45,
+            Self::ReverbMix => 0.4,
+            Self::ReverbSize | Self::ArpLevel => 0.7,
+            Self::Drive => 0.25,
+            Self::LeadDensity => 0.5,
         }
     }
 }
@@ -111,4 +143,9 @@ pub enum Command {
     /// Panic: silence all voices immediately (the "oh no" button — always
     /// reachable, always instant; a live instrument earns trust this way).
     AllNotesOff,
+    /// Reseed the generative score (drone progression stays; arp skips and
+    /// lead choices rehash — a new weather system over the same terrain).
+    SetSeed(u32),
+    /// Select the score's scale (see [`crate::score::Scale`] discriminants).
+    SetScale(u8),
 }

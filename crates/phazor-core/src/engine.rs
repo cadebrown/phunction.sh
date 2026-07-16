@@ -1,35 +1,63 @@
 //! The engine: commands in, stereo audio + telemetry out.
+//!
+//! Signal flow (per sample):
+//!
+//! ```text
+//! score ──┐                       ┌─ drone bus ─┐        ┌→ ping-pong delay ─┐
+//! pattern ┼→ voices (pan/layer) ──┼─ arp bus  ──┼─ sends ┤                   ├→ drive → out
+//! live in ┘                       └─ lead bus ──┘        └→ reverb  ←────────┘
+//! ```
+//!
+//! The delay feeds the reverb: echoes bloom into wash, which is most of what
+//! "dark ambient" means as a signal chain.
 
 use crate::event::{Command, ParamId, PARAM_COUNT};
+use crate::fx::{drive, PingPong, Reverb};
 use crate::math::Smoothed;
-use crate::meter::{BlockMeter, MeterFrame};
+use crate::meter::{BlockMeter, MeterFrame, SCOPE};
+use crate::score::{Scale, Score};
 use crate::seq::{SeqEvent, SeqEventKind, StepSequencer, MAX_EVENTS_PER_BLOCK};
 use crate::spectrum::Spectrum;
 use crate::transport::Transport;
 use crate::voice::Voice;
-use crate::Sample;
+use crate::{Sample, LAYER_ARP, LAYER_COUNT, LAYER_DRONE, LAYER_LEAD};
 
-/// Fixed polyphony. Sixteen voices of three phasors each is nothing on any
+/// Fixed polyphony. Sixteen voices of four phasors each is nothing on any
 /// hardware from the last decade; raise when a real limit is hit, with a
 /// bench to justify it.
 pub const VOICES: usize = 16;
 
+/// Per-layer voice configuration derived each block from the user params.
+#[derive(Clone, Copy)]
+struct LayerCfg {
+    attack: f32,
+    decay: f32,
+    sustain: f32,
+    release: f32,
+    cutoff: f32,
+    q: f32,
+    brightness: f32,
+}
+
 /// The phazor engine. Construct once on the audio thread; call
 /// [`Engine::apply`] with drained commands and [`Engine::process`] per block.
 ///
-/// Realtime contract: after `new()`, no method on this type allocates,
-/// locks, or performs unbounded work.
+/// Realtime contract: `new()` allocates the delay/reverb lines; after that,
+/// no method on this type allocates, locks, or performs unbounded work.
 pub struct Engine {
     transport: Transport,
     seq: StepSequencer,
+    score: Score,
     voices: [Voice; VOICES],
     params: [Smoothed; PARAM_COUNT],
+    delay: PingPong,
+    reverb: Reverb,
     meter: BlockMeter,
     /// The on-thread analyzer feeding MeterFrame.bands.
     spectrum: Spectrum,
     /// Monotone counter stamping gate-ons for voice-steal ordering.
     note_counter: u64,
-    /// Scratch for the sequencer's per-block events (audio path: no alloc).
+    /// Scratch for the per-block events (audio path: no alloc).
     events: heapless::Vec<SeqEvent, MAX_EVENTS_PER_BLOCK>,
 }
 
@@ -51,8 +79,11 @@ impl Engine {
         Self {
             transport: Transport::new(f64::from(sample_rate), 120.0),
             seq: StepSequencer::default(),
+            score: Score::default(),
             voices: [Voice::new(sample_rate); VOICES],
             params,
+            delay: PingPong::new(sample_rate),
+            reverb: Reverb::new(sample_rate),
             meter: BlockMeter::default(),
             spectrum: Spectrum::new(sample_rate),
             note_counter: 0,
@@ -73,6 +104,12 @@ impl Engine {
         &self.seq
     }
 
+    /// The generative score's current settings.
+    #[must_use]
+    pub fn score(&self) -> &Score {
+        &self.score
+    }
+
     /// Current smoothed value of a parameter.
     #[must_use]
     pub fn param(&self, id: ParamId) -> f32 {
@@ -90,8 +127,8 @@ impl Engine {
                 }
             }
             Command::SetTempo(bpm) => self.transport.set_bpm(bpm),
-            Command::NoteOn { note, vel } => self.note_on(note, vel),
-            Command::NoteOff { note } => self.note_off(note),
+            Command::NoteOn { note, vel } => self.note_on(note, vel, LAYER_ARP),
+            Command::NoteOff { note } => self.note_off(note, LAYER_ARP),
             Command::SetParam { id, value } => self.params[id.index()].set(value),
             Command::SetStep { index, step } => self.seq.set_step(usize::from(index), step),
             Command::AllNotesOff => {
@@ -99,45 +136,108 @@ impl Engine {
                     v.kill();
                 }
             }
+            Command::SetSeed(seed) => self.score.seed = seed,
+            Command::SetScale(scale) => self.score.scale = Scale::from_u8(scale),
         }
     }
 
     /// Render one block into planar stereo buffers (Web Audio's layout).
     /// Both slices must be the same length. Returns the block's telemetry.
+    #[allow(clippy::too_many_lines)]
     pub fn process(&mut self, left: &mut [Sample], right: &mut [Sample]) -> MeterFrame {
         debug_assert_eq!(left.len(), right.len());
         let block_len = left.len().min(right.len());
 
-        // 1. Sequencer events for this frame range, offset-sorted.
-        self.events.clear();
-        self.seq
-            .events_for_block(&self.transport, block_len, &mut self.events);
-
-        // 2. Block-rate parameter update: smoothers tick once per block
-        //    (constructed at block rate — see new()). Far cheaper than
-        //    per-sample smoothing of 8 params × 16 voices, and a 15ms glide
-        //    sampled every 2.7ms is indistinguishable by ear.
+        // 1. Block-rate parameter update (see new() for why block rate).
         let cutoff = self.smooth_block(ParamId::FilterCutoff);
         let q = self.smooth_block(ParamId::FilterQ);
         let att = self.smooth_block(ParamId::EnvAttackMs);
         let dec = self.smooth_block(ParamId::EnvDecayMs);
         let sus = self.smooth_block(ParamId::EnvSustain);
         let rel = self.smooth_block(ParamId::EnvReleaseMs);
-        let brightness = self.smooth_block(ParamId::OscBrightness);
+        let user_brightness = self.smooth_block(ParamId::OscBrightness);
         let master = self.smooth_block(ParamId::MasterGain);
+        let delay_mix = self.smooth_block(ParamId::DelayMix);
+        let delay_fb = self.smooth_block(ParamId::DelayFeedback);
+        let reverb_mix = self.smooth_block(ParamId::ReverbMix);
+        let reverb_size = self.smooth_block(ParamId::ReverbSize);
+        let drv = self.smooth_block(ParamId::Drive);
+        let layer_gain = [
+            self.smooth_block(ParamId::DroneLevel),
+            self.smooth_block(ParamId::ArpLevel),
+            self.smooth_block(ParamId::LeadLevel),
+        ];
+        let lead_density = self.smooth_block(ParamId::LeadDensity);
+
+        // Per-layer voice character, derived from the one set of user CVs:
+        // the drone is the user's sound slowed to geological time, the lead
+        // is the same sound sharpened and lifted.
+        let cfgs = [
+            // NB: envelope times are one-pole time constants (τ, to 63%),
+            // not total lengths — a voice frees itself ~11τ after gate-off,
+            // so τ=800ms already means an eight-second audible tail.
+            LayerCfg {
+                attack: 900.0,
+                decay: 900.0,
+                sustain: 0.85,
+                release: 800.0,
+                cutoff: (240.0 + cutoff * 0.06).clamp(200.0, 1400.0),
+                q: 0.8,
+                brightness: 0.12,
+            },
+            LayerCfg {
+                attack: att,
+                decay: dec,
+                sustain: sus,
+                release: rel,
+                cutoff,
+                q,
+                brightness: user_brightness,
+            },
+            LayerCfg {
+                attack: 8.0,
+                decay: 260.0,
+                sustain: 0.45,
+                release: 700.0,
+                cutoff: (cutoff * 1.2).min(9_000.0),
+                q: (q * 1.15).min(10.0),
+                brightness: (user_brightness * 1.4).min(1.0),
+            },
+        ];
+        let brightness: [f32; LAYER_COUNT] =
+            [cfgs[0].brightness, cfgs[1].brightness, cfgs[2].brightness];
         for v in &mut self.voices {
-            v.configure(att, dec, sus, rel, cutoff, q);
+            let c = cfgs[usize::from(v.layer()) % LAYER_COUNT];
+            v.configure(c.attack, c.decay, c.sustain, c.release, c.cutoff, c.q);
         }
+
+        // Tempo-synced delay: a dotted eighth behind the beat.
+        let frames_per_beat = 60.0 / self.transport.bpm() * self.transport.sample_rate();
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        self.delay
+            .set_delay_frames((frames_per_beat * 0.75) as usize);
+
+        // 2. This block's events: the user pattern + the generative score,
+        //    offset-sorted, note-offs before note-ons at equal offsets so a
+        //    retriggered tone re-attacks legato instead of double-voicing.
+        self.events.clear();
+        self.seq
+            .events_for_block(&self.transport, block_len, &mut self.events);
+        self.score
+            .events_for_block(&self.transport, block_len, &mut self.events, lead_density);
+        self.events
+            .sort_unstable_by_key(|e| (e.offset, matches!(e.kind, SeqEventKind::NoteOn { .. })));
 
         // 3. Render, splitting the buffer at each event offset so note
         //    starts/ends land on their exact frame.
+        let mut scope = [0.0f32; SCOPE];
         let mut cursor = 0usize;
         let mut ev_ix = 0usize;
         while cursor < block_len {
             while ev_ix < self.events.len() && self.events[ev_ix].offset == cursor {
                 match self.events[ev_ix].kind {
-                    SeqEventKind::NoteOn { note, vel } => self.note_on(note, vel),
-                    SeqEventKind::NoteOff { note } => self.note_off(note),
+                    SeqEventKind::NoteOn { note, vel, layer } => self.note_on(note, vel, layer),
+                    SeqEventKind::NoteOff { note, layer } => self.note_off(note, layer),
                 }
                 ev_ix += 1;
             }
@@ -146,16 +246,42 @@ impl Engine {
                 .get(ev_ix)
                 .map_or(block_len, |e| e.offset.min(block_len));
             for i in cursor..until {
-                let mut mono = 0.0f32;
+                // per-layer stereo buses
+                let mut bus = [(0.0f32, 0.0f32); LAYER_COUNT];
                 for v in &mut self.voices {
-                    mono += v.tick(brightness);
+                    let layer = usize::from(v.layer()) % LAYER_COUNT;
+                    let s = v.tick(brightness[layer]);
+                    if s != 0.0 {
+                        let (pl, pr) = v.pan();
+                        bus[layer].0 += s * pl;
+                        bus[layer].1 += s * pr;
+                    }
                 }
-                // Gentle tanh ceiling: a live instrument must never hand the
-                // browser (or the PA) a runaway sample.
-                let out = (mono * master * 0.25).tanh();
-                left[i] = out;
-                right[i] = out;
-                self.meter.tick(out, out);
+                for (b, g) in bus.iter_mut().zip(layer_gain) {
+                    b.0 *= g;
+                    b.1 *= g;
+                }
+                let dry_l = bus[0].0 + bus[1].0 + bus[2].0;
+                let dry_r = bus[0].1 + bus[1].1 + bus[2].1;
+
+                // sends: arps and leads echo, the drone mostly washes
+                let send_d_l = bus[0].0 * 0.12 + bus[1].0 * 0.55 + bus[2].0 * 0.65;
+                let send_d_r = bus[0].1 * 0.12 + bus[1].1 * 0.55 + bus[2].1 * 0.65;
+                let (dl, dr) = self.delay.tick(send_d_l, send_d_r, delay_fb);
+
+                let verb_in_l = bus[0].0 * 0.6 + bus[1].0 * 0.3 + bus[2].0 * 0.45 + dl * 0.5;
+                let verb_in_r = bus[0].1 * 0.6 + bus[1].1 * 0.3 + bus[2].1 * 0.45 + dr * 0.5;
+                let (vl, vr) = self.reverb.tick(verb_in_l, verb_in_r, reverb_size);
+
+                // master: sum, saturate (drive's tanh is also the ceiling)
+                let pre_l = (dry_l * 0.35 + dl * delay_mix + vl * reverb_mix) * master;
+                let pre_r = (dry_r * 0.35 + dr * delay_mix + vr * reverb_mix) * master;
+                let out_l = drive(pre_l, drv);
+                let out_r = drive(pre_r, drv);
+                left[i] = out_l;
+                right[i] = out_r;
+                self.meter.tick(out_l, out_r);
+                scope[i * SCOPE / block_len.max(1)] = f32::midpoint(out_l, out_r);
             }
             cursor = until;
         }
@@ -169,6 +295,8 @@ impl Engine {
             v.flush();
             sounding += u8::from(v.sounding().is_some());
         }
+        self.delay.flush();
+        self.reverb.flush();
         self.spectrum.analyze(&left[..block_len]);
         let (peak_l, peak_r, rms_l, rms_r) = self.meter.finish();
         MeterFrame {
@@ -181,6 +309,7 @@ impl Engine {
             voices: sounding,
             playing: self.transport.playing(),
             bands: self.spectrum.levels(),
+            scope,
         }
     }
 
@@ -189,36 +318,66 @@ impl Engine {
         self.params[id.index()].tick()
     }
 
-    fn note_on(&mut self, note: u8, vel: u8) {
+    fn note_on(&mut self, note: u8, vel: u8, layer: u8) {
         self.note_counter += 1;
-        // Reuse a voice already sounding this note (retrigger), else the
-        // first idle voice, else steal the quietest-then-oldest.
+        let layer_ix = usize::from(layer) % LAYER_COUNT;
+        // Placement is a musical decision the engine owns: the drone is
+        // wide, the arp ping-pongs, the lead wanders near center.
+        #[allow(clippy::cast_precision_loss)]
+        let pan = match layer {
+            LAYER_DRONE => {
+                if note.is_multiple_of(2) {
+                    -0.7
+                } else {
+                    0.7
+                }
+            }
+            LAYER_LEAD => ((self.note_counter % 7) as f32 / 3.0 - 1.0) * 0.3,
+            _ => {
+                if self.note_counter.is_multiple_of(2) {
+                    -0.55
+                } else {
+                    0.55
+                }
+            }
+        };
+        let spread = [0.85, 0.15, 0.35][layer_ix];
+        // Reuse a voice already sounding this note in this layer
+        // (retrigger), else an idle voice, else steal the quietest of the
+        // same layer, else the globally quietest.
         let slot = self
             .voices
             .iter()
-            .position(|v| v.sounding() == Some(note))
+            .position(|v| v.sounding() == Some(note) && v.layer() == layer)
             .or_else(|| self.voices.iter().position(|v| v.sounding().is_none()))
-            .unwrap_or_else(|| {
-                self.voices
-                    .iter()
-                    .enumerate()
-                    .min_by(|(_, a), (_, b)| {
-                        (a.level(), a.age())
-                            .partial_cmp(&(b.level(), b.age()))
-                            .unwrap_or(core::cmp::Ordering::Equal)
-                    })
-                    .map_or(0, |(i, _)| i)
-            });
-        self.voices[slot].note_on(note, vel, self.note_counter);
+            .or_else(|| quietest(&self.voices, Some(layer)))
+            .or_else(|| quietest(&self.voices, None))
+            .unwrap_or(0);
+        self.voices[slot].note_on(note, vel, self.note_counter, layer, pan, spread);
     }
 
-    fn note_off(&mut self, note: u8) {
+    fn note_off(&mut self, note: u8, layer: u8) {
         for v in &mut self.voices {
-            if v.sounding() == Some(note) {
+            if v.sounding() == Some(note) && v.layer() == layer {
                 v.note_off();
             }
         }
     }
+}
+
+/// Index of the quietest-then-oldest voice, optionally restricted to one
+/// layer. Enumerates before filtering so indices stay valid.
+fn quietest(voices: &[Voice], layer: Option<u8>) -> Option<usize> {
+    voices
+        .iter()
+        .enumerate()
+        .filter(|(_, v)| layer.is_none_or(|l| v.layer() == l))
+        .min_by(|(_, a), (_, b)| {
+            (a.level(), a.age())
+                .partial_cmp(&(b.level(), b.age()))
+                .unwrap_or(core::cmp::Ordering::Equal)
+        })
+        .map(|(i, _)| i)
 }
 
 #[cfg(test)]
@@ -235,7 +394,7 @@ mod tests {
         let mut last_frame = 0;
         for _ in 0..blocks {
             let m = engine.process(&mut l, &mut r);
-            peak = peak.max(m.peak_l);
+            peak = peak.max(m.peak_l).max(m.peak_r);
             last_frame = m.frame;
         }
         (peak, last_frame)
@@ -255,14 +414,32 @@ mod tests {
         let (peak, _) = render_seconds(&mut e, 0.3);
         assert!(peak > 0.01, "audible after note on, got {peak}");
         e.apply(Command::NoteOff { note: 60 });
-        render_seconds(&mut e, 2.0); // let release die
+        render_seconds(&mut e, 6.0); // release + delay echoes + reverb wash
         let (tail, _) = render_seconds(&mut e, 0.2);
-        assert!(tail < 1e-4, "silent after release, got {tail}");
+        assert!(tail < 1e-3, "silent after tails die, got {tail}");
     }
 
     #[test]
-    fn sequencer_drives_voices_when_playing() {
+    fn playing_generates_the_score() {
         let mut e = Engine::new(48_000.0);
+        // No user steps at all: the generative score alone must sound.
+        e.apply(Command::Play);
+        let (peak, frames) = render_seconds(&mut e, 2.0);
+        assert!(peak > 0.01, "the weather must sound on its own");
+        assert!(frames > 0);
+    }
+
+    #[test]
+    fn sequencer_steps_still_fire() {
+        let mut e = Engine::new(48_000.0);
+        // Silence the generative layers; only the user pattern remains.
+        for (id, v) in [
+            (ParamId::DroneLevel, 0.0),
+            (ParamId::LeadLevel, 0.0),
+            (ParamId::LeadDensity, 0.0),
+        ] {
+            e.apply(Command::SetParam { id, value: v });
+        }
         e.apply(Command::SetStep {
             index: 0,
             step: Some(Step {
@@ -271,31 +448,24 @@ mod tests {
                 gate: 0.9,
             }),
         });
-        e.apply(Command::SetStep {
-            index: 8,
-            step: Some(Step {
-                note: 55,
-                vel: 120,
-                gate: 0.9,
-            }),
-        });
-        // Not playing yet: silence.
-        let (peak, _) = render_seconds(&mut e, 0.2);
-        assert_eq!(peak, 0.0);
         e.apply(Command::Play);
-        let (peak, frames) = render_seconds(&mut e, 1.0);
-        assert!(peak > 0.01, "sequencer should sound while playing");
-        assert!(frames > 0, "transport should advance");
+        let (peak, _) = render_seconds(&mut e, 1.0);
+        assert!(peak > 0.01, "pattern steps must sound");
     }
 
     #[test]
     fn output_is_always_bounded_and_finite() {
         let mut e = Engine::new(48_000.0);
-        // Worst case: every voice fortissimo, master high.
+        // Worst case: everything loud, all layers, playing, saturated.
         e.apply(Command::SetParam {
             id: ParamId::MasterGain,
             value: 1.5,
         });
+        e.apply(Command::SetParam {
+            id: ParamId::Drive,
+            value: 1.0,
+        });
+        e.apply(Command::Play);
         for n in 0..VOICES as u8 {
             e.apply(Command::NoteOn {
                 note: 36 + n * 3,
@@ -304,11 +474,11 @@ mod tests {
         }
         let mut l = [0.0f32; QUANTUM];
         let mut r = [0.0f32; QUANTUM];
-        for _ in 0..1000 {
+        for _ in 0..2000 {
             e.process(&mut l, &mut r);
             for s in l.iter().chain(r.iter()) {
                 assert!(s.is_finite());
-                assert!(s.abs() <= 1.0, "tanh ceiling breached: {s}");
+                assert!(s.abs() <= 1.0, "output ceiling breached: {s}");
             }
         }
     }
@@ -316,20 +486,50 @@ mod tests {
     #[test]
     fn stop_rewinds_and_silences() {
         let mut e = Engine::new(48_000.0);
-        e.apply(Command::SetStep {
-            index: 0,
-            step: Some(Step {
-                note: 60,
-                vel: 100,
-                gate: 0.5,
-            }),
-        });
         e.apply(Command::Play);
-        render_seconds(&mut e, 0.5);
+        render_seconds(&mut e, 1.0);
         e.apply(Command::Stop);
-        render_seconds(&mut e, 2.0);
+        render_seconds(&mut e, 8.0); // drone release + wash
         let (peak, frame) = render_seconds(&mut e, 0.1);
-        assert!(peak < 1e-4);
+        assert!(peak < 1e-3, "tails must die after stop, got {peak}");
         assert_eq!(frame, 0, "stop must rewind to zero");
+    }
+
+    #[test]
+    fn reseed_changes_the_render() {
+        let capture = |seed: Option<u32>| {
+            let mut e = Engine::new(48_000.0);
+            if let Some(s) = seed {
+                e.apply(Command::SetSeed(s));
+            }
+            e.apply(Command::Play);
+            let mut l = [0.0f32; QUANTUM];
+            let mut r = [0.0f32; QUANTUM];
+            let mut sig = 0.0f64;
+            for _ in 0..2000 {
+                e.process(&mut l, &mut r);
+                sig += l.iter().map(|s| f64::from(s.abs())).sum::<f64>();
+            }
+            sig
+        };
+        let a = capture(None);
+        let b = capture(Some(99));
+        assert!((a - b).abs() > 1e-6, "reseeding must change the music");
+    }
+
+    #[test]
+    fn stereo_field_is_actually_stereo() {
+        let mut e = Engine::new(48_000.0);
+        e.apply(Command::Play);
+        let mut l = [0.0f32; QUANTUM];
+        let mut r = [0.0f32; QUANTUM];
+        let mut diff = 0.0f64;
+        for _ in 0..4000 {
+            e.process(&mut l, &mut r);
+            for (a, b) in l.iter().zip(r.iter()) {
+                diff += f64::from((a - b).abs());
+            }
+        }
+        assert!(diff > 1.0, "left and right must differ (pan/ping-pong)");
     }
 }

@@ -36,11 +36,15 @@ pub enum SeqEventKind {
         note: u8,
         /// Velocity.
         vel: u8,
+        /// Which engine layer sounds it (see `crate::LAYER_*`).
+        layer: u8,
     },
     /// End a note.
     NoteOff {
         /// MIDI note number.
         note: u8,
+        /// Which engine layer releases it.
+        layer: u8,
     },
 }
 
@@ -52,10 +56,11 @@ pub struct StepSequencer {
     steps_per_beat: f64,
 }
 
-/// Maximum events a single block can produce: with 128-frame blocks a step is
-/// always ≫ one block long at legal tempos, but gates can end in the same
-/// block a step starts in, so budget both edges for safety.
-pub const MAX_EVENTS_PER_BLOCK: usize = 2 * StepSequencer::LEN;
+/// Maximum events a single block can produce across ALL generators (the
+/// user pattern plus the score's drone/arp/lead layers). Chord boundaries
+/// are the worst case: four offs + four ons in one block, on top of a full
+/// pattern edge — 64 leaves comfortable headroom.
+pub const MAX_EVENTS_PER_BLOCK: usize = 64;
 
 impl Default for StepSequencer {
     fn default() -> Self {
@@ -131,6 +136,7 @@ impl StepSequencer {
                     kind: SeqEventKind::NoteOn {
                         note: step.note,
                         vel: step.vel,
+                        layer: crate::LAYER_ARP,
                     },
                 });
             }
@@ -150,7 +156,10 @@ impl StepSequencer {
                 if off_at >= start && off_at < end {
                     let _ = out.push(SeqEvent {
                         offset: (off_at - start) as usize,
-                        kind: SeqEventKind::NoteOff { note: step.note },
+                        kind: SeqEventKind::NoteOff {
+                            note: step.note,
+                            layer: crate::LAYER_ARP,
+                        },
                     });
                 }
             }
@@ -189,7 +198,11 @@ mod tests {
         assert_eq!(ev[0].offset, 0);
         assert!(matches!(
             ev[0].kind,
-            SeqEventKind::NoteOn { note: 60, vel: 100 }
+            SeqEventKind::NoteOn {
+                note: 60,
+                vel: 100,
+                layer: crate::LAYER_ARP,
+            }
         ));
     }
 
@@ -235,7 +248,7 @@ mod tests {
             ev.clear();
             seq.events_for_block(&t, 128, &mut ev);
             for e in &ev {
-                if let SeqEventKind::NoteOff { note: 60 } = e.kind {
+                if let SeqEventKind::NoteOff { note: 60, .. } = e.kind {
                     off_frame = Some(t.frame() as usize + e.offset);
                 }
             }

@@ -3,7 +3,7 @@
 /// A snapshot of engine state after one render block. `Copy`, fixed-size,
 /// no heap — it rides a lock-free ring to the UI thread, where it drives
 /// meters, the playhead, and the debug HUD.
-#[derive(Debug, Clone, Copy, Default, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct MeterFrame {
     /// Absolute frame count at the *end* of the block.
     pub frame: u64,
@@ -23,6 +23,30 @@ pub struct MeterFrame {
     pub playing: bool,
     /// 16-band smoothed spectrum (60 Hz → 12 kHz, log-spaced).
     pub bands: [f32; crate::spectrum::BANDS],
+    /// Decimated mono waveform of the block (the oscilloscope's trace).
+    pub scope: [f32; SCOPE],
+}
+
+/// Points per scope trace. 64 f32s keeps `MeterFrame` a small `Copy` POD
+/// while giving the LCD enough resolution to show real waveshape.
+pub const SCOPE: usize = 64;
+
+// Hand-written because `Default` for arrays stops at 32 elements.
+impl Default for MeterFrame {
+    fn default() -> Self {
+        Self {
+            frame: 0,
+            beats: 0.0,
+            peak_l: 0.0,
+            peak_r: 0.0,
+            rms_l: 0.0,
+            rms_r: 0.0,
+            voices: 0,
+            playing: false,
+            bands: [0.0; crate::spectrum::BANDS],
+            scope: [0.0; SCOPE],
+        }
+    }
 }
 
 /// Accumulates peak/RMS over one block.

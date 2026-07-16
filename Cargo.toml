@@ -95,3 +95,21 @@ strip = true
 opt-level = 3
 lto = "thin"
 codegen-units = 16
+
+# The DSP crate must run at realtime speed even in dev builds: an unoptimized
+# engine (per-sample reverb, 16×4 phasors) overruns the AudioWorklet's 2.7ms
+# budget, pegs the realtime thread, and — observed, not theoretical — starves
+# Chrome's GPU process so badly that requestAdapter() never resolves and the
+# viewport stays black. Optimizing just this crate keeps `just dev` iteration
+# fast everywhere else.
+[profile.dev.package.phazor-core]
+opt-level = 3
+
+[profile.dev.package.phazor-web]
+opt-level = 3
+
+[profile.dev.package.rtrb]
+opt-level = 3
+
+[profile.dev.package.heapless]
+opt-level = 3

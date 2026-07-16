@@ -164,13 +164,15 @@ impl Svf {
 /// One polyphonic voice.
 ///
 /// Timbre: the fundamental phasor plus two phase-locked overtone phasors
-/// (2× and 3×), blended by the `brightness` parameter. All three rotate in
-/// lockstep from the same note frequency, so the partials never beat.
+/// (2× and 3×), blended by the `brightness` parameter, plus an optional
+/// detuned unison phasor (`spread`) that beats slowly against the
+/// fundamental — the drone layer's width and motion come from here.
 #[derive(Debug, Clone, Copy)]
 pub struct Voice {
     fundamental: Phasor,
     overtone2: Phasor,
     overtone3: Phasor,
+    unison: Phasor,
     env: Adsr,
     filter: Svf,
     /// MIDI note this voice is sounding (`u8::MAX` = none).
@@ -178,6 +180,13 @@ pub struct Voice {
     velocity: f32,
     /// Monotone stamp of the last gate-on, for oldest-voice stealing.
     age: u64,
+    /// Which engine layer owns this voice (see `crate::LAYER_*`).
+    layer: u8,
+    /// Unison detune mix, 0 (off) ..= 1.
+    spread: f32,
+    /// Equal-power pan gains, set at note-on.
+    pan_l: f32,
+    pan_r: f32,
     sample_rate: f32,
 }
 
@@ -189,26 +198,50 @@ impl Voice {
             fundamental: Phasor::new(440.0, f64::from(sample_rate)),
             overtone2: Phasor::new(880.0, f64::from(sample_rate)),
             overtone3: Phasor::new(1320.0, f64::from(sample_rate)),
+            unison: Phasor::new(441.5, f64::from(sample_rate)),
             env: Adsr::new(sample_rate),
             filter: Svf::default(),
             note: u8::MAX,
             velocity: 0.0,
             age: 0,
+            layer: crate::LAYER_ARP,
+            spread: 0.0,
+            pan_l: core::f32::consts::FRAC_1_SQRT_2,
+            pan_r: core::f32::consts::FRAC_1_SQRT_2,
             sample_rate,
         }
     }
 
     /// Begin sounding `note` at `vel`, stamped with `age` for steal ordering.
-    pub fn note_on(&mut self, note: u8, vel: u8, age: u64) {
+    /// `pan` is -1 (left) ..= 1 (right); `spread` mixes in a +9-cent unison.
+    pub fn note_on(&mut self, note: u8, vel: u8, age: u64, layer: u8, pan: f32, spread: f32) {
         let hz = f64::from(midi_to_hz(f32::from(note)));
         let sr = f64::from(self.sample_rate);
         self.fundamental.set_freq(hz, sr);
         self.overtone2.set_freq(hz * 2.0, sr);
         self.overtone3.set_freq(hz * 3.0, sr);
+        self.unison.set_freq(hz * 1.0052, sr);
         self.note = note;
         self.velocity = f32::from(vel) / 127.0;
         self.age = age;
+        self.layer = layer;
+        self.spread = spread.clamp(0.0, 1.0);
+        let theta = f32::midpoint(pan.clamp(-1.0, 1.0), 1.0) * core::f32::consts::FRAC_PI_2;
+        self.pan_l = theta.cos();
+        self.pan_r = theta.sin();
         self.env.gate_on();
+    }
+
+    /// The layer that owns this voice.
+    #[must_use]
+    pub fn layer(&self) -> u8 {
+        self.layer
+    }
+
+    /// Equal-power pan gains (left, right).
+    #[must_use]
+    pub fn pan(&self) -> (f32, f32) {
+        (self.pan_l, self.pan_r)
     }
 
     /// Release the voice (envelope enters release; voice frees itself when
@@ -257,7 +290,7 @@ impl Voice {
         self.filter.set(cutoff_hz, q, self.sample_rate);
     }
 
-    /// Render one sample (mono; the engine pans/spreads).
+    /// Render one sample (mono; the engine applies this voice's pan).
     #[inline]
     pub fn tick(&mut self, brightness: f32) -> Sample {
         if self.env.idle() {
@@ -266,9 +299,11 @@ impl Voice {
         let f = self.fundamental.tick();
         let o2 = self.overtone2.tick();
         let o3 = self.overtone3.tick();
-        // Normalized harmonic blend; brightness fades overtones in.
-        let raw = f + brightness * (0.5 * o2 + 0.33 * o3);
-        let norm = 1.0 / (1.0 + brightness * 0.83);
+        let u = self.unison.tick();
+        // Normalized harmonic blend; brightness fades overtones in, spread
+        // beats the detuned unison against the fundamental.
+        let raw = f + self.spread * 0.8 * u + brightness * (0.5 * o2 + 0.33 * o3);
+        let norm = 1.0 / (1.0 + self.spread * 0.8 + brightness * 0.83);
         let env = self.env.tick();
         self.filter.tick(raw * norm) * env * self.velocity
     }
@@ -306,7 +341,7 @@ mod tests {
         let mut v = Voice::new(48_000.0);
         assert_eq!(v.tick(1.0), 0.0);
         v.configure(1.0, 50.0, 0.7, 100.0, 12_000.0, 0.707);
-        v.note_on(60, 127, 1);
+        v.note_on(60, 127, 1, crate::LAYER_ARP, 0.0, 0.5);
         let mut peak = 0.0f32;
         for _ in 0..48_000 {
             peak = peak.max(v.tick(1.0).abs());

@@ -80,8 +80,12 @@ pub fn CitadelRack(
             }
             leptos::task::spawn_local(async move {
                 let mut ctx = match GfxContext::from_canvas(canvas.clone()).await {
-                    Ok(c) => c,
+                    Ok(c) => {
+                        crate::gfx_gate::mark_ready();
+                        c
+                    }
                     Err(e) => {
+                        crate::gfx_gate::mark_ready();
                         error.set(Some(e.to_string()));
                         return;
                     }
