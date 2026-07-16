@@ -34,10 +34,18 @@ impl LoopTone {
 }
 
 /// Tempo-synced ping-pong delay: two cross-fed lines, loop-darkened.
+///
+/// The delay time GLIDES (tape-style): a tempo change slews the read head
+/// with linear interpolation instead of jumping it — retuning the delay
+/// mid-performance pitch-bends the tail instead of clicking. This is the
+/// glitch-free invariant applied to a delay line.
 pub struct PingPong {
     bufs: [Box<[f32]>; 2],
     write: usize,
-    delay: usize,
+    /// Current (gliding, fractional) delay in frames.
+    delay_f: f32,
+    /// Where the delay is headed.
+    target: f32,
     tones: [LoopTone; 2],
 }
 
@@ -56,25 +64,45 @@ impl PingPong {
                 vec![0.0; len].into_boxed_slice(),
             ],
             write: 0,
-            delay: (sample_rate * 0.375) as usize,
+            delay_f: sample_rate * 0.375,
+            target: sample_rate * 0.375,
             tones: [LoopTone::default(); 2],
         }
     }
 
     /// Set the delay time in frames (the engine derives it from tempo:
-    /// a dotted eighth). Clamped to the line length.
+    /// a dotted eighth). The head GLIDES there; it never jumps.
+    #[allow(clippy::cast_precision_loss)]
     pub fn set_delay_frames(&mut self, frames: usize) {
-        self.delay = frames.clamp(1, self.bufs[0].len() - 1);
+        self.target = frames.clamp(1, self.bufs[0].len() - 2) as f32;
+    }
+
+    /// Jump the head immediately (initialization/tests only — gliding is
+    /// the performance behavior).
+    pub fn snap_delay(&mut self, frames: usize) {
+        self.set_delay_frames(frames);
+        self.delay_f = self.target;
     }
 
     /// Advance one frame: feed the send, return the wet pair. `feedback` is
     /// clamped hard below 1 — a live instrument never runs away.
     #[inline]
+    #[allow(
+        clippy::cast_precision_loss,
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss
+    )]
     pub fn tick(&mut self, send_l: f32, send_r: f32, feedback: f32) -> (f32, f32) {
+        // exponential glide (τ ≈ 42ms at 48k): a tempo change bends the
+        // tail like tape instead of jumping the read head
+        self.delay_f += (self.target - self.delay_f) * 5e-4;
         let len = self.bufs[0].len();
-        let read = (self.write + len - self.delay) % len;
-        let wet_l = self.bufs[0][read];
-        let wet_r = self.bufs[1][read];
+        let d0 = self.delay_f as usize;
+        let frac = self.delay_f - d0 as f32;
+        let r0 = (self.write + len - d0) % len;
+        let r1 = (self.write + len - (d0 + 1)) % len;
+        let wet_l = self.bufs[0][r0] * (1.0 - frac) + self.bufs[0][r1] * frac;
+        let wet_r = self.bufs[1][r0] * (1.0 - frac) + self.bufs[1][r1] * frac;
         let fb = feedback.clamp(0.0, 0.9);
         // the cross: left's tail returns on the right and vice versa
         self.bufs[0][self.write] = self.tones[0].tick(send_l + wet_r * fb);
@@ -225,7 +253,7 @@ mod tests {
     #[test]
     fn pingpong_echo_arrives_after_delay_and_crosses() {
         let mut d = PingPong::new(48_000.0);
-        d.set_delay_frames(100);
+        d.snap_delay(100);
         // impulse on the left only
         let _ = d.tick(1.0, 0.0, 0.5);
         let mut first_echo = None;
@@ -244,7 +272,7 @@ mod tests {
     #[test]
     fn pingpong_feedback_decays() {
         let mut d = PingPong::new(48_000.0);
-        d.set_delay_frames(50);
+        d.snap_delay(50);
         let _ = d.tick(1.0, 1.0, 0.6);
         let mut peak_late = 0.0f32;
         for i in 0..48_000 {
@@ -254,6 +282,29 @@ mod tests {
             }
         }
         assert!(peak_late < 0.05, "echoes must die out, got {peak_late}");
+    }
+
+    #[test]
+    fn retuning_the_delay_never_jumps_the_output() {
+        let mut d = PingPong::new(48_000.0);
+        d.snap_delay(2_000);
+        // charge the line with a slow sine so any head jump would be audible
+        let mut prev = 0.0f32;
+        for i in 0..20_000 {
+            let x = (i as f32 * 0.01).sin() * 0.5;
+            if i == 6_000 {
+                d.set_delay_frames(9_000); // a hard retune mid-flight
+            }
+            let (l, _) = d.tick(x, x, 0.4);
+            if i > 2_100 {
+                assert!(
+                    (l - prev).abs() < 0.1,
+                    "delay retune clicked at {i}: Δ={}",
+                    (l - prev).abs()
+                );
+            }
+            prev = l;
+        }
     }
 
     #[test]

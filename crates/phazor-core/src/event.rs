@@ -148,4 +148,7 @@ pub enum Command {
     SetSeed(u32),
     /// Select the score's scale (see [`crate::score::Scale`] discriminants).
     SetScale(u8),
+    /// Jump the transport to a musical position (resume after reload).
+    /// Ringing voices are released, not cut — the seek itself is silent.
+    SeekBeats(f64),
 }

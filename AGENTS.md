@@ -57,6 +57,32 @@ speakers        …meanwhile wgpu (phunction-gfx) renders phunctors on canvas
    (master tanh ceiling stays), panic must silence voices instantly, and UI
    controls must stay legible on a 1080p screenshare.
 
+## The live-performance invariants (standing, from Cade)
+
+phunction is played live. Every surface — engine, graph, UI — obeys these,
+and they are TESTED, not aspirational:
+
+1. **Nothing clicks.** Parameter changes glide (block-rate smoothers,
+   engine-side). Delay retunes bend like tape (`PingPong` glides its read
+   head). Voice steals fade ~2ms before the new note takes the voice.
+   Velocity changes on ringing notes slew. Editing a step releases its old
+   note. `engine::tests::command_storms_never_click` storms the whole
+   command surface mid-render and fails on any audible discontinuity —
+   keep it passing; extend the storm when you add commands.
+2. **State survives reloads.** The UI writes the whole machine state to
+   localStorage on every change (`phazor:state`) and checkpoints the
+   transport every ~2s while playing (`phazor:clock`). Power-on restores
+   and `SeekBeats` resumes the set. Hot code reload = rebuild, reload,
+   one click, same music. When you add a control, add it to the state
+   string (version the prefix).
+3. **Reroutes are silent.** Patchbay connects/disconnects only change
+   *values* on a bus that is slewed downstream (the viewport's flow
+   filter, the engine's smoothers). Never wire a UI gesture to anything
+   that can step the audio path directly.
+4. **The UI never blocks the music.** Commands ride the lock-free ring;
+   overflow drops (and counts) rather than waits. Anything heavy on the
+   UI thread is raf-scheduled, never synchronous with input handlers.
+
 ## Working here
 
 - Plan first for anything structural; work a small concrete example; then

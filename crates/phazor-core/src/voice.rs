@@ -23,6 +23,10 @@ pub struct Adsr {
     decay_coeff: f32,
     sustain: f32,
     release_coeff: f32,
+    /// Steal-release coefficient (~2ms), fixed at construction.
+    fast_coeff: f32,
+    /// Fast (steal) release engaged.
+    fast: bool,
     sample_rate: f32,
 }
 
@@ -42,6 +46,8 @@ impl Adsr {
             decay_coeff: ms_to_coeff(180.0, sample_rate),
             sustain: 0.6,
             release_coeff: ms_to_coeff(220.0, sample_rate),
+            fast_coeff: ms_to_coeff(2.0, sample_rate),
+            fast: false,
             sample_rate,
         }
     }
@@ -57,12 +63,23 @@ impl Adsr {
     /// Enter the attack stage (retriggers from the current level — legato).
     pub fn gate_on(&mut self) {
         self.stage = Stage::Attack;
+        self.fast = false;
     }
 
     /// Enter the release stage.
     pub fn gate_off(&mut self) {
         if self.stage != Stage::Idle {
             self.stage = Stage::Release;
+            self.fast = false;
+        }
+    }
+
+    /// Enter a ~2ms forced release (voice steal): fast enough to free the
+    /// voice within a block, slow enough to never click.
+    pub fn fast_release(&mut self) {
+        if self.stage != Stage::Idle {
+            self.stage = Stage::Release;
+            self.fast = true;
         }
     }
 
@@ -105,10 +122,16 @@ impl Adsr {
             }
             Stage::Sustain => self.level = self.sustain,
             Stage::Release => {
-                self.level += self.release_coeff * (0.0 - self.level);
+                let coeff = if self.fast {
+                    self.fast_coeff
+                } else {
+                    self.release_coeff
+                };
+                self.level += coeff * (0.0 - self.level);
                 if self.level < 1e-5 {
                     self.level = 0.0;
                     self.stage = Stage::Idle;
+                    self.fast = false;
                 }
             }
         }
@@ -177,9 +200,14 @@ pub struct Voice {
     filter: Svf,
     /// MIDI note this voice is sounding (`u8::MAX` = none).
     note: u8,
+    /// Slewed velocity (retriggering a ringing note glides, never steps).
     velocity: f32,
+    velocity_target: f32,
     /// Monotone stamp of the last gate-on, for oldest-voice stealing.
     age: u64,
+    /// A steal in flight: the note that takes over once the fast release
+    /// reaches silence. `(note, vel, age, layer, pan, spread)`.
+    pending: Option<(u8, u8, u64, u8, f32, f32)>,
     /// Which engine layer owns this voice (see `crate::LAYER_*`).
     layer: u8,
     /// Unison detune mix, 0 (off) ..= 1.
@@ -203,12 +231,28 @@ impl Voice {
             filter: Svf::default(),
             note: u8::MAX,
             velocity: 0.0,
+            velocity_target: 0.0,
             age: 0,
+            pending: None,
             layer: crate::LAYER_ARP,
             spread: 0.0,
             pan_l: core::f32::consts::FRAC_1_SQRT_2,
             pan_r: core::f32::consts::FRAC_1_SQRT_2,
             sample_rate,
+        }
+    }
+
+    /// Take this voice for `note` — gracefully. A silent or same-note
+    /// voice starts immediately; a voice ringing a different note gets a
+    /// ~2ms fade first, then the new note takes over (steals never click:
+    /// the live-performance invariant).
+    pub fn steal_to(&mut self, note: u8, vel: u8, age: u64, layer: u8, pan: f32, spread: f32) {
+        if self.sounding().is_none() || (self.note == note && self.layer == layer) {
+            self.note_on(note, vel, age, layer, pan, spread);
+        } else {
+            self.pending = Some((note, vel, age, layer, pan, spread));
+            self.age = age; // claim steal order immediately
+            self.env.fast_release();
         }
     }
 
@@ -222,7 +266,10 @@ impl Voice {
         self.overtone3.set_freq(hz * 3.0, sr);
         self.unison.set_freq(hz * 1.0052, sr);
         self.note = note;
-        self.velocity = f32::from(vel) / 127.0;
+        self.velocity_target = f32::from(vel) / 127.0;
+        if self.env.idle() {
+            self.velocity = self.velocity_target; // fresh voice: no history to honor
+        }
         self.age = age;
         self.layer = layer;
         self.spread = spread.clamp(0.0, 1.0);
@@ -294,7 +341,11 @@ impl Voice {
     #[inline]
     pub fn tick(&mut self, brightness: f32) -> Sample {
         if self.env.idle() {
-            return 0.0;
+            if let Some((note, vel, age, layer, pan, spread)) = self.pending.take() {
+                self.note_on(note, vel, age, layer, pan, spread);
+            } else {
+                return 0.0;
+            }
         }
         let f = self.fundamental.tick();
         let o2 = self.overtone2.tick();
@@ -305,6 +356,8 @@ impl Voice {
         let raw = f + self.spread * 0.8 * u + brightness * (0.5 * o2 + 0.33 * o3);
         let norm = 1.0 / (1.0 + self.spread * 0.8 + brightness * 0.83);
         let env = self.env.tick();
+        // ~2ms velocity glide: accents on ringing notes swell, never step
+        self.velocity += (self.velocity_target - self.velocity) * 0.01;
         self.filter.tick(raw * norm) * env * self.velocity
     }
 

@@ -88,6 +88,12 @@ impl Transport {
         frame as f64 / self.sample_rate * (self.bpm / 60.0)
     }
 
+    /// Jump to a musical position (a session resuming where it left off).
+    /// Frame-quantized; callers release voices first if notes are ringing.
+    pub fn seek_beats(&mut self, beats: f64) {
+        self.frame = self.beats_to_frames(beats.max(0.0));
+    }
+
     /// Convert beats to frames at the current tempo (rounded to nearest).
     #[must_use]
     pub fn beats_to_frames(&self, beats: f64) -> u64 {

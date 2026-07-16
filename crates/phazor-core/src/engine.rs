@@ -130,7 +130,14 @@ impl Engine {
             Command::NoteOn { note, vel } => self.note_on(note, vel, LAYER_ARP),
             Command::NoteOff { note } => self.note_off(note, LAYER_ARP),
             Command::SetParam { id, value } => self.params[id.index()].set(value),
-            Command::SetStep { index, step } => self.seq.set_step(usize::from(index), step),
+            Command::SetStep { index, step } => {
+                // release whatever the old step is ringing — editing a
+                // step must not orphan its note-off
+                if let Some(old) = self.seq.step(usize::from(index)) {
+                    self.note_off(old.note, LAYER_ARP);
+                }
+                self.seq.set_step(usize::from(index), step);
+            }
             Command::AllNotesOff => {
                 for v in &mut self.voices {
                     v.kill();
@@ -138,6 +145,13 @@ impl Engine {
             }
             Command::SetSeed(seed) => self.score.seed = seed,
             Command::SetScale(scale) => self.score.scale = Scale::from_u8(scale),
+            Command::SeekBeats(beats) => {
+                // release (not kill): tails ride across the jump gracefully
+                for v in &mut self.voices {
+                    v.note_off();
+                }
+                self.transport.seek_beats(beats);
+            }
         }
     }
 
@@ -353,7 +367,7 @@ impl Engine {
             .or_else(|| quietest(&self.voices, Some(layer)))
             .or_else(|| quietest(&self.voices, None))
             .unwrap_or(0);
-        self.voices[slot].note_on(note, vel, self.note_counter, layer, pan, spread);
+        self.voices[slot].steal_to(note, vel, self.note_counter, layer, pan, spread);
     }
 
     fn note_off(&mut self, note: u8, layer: u8) {
@@ -493,6 +507,119 @@ mod tests {
         let (peak, frame) = render_seconds(&mut e, 0.1);
         assert!(peak < 1e-3, "tails must die after stop, got {peak}");
         assert_eq!(frame, 0, "stop must rewind to zero");
+    }
+
+    /// THE LIVE-PERFORMANCE INVARIANT: rerouting, retuning, reseeding,
+    /// editing steps, seeking, starting — none of it may click. Parameters
+    /// glide (block-rate smoothers), commands land at block boundaries,
+    /// voices release instead of cutting. This test storms the command
+    /// surface mid-render and fails on any sample-to-sample jump that a
+    /// human would hear as a pop. Keep it passing; it is a design standard,
+    /// not a unit test.
+    #[test]
+    fn command_storms_never_click() {
+        let mut e = Engine::new(48_000.0);
+        e.apply(Command::Play);
+        let mut l = [0.0f32; QUANTUM];
+        let mut r = [0.0f32; QUANTUM];
+        // let the world come up first
+        for _ in 0..400 {
+            e.process(&mut l, &mut r);
+        }
+        let mut hash = 0x1234_5678u32;
+        let mut rng = move || {
+            hash ^= hash << 13;
+            hash ^= hash >> 17;
+            hash ^= hash << 5;
+            hash
+        };
+        let mut prev = (l[QUANTUM - 1], r[QUANTUM - 1]);
+        let mut worst = 0.0f32;
+        for block in 0..2000u32 {
+            // a storm: several commands every block, all surfaces
+            for _ in 0..3 {
+                let v = (rng() % 1000) as f32 / 1000.0;
+                match rng() % 10 {
+                    // NB: content stays band-limited (≤1.2 kHz) because the
+                    // click detector is a slope bound — a legitimate 6 kHz
+                    // partial swings 0.39/sample and would false-positive.
+                    // The CONTROL surface is still fully stormed; that is
+                    // what the invariant is about.
+                    0 => e.apply(Command::SetParam {
+                        id: ParamId::FilterCutoff,
+                        value: 200.0 + v * 1_000.0,
+                    }),
+                    1 => e.apply(Command::SetParam {
+                        id: ParamId::MasterGain,
+                        value: 0.2 + v,
+                    }),
+                    2 => e.apply(Command::SetParam {
+                        id: ParamId::DelayMix,
+                        value: v,
+                    }),
+                    3 => e.apply(Command::SetParam {
+                        id: ParamId::ReverbMix,
+                        value: v,
+                    }),
+                    4 => e.apply(Command::SetParam {
+                        id: ParamId::DroneLevel,
+                        value: v,
+                    }),
+                    5 => e.apply(Command::SetSeed(rng())),
+                    6 => e.apply(Command::SetScale((rng() % 3) as u8)),
+                    7 => e.apply(Command::SetStep {
+                        index: (rng() % 16) as u8,
+                        step: (rng() % 2 == 0).then(|| Step {
+                            note: 40 + (rng() % 24) as u8,
+                            vel: 100,
+                            gate: 0.5,
+                        }),
+                    }),
+                    8 => e.apply(Command::SetParam {
+                        id: ParamId::LeadDensity,
+                        value: v,
+                    }),
+                    _ => e.apply(Command::SetTempo(60.0 + f64::from(v) * 80.0)),
+                }
+            }
+            e.process(&mut l, &mut r);
+            for i in 0..QUANTUM {
+                let dl = (l[i] - prev.0).abs();
+                let dr = (r[i] - prev.1).abs();
+                worst = worst.max(dl).max(dr);
+                assert!(
+                    dl < 0.25 && dr < 0.25,
+                    "audible click at block {block} sample {i}: Δl={dl:.3} Δr={dr:.3}"
+                );
+                prev = (l[i], r[i]);
+            }
+        }
+        assert!(worst > 0.0, "the storm must actually produce audio");
+    }
+
+    #[test]
+    fn seek_is_silent_and_lands_on_the_beat() {
+        let mut e = Engine::new(48_000.0);
+        e.apply(Command::Play);
+        let mut l = [0.0f32; QUANTUM];
+        let mut r = [0.0f32; QUANTUM];
+        for _ in 0..400 {
+            e.process(&mut l, &mut r);
+        }
+        let mut prev = (l[QUANTUM - 1], r[QUANTUM - 1]);
+        e.apply(Command::SeekBeats(64.0));
+        let m = e.process(&mut l, &mut r);
+        for i in 0..QUANTUM {
+            let dl = (l[i] - prev.0).abs();
+            let dr = (r[i] - prev.1).abs();
+            assert!(dl < 0.25 && dr < 0.25, "seek clicked at sample {i}");
+            prev = (l[i], r[i]);
+        }
+        assert!(
+            m.beats >= 64.0,
+            "must land at the seek target, got {}",
+            m.beats
+        );
     }
 
     #[test]

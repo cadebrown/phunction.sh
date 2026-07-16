@@ -135,6 +135,16 @@ pub(crate) mod wiring {
                                 }
                                 if let Some(f) = latest {
                                     LAST.with(|l| l.set(f));
+                                    // the resume checkpoint: beats + playing,
+                                    // stamped every ~2s — only while running
+                                    // (a stopped engine must not clobber the
+                                    // set's saved position with 0)
+                                    if f.playing && f.frame % (48_000 * 2) < 4096 {
+                                        save_state(
+                                            "phazor:clock",
+                                            &format!("{};{}", f.beats, u8::from(f.playing)),
+                                        );
+                                    }
                                     meters.update(|m| {
                                         m.peak_l = f.peak_l;
                                         m.peak_r = f.peak_r;
@@ -205,6 +215,20 @@ pub(crate) mod wiring {
         }
     }
 
+    /// Persist a machine-state string (the live set survives reloads).
+    pub fn save_state(key: &str, value: &str) {
+        if let Some(s) = web_sys::window().and_then(|w| w.local_storage().ok().flatten()) {
+            let _ = s.set_item(key, value);
+        }
+    }
+
+    /// Read back a persisted machine-state string.
+    pub fn load_state(key: &str) -> Option<String> {
+        web_sys::window()
+            .and_then(|w| w.local_storage().ok().flatten())
+            .and_then(|s| s.get_item(key).ok().flatten())
+    }
+
     /// Push a command; counts (rather than blocks on) overflow.
     pub fn send(cmd: Command) {
         PHAZOR.with(|slot| {
@@ -227,6 +251,12 @@ pub(crate) mod wiring {
 
     pub fn power_on(_meters: RwSignal<Meters>, _powered: RwSignal<bool>) {}
     pub fn send(_cmd: Command) {}
+    #[allow(dead_code)]
+    pub fn save_state(_key: &str, _value: &str) {}
+    #[allow(dead_code)]
+    pub fn load_state(_key: &str) -> Option<String> {
+        None
+    }
     pub fn play_note(_note: u8) {}
     #[allow(dead_code)] // consumed only by wasm render loops (fractal sync)
     pub fn last_meter() -> phazor_core::MeterFrame {
@@ -288,6 +318,42 @@ pub fn PhazorPage() -> impl IntoView {
     #[cfg(not(target_arch = "wasm32"))]
     let toggle_zen = move |_ev: leptos::ev::MouseEvent| {};
 
+    // Every control change writes the machine state down; a reload is a
+    // set change, not a reset (the live-performance invariant, UI side).
+    // Gated on `hydrated`: the effect's first run at mount carries default
+    // values and must not clobber the state we're about to restore.
+    let hydrated = StoredValue::new(false);
+    Effect::new(move |_| {
+        let bits: String = steps
+            .get()
+            .iter()
+            .map(|on| if *on { '1' } else { '0' })
+            .collect();
+        let state = format!(
+            "v1;{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{}",
+            tempo.get(),
+            cv.cutoff.get(),
+            cv.resonance.get(),
+            cv.brightness.get(),
+            cv.master.get(),
+            cv.delay_mix.get(),
+            cv.delay_fb.get(),
+            cv.verb_mix.get(),
+            cv.verb_size.get(),
+            cv.drive.get(),
+            cv.drone.get(),
+            cv.arps.get(),
+            cv.lead.get(),
+            cv.density.get(),
+            cv.seed.get(),
+            cv.scale.get(),
+            bits,
+        );
+        if hydrated.get_value() {
+            wiring::save_state("phazor:state", &state);
+        }
+    });
+
     // Power-on is ignition into a *world*, not silence — but the world
     // waits for the viewport to claim its GPU device first (see gfx_gate:
     // audible playback can stall requestAdapter). A fallback timer starts
@@ -296,7 +362,10 @@ pub fn PhazorPage() -> impl IntoView {
     let start_world = move || {
         if !booted.get_value() {
             booted.set_value(true);
-            apply_preset(&PRESETS[0], steps, citadel, tempo, cv);
+            if !restore_session(steps, tempo, cv) {
+                apply_preset(&PRESETS[0], steps, citadel, tempo, cv);
+            }
+            hydrated.set_value(true);
         }
     };
     Effect::new(move |_| {
@@ -832,4 +901,76 @@ fn ExprRack(
             </div>
         </RackPanel>
     }
+}
+
+/// Rebuild the whole machine from the persisted state; `false` if there is
+/// none (first visit) and the opening world should play instead. The clock
+/// checkpoint seeks the transport, so a reload resumes mid-set.
+fn restore_session(steps: RwSignal<[bool; 16]>, tempo: RwSignal<f32>, cv: Cv) -> bool {
+    let Some(state) = wiring::load_state("phazor:state") else {
+        return false;
+    };
+    let parts: Vec<&str> = state.split(';').collect();
+    if parts.len() != 18 || parts[0] != "v1" {
+        return false;
+    }
+    let f = |i: usize| parts[i].parse::<f32>().unwrap_or(0.5);
+    let t = f(1);
+    tempo.set(t);
+    wiring::send(Command::SetTempo(f64::from(t)));
+    for (sig, id, ix) in [
+        (cv.cutoff, ParamId::FilterCutoff, 2),
+        (cv.resonance, ParamId::FilterQ, 3),
+        (cv.brightness, ParamId::OscBrightness, 4),
+        (cv.master, ParamId::MasterGain, 5),
+        (cv.delay_mix, ParamId::DelayMix, 6),
+        (cv.delay_fb, ParamId::DelayFeedback, 7),
+        (cv.verb_mix, ParamId::ReverbMix, 8),
+        (cv.verb_size, ParamId::ReverbSize, 9),
+        (cv.drive, ParamId::Drive, 10),
+        (cv.drone, ParamId::DroneLevel, 11),
+        (cv.arps, ParamId::ArpLevel, 12),
+        (cv.lead, ParamId::LeadLevel, 13),
+        (cv.density, ParamId::LeadDensity, 14),
+    ] {
+        let value = f(ix);
+        sig.set(value);
+        wiring::send(Command::SetParam { id, value });
+    }
+    let seed = parts[15].parse::<u32>().unwrap_or(0xC0FF_EE00);
+    cv.seed.set(seed);
+    wiring::send(Command::SetSeed(seed));
+    let scale = parts[16].parse::<u8>().unwrap_or(0);
+    cv.scale.set(scale);
+    wiring::send(Command::SetScale(scale));
+    let mut pattern = [false; 16];
+    for (i, c) in parts[17].chars().take(16).enumerate() {
+        pattern[i] = c == '1';
+    }
+    steps.set(pattern);
+    for (i, &on) in pattern.iter().enumerate() {
+        #[allow(clippy::cast_possible_truncation)]
+        wiring::send(Command::SetStep {
+            index: i as u8,
+            step: on.then(|| Step {
+                note: RIFF[i],
+                vel: 108,
+                gate: 0.55,
+            }),
+        });
+    }
+    // the clock checkpoint: land where the set left off
+    if let Some(clock) = wiring::load_state("phazor:clock") {
+        if let Some((beats, playing)) = clock.split_once(';') {
+            if let Ok(b) = beats.parse::<f64>() {
+                wiring::send(Command::SeekBeats(b));
+            }
+            if playing != "0" {
+                wiring::send(Command::Play);
+            }
+        }
+    } else {
+        wiring::send(Command::Play);
+    }
+    true
 }
