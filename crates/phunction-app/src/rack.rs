@@ -117,6 +117,17 @@ pub fn Knob(
                     apply(pos.get_untracked() - (ev.delta_y() as f32) / 1200.0);
                 }
                 on:dblclick=move |_| apply(init_pos)
+                on:keydown=move |ev: web_sys::KeyboardEvent| {
+                    let step = if ev.shift_key() { 0.005 } else { 0.02 };
+                    let p = pos.get_untracked();
+                    match ev.key().as_str() {
+                        "ArrowUp" | "ArrowRight" => { ev.prevent_default(); apply(p + step); }
+                        "ArrowDown" | "ArrowLeft" => { ev.prevent_default(); apply(p - step); }
+                        "Home" => { ev.prevent_default(); apply(0.0); }
+                        "End" => { ev.prevent_default(); apply(1.0); }
+                        _ => {}
+                    }
+                }
             >
                 // tick marks around the sweep
                 {(0..=10)
@@ -305,6 +316,17 @@ pub fn Fader(
                     apply(pos.get_untracked() - (ev.delta_y() as f32) / 1200.0);
                 }
                 on:dblclick=move |_| apply(init)
+                on:keydown=move |ev: web_sys::KeyboardEvent| {
+                    let step = if ev.shift_key() { 0.005 } else { 0.02 };
+                    let p = pos.get_untracked();
+                    match ev.key().as_str() {
+                        "ArrowUp" | "ArrowRight" => { ev.prevent_default(); apply(p + step); }
+                        "ArrowDown" | "ArrowLeft" => { ev.prevent_default(); apply(p - step); }
+                        "Home" => { ev.prevent_default(); apply(0.0); }
+                        "End" => { ev.prevent_default(); apply(1.0); }
+                        _ => {}
+                    }
+                }
             >
                 // slot: countersunk channel with the station-hued fill below the cap
                 <rect class="fader-slot" x="14" y="8" width="8" height="114" rx="3"></rect>

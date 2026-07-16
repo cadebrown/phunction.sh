@@ -316,7 +316,10 @@ pub fn PhazorPage() -> impl IntoView {
                             wiring::send(Command::Play);
                         }
                     }
-                    "Escape" => wiring::send(Command::AllNotesOff),
+                    "Escape" => {
+                        crate::patchbay::cancel_gestures();
+                        wiring::send(Command::AllNotesOff);
+                    }
                     _ => {}
                 }
             });

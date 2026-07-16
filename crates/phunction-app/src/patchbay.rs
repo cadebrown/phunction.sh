@@ -35,6 +35,18 @@ pub fn mind_mods() -> [f32; 4] {
     state::MIND_MODS.with(std::cell::Cell::get)
 }
 
+/// Cancel any in-flight gesture (cable or node drag) — Escape's job.
+#[cfg(target_arch = "wasm32")]
+pub fn cancel_gestures() {
+    state::CABLE.with(|c| c.set(None));
+    state::NODE_DRAG.with(|d| d.set(None));
+    state::CANCELLED.with(|c| c.set(true));
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+#[allow(dead_code)]
+pub fn cancel_gestures() {}
+
 /// Ask the patchbay to replace the whole graph with `text` (a world's
 /// signature patch). Applied on the next graph tick.
 #[cfg(target_arch = "wasm32")]
@@ -86,6 +98,8 @@ mod state {
         pub static SAVE_TICK: Cell<u32> = const { Cell::new(0) };
         /// A pending whole-patch install from outside (worlds/presets).
         pub static REQUEST_PATCH: RefCell<Option<String>> = const { RefCell::new(None) };
+        /// A cancel arrived (Escape): repaint to drop the ghost cable.
+        pub static CANCELLED: Cell<bool> = const { Cell::new(false) };
         /// Set when a cable just landed, so the click that follows the
         /// pointerup doesn't immediately unplug the fresh connection.
         pub static JUST_LANDED: Cell<bool> = const { Cell::new(false) };
@@ -220,6 +234,9 @@ pub fn Patchbay() -> impl IntoView {
                 if let Some(text) = state::REQUEST_PATCH.with(|r| r.borrow_mut().take()) {
                     let _ = install_patch(&text);
                     code_src.set(text);
+                }
+                if state::CANCELLED.with(std::cell::Cell::take) {
+                    rev.update(|r| *r += 1); // repaint: the ghost cable dies
                 }
                 let met = crate::phazor_panel::wiring::last_meter();
                 // world inputs: mic level + first gamepad, polled per frame
@@ -704,6 +721,8 @@ fn node_view(
                                 <button
                                     class="pb-port in"
                                     style=("--hue", format!("{}", p.ty.hue()))
+                                    attr:data-node=id.0.to_string()
+                                    attr:data-port=i.to_string()
                                     on:pointerup=land_cable(i)
                                     on:click=unplug(i)
                                     aria-label=format!("input {}", p.name)
