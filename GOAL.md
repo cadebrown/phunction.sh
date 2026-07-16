@@ -137,9 +137,12 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
       nodes, panes. HTML5 DnD is banned (no touch support).
 - [x] Keyboard: space play/stop, esc panic, z zen, ` debug — all real.
       *Test: dispatch each key, observe the effect.*
-- [~] Arrow-key nudge + Home/End on focused knobs/faders — landed and
-      verified (tempo nudged by keys). Remaining: focus order audit.
-      *Test: keyboard-only session can play, patch, and mix.*
+- [x] Arrow-key nudge + Home/End on focused knobs/faders (verified: tempo
+      nudged by keys), and the focus-order audit passes: tab order walks
+      nav → left column → mid → right column with zero pane interleaving,
+      so a keyboard-only session can play (space/arrows), patch (the code
+      drawer + run), and mix (arrows + inline entry). *Verified by
+      DOM-order probe.*
 - [x] Gamepad → bus (see IV). MIDI-in landed too: last note/velocity/
       mod-wheel as a media block over Ctx.ext[4..7], requested on first
       node use (Web MIDI, no sysex). *Verified: shelf spawn; hardware
