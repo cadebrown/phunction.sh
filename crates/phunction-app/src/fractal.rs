@@ -237,11 +237,21 @@ pub fn CitadelRack(
                     }
                     pulse *= 0.97; // long decay: a swell, not a strobe
 
+                    // slow value-noise walks: never periodic, never still —
+                    // the drift itself evolves forever (glacial, not spazzy)
+                    let wander = |speed: f32, seed: f32, amp: f32| -> f32 {
+                        let phase = now * speed + seed;
+                        let cell = phase.floor();
+                        let frac = phase - cell;
+                        let hash = |n: f32| ((n * 127.1 + seed * 311.7).sin() * 43758.55).fract();
+                        let ease = frac * frac * (3.0 - 2.0 * frac);
+                        amp * ((hash(cell) * (1.0 - ease) + hash(cell + 1.0) * ease) * 2.0 - 1.0)
+                    };
                     let (ds, dw, dd) = if par.auto {
                         (
-                            0.1 * (now * 0.017).sin(),
-                            0.12 * (now * 0.013 + 1.7).sin(),
-                            0.08 * (now * 0.009 + 4.2).sin(),
+                            wander(0.011, 3.1, 0.12),
+                            wander(0.009, 7.7, 0.14),
+                            wander(0.007, 13.3, 0.1),
                         )
                     } else {
                         (0.0, 0.0, 0.0)
@@ -256,7 +266,7 @@ pub fn CitadelRack(
                     let mut mods = [
                         (par.scale + ds).clamp(0.0, 1.0),
                         (par.warp + dw + rms).clamp(0.0, 1.0),
-                        par.hue + pulse * 0.05,
+                        par.hue + pulse * 0.05 + now * 0.0015,
                         (par.dolly + dd).clamp(0.0, 1.0),
                         coarse(0, 4),
                         coarse(4, 8),

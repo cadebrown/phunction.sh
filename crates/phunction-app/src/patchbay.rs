@@ -85,7 +85,7 @@ mod state {
 pub fn Patchbay() -> impl IntoView {
     #[cfg(not(target_arch = "wasm32"))]
     return view! {
-        <RackPanel title="patchbay · the constructive graph" class="span12">
+        <RackPanel title="patchbay · the constructive graph" class="span12" folded=true>
             <p class="pb-status">"the patchbay wakes in the browser"</p>
         </RackPanel>
     };
@@ -418,7 +418,7 @@ pub fn Patchbay() -> impl IntoView {
         };
 
         view! {
-            <RackPanel title="patchbay · the constructive graph" class="span12">
+            <RackPanel title="patchbay · the constructive graph" class="span12" folded=true>
                 <div class="pb-shelf">
                     {library::SHELF
                         .iter()

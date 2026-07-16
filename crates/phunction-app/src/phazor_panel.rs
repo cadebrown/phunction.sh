@@ -506,6 +506,7 @@ pub fn PhazorPage() -> impl IntoView {
                 }
             >
                 <div class="rack">
+                    <div class="ws-col">
                     <RackPanel title="transport" class="span4">
                         <button
                             class="xport"
@@ -535,7 +536,7 @@ pub fn PhazorPage() -> impl IntoView {
                         </div>
                     </RackPanel>
 
-                    <RackPanel title="voice" class="span5">
+                    <RackPanel title="voice" class="span5" folded=true>
                         <Jack label="cv" />
                         <Knob
                             label="cutoff"
@@ -560,7 +561,7 @@ pub fn PhazorPage() -> impl IntoView {
                         {cv_knob!("brightness", cv.brightness, ParamId::OscBrightness, 0.0, 1.0, 100.0)}
                     </RackPanel>
 
-                    <RackPanel title="mix" class="span3">
+                    <RackPanel title="mix" class="span3" folded=true>
                         {cv_knob!("master", cv.master, ParamId::MasterGain, 0.0, 1.2, 55.0)}
                         <LedMeter label="L" level={Signal::derive(move || (meters.get().rms_l * 3.0).min(1.0))} />
                         <LedMeter label="R" level={Signal::derive(move || (meters.get().rms_r * 3.0).min(1.0))} />
@@ -602,34 +603,17 @@ pub fn PhazorPage() -> impl IntoView {
                         </div>
                     </RackPanel>
 
-                    <RackPanel title="fx · space" class="span4">
+                    <RackPanel title="fx · space" class="span4" folded=true>
                         {cv_knob!("echo", cv.delay_mix, ParamId::DelayMix, 0.0, 1.0, 190.0)}
                         {cv_knob!("regen", cv.delay_fb, ParamId::DelayFeedback, 0.0, 0.9, 235.0)}
                         {cv_knob!("wash", cv.verb_mix, ParamId::ReverbMix, 0.0, 1.0, 280.0)}
                         {cv_knob!("cavern", cv.verb_size, ParamId::ReverbSize, 0.0, 1.0, 325.0)}
                         {cv_knob!("drive", cv.drive, ParamId::Drive, 0.0, 1.0, 10.0)}
                     </RackPanel>
-
-                    <RackPanel title="scope" class="span3">
-                        <svg class="scope-lcd" viewBox="0 0 64 32" preserveAspectRatio="none" aria-label="oscilloscope: the master bus waveform">
-                            <line class="scope-axis" x1="0" y1="16" x2="64" y2="16"></line>
-                            <polyline class="scope-trace" points=scope_points></polyline>
-                        </svg>
-                        <Led on=Signal::derive(move || meters.get().rms_l + meters.get().rms_r > 0.005) hue=145.0 label="sig" />
-                    </RackPanel>
-
-                    <ExprRack meters=meters />
-
-                    <crate::patchbay::Patchbay />
-
-                    <svg class="cable" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-                        <path class="cable-shadow" d="M26.5 57 C 29 86, 40 74, 43.5 42"></path>
-                        <path class="cable-core" d="M26.5 56 C 29 84, 40 72, 43.5 41"></path>
-                        <path class="cable-sheen" d="M26.2 55.7 C 28.7 83.5, 39.7 71.5, 43.2 40.7"></path>
-                    </svg>
-                    <CitadelRack params=citadel />
-
-                    <RackPanel title="worlds · whole-machine presets" class="span12">
+                    </div>
+                    <div class="ws-mid">
+                        <div class="ws-mid-spacer"></div>
+                    <RackPanel title="worlds · whole-machine presets" class="span12" folded=true>
                         {PRESETS
                             .iter()
                             .map(|preset| {
@@ -649,31 +633,7 @@ pub fn PhazorPage() -> impl IntoView {
                         </span>
                     </RackPanel>
 
-                    <RackPanel title="spectrum · 50 Hz → 14 kHz · 96 bands" class="span12">
-                        <svg
-                            class="analyzer"
-                            viewBox="0 0 95 32"
-                            preserveAspectRatio="none"
-                            aria-label="full-resolution spectrum analyzer"
-                        >
-                            <defs>
-                                <linearGradient id="specgrad" x1="0" y1="0" x2="1" y2="0">
-                                    <stop offset="0%" stop-color="oklch(0.72 0.19 10)"></stop>
-                                    <stop offset="14%" stop-color="oklch(0.75 0.17 55)"></stop>
-                                    <stop offset="28%" stop-color="oklch(0.78 0.16 100)"></stop>
-                                    <stop offset="43%" stop-color="oklch(0.76 0.17 145)"></stop>
-                                    <stop offset="57%" stop-color="oklch(0.74 0.15 190)"></stop>
-                                    <stop offset="71%" stop-color="oklch(0.7 0.16 235)"></stop>
-                                    <stop offset="85%" stop-color="oklch(0.68 0.17 280)"></stop>
-                                    <stop offset="100%" stop-color="oklch(0.7 0.18 325)"></stop>
-                                </linearGradient>
-                            </defs>
-                            <path class="an-fill" d=analyzer_fill></path>
-                            <path class="an-line" d=analyzer_line></path>
-                        </svg>
-                    </RackPanel>
-
-                    <RackPanel title="sequence · your riff over the weather">
+                    <RackPanel title="sequence · your riff over the weather" folded=true>
                         <section class="steps" style="width: 100%">
                             {(0..StepSequencer::LEN)
                                 .map(|i| {
@@ -693,6 +653,42 @@ pub fn PhazorPage() -> impl IntoView {
                                 .collect_view()}
                         </section>
                     </RackPanel>
+
+                    <crate::patchbay::Patchbay />
+                    </div>
+                    <div class="ws-col">
+                    <CitadelRack params=citadel />
+
+                    <RackPanel title="scope" class="span3">
+                        <svg class="scope-lcd" viewBox="0 0 64 32" preserveAspectRatio="none" aria-label="oscilloscope: the master bus waveform">
+                            <line class="scope-axis" x1="0" y1="16" x2="64" y2="16"></line>
+                            <polyline class="scope-trace" points=scope_points></polyline>
+                        </svg>
+                        <Led on=Signal::derive(move || meters.get().rms_l + meters.get().rms_r > 0.005) hue=145.0 label="sig" />
+                    </RackPanel>
+
+                    <RackPanel title="spectrum · 50 Hz → 14 kHz · 96 bands" class="span12">
+                        <svg
+                            class="analyzer"
+                            viewBox="0 0 95 32"
+                            preserveAspectRatio="none"
+                            aria-label="full-resolution spectrum analyzer"
+                        >
+                            <defs>
+                                <linearGradient id="specgrad" x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="0%" stop-color="oklch(0.55 0.13 300)"></stop>
+                                    <stop offset="40%" stop-color="oklch(0.6 0.14 280)"></stop>
+                                    <stop offset="75%" stop-color="oklch(0.62 0.11 220)"></stop>
+                                    <stop offset="100%" stop-color="oklch(0.65 0.1 190)"></stop>
+                                </linearGradient>
+                            </defs>
+                            <path class="an-fill" d=analyzer_fill></path>
+                            <path class="an-line" d=analyzer_line></path>
+                        </svg>
+                    </RackPanel>
+
+                    <ExprRack meters=meters />
+                    </div>
                 </div>
 
                 <div class="keyhints">
@@ -909,7 +905,7 @@ fn ExprRack(
     install();
 
     view! {
-        <RackPanel title="expr · a little language" class="span9">
+        <RackPanel title="expr · a little language" class="span9" folded=true>
             <div class="expr-row">
                 <input
                     class="expr-input"

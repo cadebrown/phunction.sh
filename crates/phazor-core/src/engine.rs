@@ -57,6 +57,8 @@ pub struct Engine {
     spectrum: Spectrum,
     /// Monotone counter stamping gate-ons for voice-steal ordering.
     note_counter: u64,
+    /// Last 64-beat era the score evolved in (see `process`).
+    era: u64,
     /// Scratch for the per-block events (audio path: no alloc).
     events: heapless::Vec<SeqEvent, MAX_EVENTS_PER_BLOCK>,
 }
@@ -87,6 +89,7 @@ impl Engine {
             meter: BlockMeter::default(),
             spectrum: Spectrum::new(sample_rate),
             note_counter: 0,
+            era: 0,
             events: heapless::Vec::new(),
         }
     }
@@ -230,6 +233,17 @@ impl Engine {
         #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
         self.delay
             .set_delay_frames((frames_per_beat * 0.75) as usize);
+
+        // The weather never sits still: every 64 beats the seed takes one
+        // deterministic hash step, so the arp skips and lead choices evolve
+        // forever without ever repeating — and a resumed set evolves the
+        // same way it would have (the walk is a function of position).
+        #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
+        let era = (self.transport.beats() / 64.0) as u64;
+        if self.transport.playing() && era != self.era {
+            self.era = era;
+            self.score.seed = self.score.seed.wrapping_mul(0x9E37_79B9).wrapping_add(1);
+        }
 
         // 2. This block's events: the user pattern + the generative score,
         //    offset-sorted, note-offs before note-ons at equal offsets so a

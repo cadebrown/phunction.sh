@@ -43,9 +43,19 @@ fn cmul(a: vec2<f32>, b: vec2<f32>) -> vec2<f32> {
     return vec2<f32>(a.x * b.x - a.y * b.y, a.x * b.y + a.y * b.x);
 }
 
-// IQ's cosine palette — the psychedelic workhorse.
+// The canon palette: midnight indigo → violet → deep teal, cycling.
+// NOT the full-spectrum cosine rainbow — phase picks a place on a curated
+// wheel of three canon tones, smoothly blended (three equally spaced
+// cosine lobes sum to a constant 1.5, so the blend needs no clamping).
+// The `phase` arg is kept for call-site compatibility; hue lives in `t`.
 fn palette(t: f32, phase: vec3<f32>) -> vec3<f32> {
-    return 0.5 + 0.5 * cos(TAU * (vec3<f32>(t) + phase));
+    let indigo = vec3<f32>(0.10, 0.08, 0.26);
+    let violet = vec3<f32>(0.46, 0.19, 0.54);
+    let teal = vec3<f32>(0.08, 0.42, 0.48);
+    let w1 = 0.5 + 0.5 * cos(TAU * t);
+    let w2 = 0.5 + 0.5 * cos(TAU * (t - 0.333));
+    let w3 = 0.5 + 0.5 * cos(TAU * (t - 0.667));
+    return (indigo * w1 + violet * w2 + teal * w3) / 1.5;
 }
 
 // Cheap value-noise-ish hash.

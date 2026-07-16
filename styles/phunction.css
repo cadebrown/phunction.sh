@@ -1268,3 +1268,79 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
 }
 .pb-node header, .pb-port, .fader svg, .knob svg { touch-action: none; }
 .pb-canvas, .pb-node { user-select: none; -webkit-user-select: none; }
+
+/* ── the app, not a page: fullscreen panes like qualia ────────────────── */
+.panel {
+  position: fixed;
+  inset: 42px 0 0 0;
+  overflow: hidden;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+}
+.panel .panel-head { display: none; }
+.panel .rack {
+  flex: 1;
+  display: flex;
+  gap: 10px;
+  min-height: 0;
+  align-items: stretch;
+}
+.ws-col {
+  width: 302px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: oklch(0.35 0.04 300 / 0.6) transparent;
+  padding-right: 2px;
+}
+.ws-mid {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.ws-mid-spacer { flex: 1; min-height: 40px; pointer-events: none; }
+.rack > .ws-col .rack-panel, .rack > .ws-mid .rack-panel { width: 100%; }
+.keyhints {
+  position: fixed;
+  left: 14px;
+  bottom: 10px;
+  z-index: 30;
+  opacity: 0.55;
+  margin: 0;
+}
+
+/* density: the pane era — tighter everything */
+.rack-panel { border-radius: 6px; }
+.rack-panel .rack-body { padding: 8px 10px 10px; gap: 8px; }
+.rack-latch { padding: 5px 9px; font-size: 0.62rem; }
+.knob svg { width: 46px; height: 46px; }
+.fader svg { width: 30px; height: 104px; }
+.lcd { font-size: 0.62rem; }
+.xport { font-size: 0.66rem; padding: 4px 9px; }
+.analyzer { height: 64px; }
+.scope-lcd { height: 52px; }
+.pb-canvas { height: 320px; }
+.steps { gap: 4px; }
+.step { min-width: 0; }
+
+/* pane era: the app fills the room — no page-column ghosts */
+.panel {
+  max-width: none;
+  margin: 0;
+}
+.zen .ws-col .rack-panel, .zen .ws-mid .rack-panel {
+  opacity: 0;
+  pointer-events: none;
+}
+.ws-col .rack-panel, .ws-mid .rack-panel { transition: opacity 0.6s ease; }
