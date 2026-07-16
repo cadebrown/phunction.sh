@@ -180,6 +180,30 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 - [x] No layout shift while performing; panes never jump under the hand.
       *Verified: PerformanceObserver CLS = 0.0000 during knob/fader
       gesture burst (layout presets are intentional rearrangement).*
+- [x] **The DAW station** ("we want 'daw station UI' not random BS"):
+      glass panes — every pane is translucent over the living mind field
+      (the background IS the visuals, blur(14px) glass, verified alpha
+      0.72 computed live); ornament stripped on /phazor (screws, rack
+      rails, CV socket — a workstation, not a prop); every panel body is
+      a strict CSS grid (auto-fill 56px cells, controls take cells, wide
+      surfaces span — voice panel measured 235→113px). *Test: computed
+      panel background alpha < 1 + grid template on .rack-body + height
+      measurements on record.*
+- [x] **A sequencer for actual music** (engine already spoke note+vel;
+      the UI was the toy): tap toggles, vertical drag walks SCALE DEGREES
+      (7px per degree, snapped via Scale::snap/degree_step in phazor-core
+      — native-tested: snap lands on scale tones only, walks are exact,
+      saturates at the musical range), shift-drag writes velocity, steps
+      display note names + velocity bars. State v3 persists note:vel per
+      step (v2 bit-patterns still restore over the old riff). *Verified
+      live: tap→a3 on, 21px drag→d4 (+3 degrees), shift-drag 108→84,
+      reload renders the edited pattern back.*
+- [x] **Push isn't done until CI is green**: `just ci-watch` blocks on
+      the ship run for HEAD and dumps failing logs on red; AGENTS.md
+      makes it part of the push protocol. Root-caused the actual CI
+      failure it would have caught: smoke's persist check raced the ~1s
+      patch autosave on fresh CI profiles — it now polls (the contract
+      is eventual persistence, 2s clock stamps by design).
 - [x] **The qualia topbar** (total UI rehaul, voidstar-style): one fixed
       dense strip owns the chrome — title row (wordmark + beat/vox/drop
       LCDs + zen corner) over a wrapping controls row (▶ ■ ✕ transport,

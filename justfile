@@ -74,6 +74,24 @@ clippy:
 clippy-wasm:
     RUSTFLAGS='{{WASM_RUSTFLAGS}}' CARGO_UNSTABLE_BUILD_STD={{BUILD_STD}} cargo clippy --workspace --target wasm32-unknown-unknown -- -D warnings
 
+# Watch the ship run for the current HEAD until it finishes; nonzero exit on
+# failure. EVERY push ends with this — a push isn't done until CI is green.
+ci-watch:
+    #!/usr/bin/env sh
+    sha=$(git rev-parse HEAD)
+    run=""
+    for _ in $(seq 1 30); do
+        run=$(gh run list --commit "$sha" --limit 1 --json databaseId --jq '.[0].databaseId' 2>/dev/null)
+        [ -n "$run" ] && break
+        sleep 4
+    done
+    if [ -z "$run" ]; then echo "ci-watch: no run found for $sha" >&2; exit 1; fi
+    gh run watch "$run" --exit-status --interval 15 || {
+        echo "ci-watch: run $run FAILED — failing logs:" >&2
+        gh run view "$run" --log-failed | tail -40 >&2
+        exit 1
+    }
+
 # Deploy to Cloudflare (Workers static assets). CI does this on main; manual
 # use is for emergencies.
 deploy: build

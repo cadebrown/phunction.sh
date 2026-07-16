@@ -157,11 +157,16 @@ const playing = await evaluate(`(async () => {
 if (!playing) fail("the world never started playing after power on");
 console.log("smoke ✓ plays");
 
-// 3. state persists
-const persisted = await evaluate(
-  `!!localStorage.getItem('phazor:state') && !!localStorage.getItem('phazor:patch')`,
-);
-if (!persisted) fail("machine state / patch not persisted");
+// 3. state persists — eventually-consistent by design (patch autosave is
+// a ~1s rev-diff, the clock stamps every 2s), so poll instead of racing it
+const persisted = await evaluate(`(async () => {
+  for (let i = 0; i < 60; i++) {
+    if (localStorage.getItem('phazor:state') && localStorage.getItem('phazor:patch')) return true;
+    await new Promise(r => setTimeout(r, 250));
+  }
+  return false;
+})()`);
+if (!persisted) fail("machine state / patch not persisted within 15s");
 console.log("smoke ✓ persists");
 
 // 4. reload resumes: the reload comes from CDP (an in-page reload would

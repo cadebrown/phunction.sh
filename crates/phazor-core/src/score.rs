@@ -46,6 +46,49 @@ impl Scale {
             Self::Dorian => [0, 2, 3, 5, 7, 9, 10],
         }
     }
+
+    /// Snap a MIDI note to the nearest scale tone over `root` (ties snap
+    /// down — darker). The sequencer's drag editor speaks scale degrees,
+    /// never raw semitones, so edits can't leave the world's harmony.
+    #[must_use]
+    pub fn snap(self, note: u8, root: u8) -> u8 {
+        let semis = self.semis();
+        let rel = i16::from(note) - i16::from(root);
+        let (mut best, mut dist) = (note, i16::MAX);
+        for oct in -6..=6i16 {
+            for s in semis {
+                let cand = i16::from(root) + oct * 12 + s;
+                let (0..=127) = cand else { continue };
+                let d = (cand - i16::from(root) - rel).abs();
+                // strict `<` keeps the LOWER candidate on ties
+                if d < dist {
+                    dist = d;
+                    best = clamp_midi(cand);
+                }
+            }
+        }
+        best
+    }
+
+    /// Walk `delta` scale degrees from `note` (snapped first). The drag
+    /// editor's vertical axis: one notch = one degree, any octave.
+    #[must_use]
+    pub fn degree_step(self, note: u8, delta: i16, root: u8) -> u8 {
+        let semis = self.semis();
+        let snapped = i16::from(self.snap(note, root));
+        let rel = snapped - i16::from(root);
+        let oct = rel.div_euclid(12);
+        let within = rel.rem_euclid(12);
+        // the snapped note IS a scale tone, so this always finds it
+        let idx = semis
+            .iter()
+            .position(|s| *s == within)
+            .and_then(|i| i16::try_from(i).ok())
+            .unwrap_or(0);
+        let flat = oct * 7 + idx + delta;
+        let target = i16::from(root) + flat.div_euclid(7) * 12 + semis[flat.rem_euclid(7) as usize];
+        clamp_midi(target)
+    }
 }
 
 /// Deterministic 32-bit mix of (seed, index) — the score's only randomness.
@@ -353,6 +396,43 @@ fn clamp_midi(n: i16) -> u8 {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn snap_lands_on_scale_tones_only() {
+        for scale in [Scale::Phrygian, Scale::Aeolian, Scale::Dorian] {
+            let semis = scale.semis();
+            for note in 20..=100u8 {
+                let snapped = scale.snap(note, 45);
+                let rel = (i16::from(snapped) - 45).rem_euclid(12);
+                assert!(
+                    semis.contains(&rel),
+                    "{scale:?} snapped {note} to {snapped} (rel {rel}) — not a scale tone"
+                );
+                // never further than a whole step from the input
+                assert!((i16::from(snapped) - i16::from(note)).abs() <= 2);
+            }
+        }
+    }
+
+    #[test]
+    fn degree_step_walks_the_scale() {
+        let s = Scale::Aeolian; // A minor over root 45: A B C D E F G
+        assert_eq!(s.degree_step(45, 0, 45), 45); // A2 stays
+        assert_eq!(s.degree_step(45, 1, 45), 47); // up one degree: B2
+        assert_eq!(s.degree_step(45, 2, 45), 48); // C3
+        assert_eq!(s.degree_step(45, 7, 45), 57); // a full octave of degrees
+        assert_eq!(s.degree_step(45, -1, 45), 43); // down: G2
+        assert_eq!(s.degree_step(45, -7, 45), 33); // octave down
+    }
+
+    #[test]
+    fn degree_step_saturates_at_the_musical_range() {
+        // clamp_midi bounds every score note to 12..=108 — degree walks
+        // saturate there too instead of wrapping
+        let s = Scale::Phrygian;
+        assert_eq!(s.degree_step(100, 70, 45), 108);
+        assert_eq!(s.degree_step(20, -70, 45), 12);
+    }
 
     fn collect_events(score: Score, seconds: f64, density: f32) -> Vec<(u64, SeqEventKind)> {
         let mut t = Transport::new(48_000.0, 80.0);

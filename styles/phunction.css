@@ -1769,3 +1769,63 @@ body:has(.panel) .transmission { display: none; }
 .step { aspect-ratio: 1 / 0.8; max-height: 64px; }
 .knob { max-width: 64px; }
 .knob-label { max-width: 64px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ── DAW station: glass panes over the living field, zero ornament ────── */
+/* the background IS the instrument's eye — every pane is translucent */
+.panel .rack-panel {
+  background: oklch(0.16 0.025 300 / 0.72);
+  backdrop-filter: blur(14px) saturate(1.15);
+  -webkit-backdrop-filter: blur(14px) saturate(1.15);
+  border: 1px solid oklch(0.4 0.06 300 / 0.4);
+  box-shadow: 0 4px 16px oklch(0 0 0 / 0.35);
+}
+/* ornament off: screws, rack rails, CV socket — a workstation, not a prop */
+.panel .screw { display: none; }
+.panel .rack::before, .panel .rack::after { display: none; }
+.panel .jack { display: none; }
+.panel .rack { padding: 0; }
+.panel .step {
+  background: oklch(0.14 0.02 290 / 0.7);
+  box-shadow: none;
+  border: 1px solid oklch(0.36 0.05 290 / 0.5);
+}
+
+/* controls on a strict grid — dense, aligned, scannable */
+.panel .rack-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(56px, 1fr));
+  gap: 4px 6px;
+  align-items: end;
+  justify-items: center;
+  padding: 4px 8px 7px;
+}
+/* wide surfaces span the full grid by default; CONTROLS take cells —
+   this way new panel content is never accidentally squeezed into a cell */
+.panel .rack-body > * {
+  grid-column: 1 / -1;
+  justify-self: stretch;
+  min-width: 0;
+}
+.panel .rack-body > :is(.knob, .fader, .led-wrap, .ledmeter, .lcd, .xport, button) {
+  grid-column: auto;
+  justify-self: center;
+}
+
+/* the step editor: tap toggles, drag = pitch, shift-drag = velocity */
+.step { touch-action: none; cursor: ns-resize; }
+.step .note {
+  color: rgba(244, 242, 251, 0.75);
+  font-size: 0.56rem;
+  letter-spacing: 0.04em;
+}
+.step .vel-bar {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 3px;
+  height: calc((100% - 6px) * var(--vel, 0));
+  background: oklch(72% 0.15 calc(10deg + var(--i) * 22.5deg) / 0.9);
+  border-radius: 1px;
+  pointer-events: none;
+}
+.step.on::before { opacity: calc(0.35 + 0.65 * var(--vel, 0.8)); }

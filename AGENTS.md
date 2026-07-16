@@ -35,6 +35,11 @@ speakers        …meanwhile wgpu (phunction-gfx) renders phunctors on canvas
    Never invoke bare `trunk` or `cargo --target wasm32-*`.
 2. **`just check` green before any push.** It is exactly what CI runs. CI
    deploys `main` straight to production — there is no staging.
+   **A push isn't done until CI is green**: after every `git push`, run
+   `just ci-watch` (blocks on the ship run for HEAD, dumps failing logs on
+   red). Local green does not exempt you — the CI environment races
+   differently (fresh profiles, slower runners) and has caught real bugs
+   local runs missed.
 3. **The audio path is sacred.** Inside `Engine::process` and everything it
    calls: no allocation, no locks, no syscalls, no unbounded loops, no
    strings. Commands/telemetry are `Copy` PODs over rtrb rings.

@@ -10,13 +10,21 @@ use crate::fractal::CitadelRack;
 use crate::rack::{Jack, Knob, Led, LedMeter, RackPanel};
 use leptos::prelude::*;
 use phazor_core::meter::SCOPE;
-use phazor_core::{Command, ParamId, Step, StepSequencer};
+use phazor_core::{Command, ParamId, Scale, Step, StepSequencer};
 
 /// Pad notes for the user pattern (A-minor pentatonic with octave drops).
 /// The pads ride the arp layer *on top of* the generative score.
 const RIFF: [u8; 16] = [
     45, 57, 48, 57, 45, 55, 48, 60, 45, 57, 52, 57, 43, 55, 48, 62,
 ];
+
+/// MIDI note → display name ("a2", "c#3") — lowercase, the machine's voice.
+fn note_name(n: u8) -> String {
+    const NAMES: [&str; 12] = [
+        "c", "c#", "d", "d#", "e", "f", "f#", "g", "g#", "a", "a#", "b",
+    ];
+    format!("{}{}", NAMES[usize::from(n % 12)], i16::from(n / 12) - 1)
+}
 
 /// Live telemetry mirrored into signals for display.
 #[derive(Clone, Copy)]
@@ -277,7 +285,7 @@ pub(crate) mod wiring {
 pub fn PhazorPage() -> impl IntoView {
     let powered = RwSignal::new(false);
     let meters = RwSignal::new(Meters::default());
-    let steps = RwSignal::new([false; 16]);
+    let steps = RwSignal::new([None::<(u8, u8)>; 16]);
     let citadel = RwSignal::new(crate::fractal::CitadelParams::default());
     let mind = RwSignal::new("silk");
     let tempo = RwSignal::new(120.0f32);
@@ -371,11 +379,12 @@ pub fn PhazorPage() -> impl IntoView {
         let bits: String = steps
             .get()
             .iter()
-            .map(|on| if *on { '1' } else { '0' })
-            .collect();
+            .map(|st| st.map_or("-".to_string(), |(n, v)| format!("{n}:{v}")))
+            .collect::<Vec<_>>()
+            .join(",");
         let c = citadel.get();
         let state = format!(
-            "v2;{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{}",
+            "v3;{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{};{}",
             tempo.get(),
             cv.cutoff.get(),
             cv.resonance.get(),
@@ -436,17 +445,75 @@ pub fn PhazorPage() -> impl IntoView {
         }
     });
 
-    let toggle_step = move |i: usize| {
-        steps.update(|s| s[i] = !s[i]);
-        let step = steps.get()[i].then(|| Step {
-            note: RIFF[i],
-            vel: 108,
+    // The step editor: tap toggles, vertical drag walks scale degrees
+    // (7px = one degree, snapped to the world's scale so edits can't leave
+    // the harmony), shift-drag writes velocity. Every edit lands live via
+    // SetStep — storm-tested, so mid-performance rewrites never click.
+    let send_step = move |i: usize| {
+        let step = steps.get_untracked()[i].map(|(note, vel)| Step {
+            note,
+            vel,
             gate: 0.55,
         });
         wiring::send(Command::SetStep {
             index: i as u8,
             step,
         });
+    };
+    // (index, y0, note0, vel0, moved)
+    let drag = StoredValue::new(None::<(usize, f64, u8, u8, bool)>);
+    let step_down = move |i: usize, ev: web_sys::PointerEvent| {
+        use wasm_bindgen::JsCast;
+        if let Some(t) = ev
+            .target()
+            .and_then(|t| t.dyn_into::<web_sys::Element>().ok())
+        {
+            let _ = t.set_pointer_capture(ev.pointer_id());
+        }
+        let (n0, v0) = steps.get_untracked()[i].unwrap_or((RIFF[i], 108));
+        drag.set_value(Some((i, f64::from(ev.client_y()), n0, v0, false)));
+    };
+    let step_move = move |i: usize, ev: web_sys::PointerEvent| {
+        let Some((idx, y0, n0, v0, moved)) = drag.get_value() else {
+            return;
+        };
+        if idx != i {
+            return;
+        }
+        let dy = y0 - f64::from(ev.client_y());
+        if !moved && dy.abs() < 5.0 {
+            return;
+        }
+        drag.set_value(Some((idx, y0, n0, v0, true)));
+        if ev.shift_key() {
+            let vel = (i32::from(v0) + (dy * 0.8) as i32).clamp(1, 127) as u8;
+            steps.update(|s| s[i] = Some((n0, vel)));
+        } else {
+            let scale = Scale::from_u8(cv.scale.get_untracked());
+            let degrees = (dy / 7.0).round() as i16;
+            let note = scale.degree_step(n0, degrees, 45);
+            steps.update(|s| s[i] = Some((note, v0)));
+        }
+        send_step(i);
+    };
+    let step_up = move |i: usize, _ev: web_sys::PointerEvent| {
+        let Some((idx, _, n0, _, moved)) = drag.get_value() else {
+            return;
+        };
+        if idx != i {
+            return;
+        }
+        drag.set_value(None);
+        if !moved {
+            steps.update(|s| {
+                s[i] = if s[i].is_some() {
+                    None
+                } else {
+                    Some((n0, 108))
+                };
+            });
+            send_step(i);
+        }
     };
 
     let playhead = move || {
@@ -671,11 +738,26 @@ pub fn PhazorPage() -> impl IntoView {
                                             class="step"
                                             // Each step wears the hue of its phase angle (2πi/16).
                                             style=("--i", i.to_string())
-                                            class:on=move || steps.get()[i]
+                                            style=("--vel", move || {
+                                                steps.get()[i].map_or("0".into(), |(_, v)| {
+                                                    format!("{:.2}", f32::from(v) / 127.0)
+                                                })
+                                            })
+                                            class:on=move || steps.get()[i].is_some()
                                             class:now=move || playhead() == Some(i)
-                                            on:click=move |_| toggle_step(i)
+                                            on:pointerdown=move |ev| step_down(i, ev)
+                                            on:pointermove=move |ev| step_move(i, ev)
+                                            on:pointerup=move |ev| step_up(i, ev)
+                                            on:pointercancel=move |_| drag.set_value(None)
+                                            aria-label=move || format!("step {}", i + 1)
                                         >
-                                            <span class="note">{RIFF[i]}</span>
+                                            <span class="note">
+                                                {move || steps.get()[i].map_or_else(
+                                                    || "·".to_string(),
+                                                    |(n, _)| note_name(n),
+                                                )}
+                                            </span>
+                                            <span class="vel-bar" aria-hidden="true"></span>
                                         </button>
                                     }
                                 })
@@ -726,6 +808,7 @@ pub fn PhazorPage() -> impl IntoView {
                     <span><kbd>"z"</kbd>" zen"</span>
                     <span><kbd>"1/2/3"</kbd>" perform · patch · mix"</span>
                     <span><kbd>"shift"</kbd>"+drag knobs for fine control · double-click resets"</span>
+                    <span>"steps: tap toggles · drag = pitch · "<kbd>"shift"</kbd>"+drag = velocity"</span>
                     <span><kbd>"`"</kbd>" debug"</span>
                 </div>
                 <button class="zen-toggle" on:click=toggle_zen>"zen"</button>
@@ -864,7 +947,7 @@ pub static PRESETS: [Preset; 3] = [
 /// + every Cv signal, so every cap and needle tells the truth.
 fn apply_preset(
     p: &'static Preset,
-    steps: RwSignal<[bool; 16]>,
+    steps: RwSignal<[Option<(u8, u8)>; 16]>,
     citadel: RwSignal<crate::fractal::CitadelParams>,
     tempo: RwSignal<f32>,
     cv: Cv,
@@ -872,14 +955,18 @@ fn apply_preset(
     #[allow(clippy::cast_possible_truncation)]
     tempo.set(p.tempo as f32);
     wiring::send(Command::SetTempo(p.tempo));
-    steps.set(p.pattern);
+    let mut pat = [None; 16];
     for (i, &on) in p.pattern.iter().enumerate() {
+        pat[i] = on.then_some((RIFF[i], 108));
+    }
+    steps.set(pat);
+    for (i, st) in pat.iter().enumerate() {
         #[allow(clippy::cast_possible_truncation)]
         wiring::send(Command::SetStep {
             index: i as u8,
-            step: on.then(|| Step {
-                note: RIFF[i],
-                vel: 108,
+            step: st.map(|(note, vel)| Step {
+                note,
+                vel,
                 gate: 0.55,
             }),
         });
@@ -1000,7 +1087,7 @@ fn ExprRack(
 /// none (first visit) and the opening world should play instead. The clock
 /// checkpoint seeks the transport, so a reload resumes mid-set.
 fn restore_session(
-    steps: RwSignal<[bool; 16]>,
+    steps: RwSignal<[Option<(u8, u8)>; 16]>,
     tempo: RwSignal<f32>,
     cv: Cv,
     citadel: RwSignal<crate::fractal::CitadelParams>,
@@ -1009,7 +1096,7 @@ fn restore_session(
         return false;
     };
     let parts: Vec<&str> = state.split(';').collect();
-    if parts.len() != 23 || parts[0] != "v2" {
+    if parts.len() != 23 || !matches!(parts[0], "v2" | "v3") {
         return false;
     }
     let f = |i: usize| parts[i].parse::<f32>().unwrap_or(0.5);
@@ -1041,18 +1128,28 @@ fn restore_session(
     let scale = parts[16].parse::<u8>().unwrap_or(0);
     cv.scale.set(scale);
     wiring::send(Command::SetScale(scale));
-    let mut pattern = [false; 16];
-    for (i, c) in parts[17].chars().take(16).enumerate() {
-        pattern[i] = c == '1';
+    let mut pattern = [None::<(u8, u8)>; 16];
+    if parts[0] == "v3" {
+        // v3: comma-joined `note:vel` per step, `-` for rests
+        for (i, cell) in parts[17].split(',').take(16).enumerate() {
+            pattern[i] = cell
+                .split_once(':')
+                .and_then(|(n, v)| Some((n.parse::<u8>().ok()?, v.parse::<u8>().ok()?)));
+        }
+    } else {
+        // v2 carried on/off bits over the fixed riff
+        for (i, c) in parts[17].chars().take(16).enumerate() {
+            pattern[i] = (c == '1').then_some((RIFF[i], 108));
+        }
     }
     steps.set(pattern);
-    for (i, &on) in pattern.iter().enumerate() {
+    for (i, st) in pattern.iter().enumerate() {
         #[allow(clippy::cast_possible_truncation)]
         wiring::send(Command::SetStep {
             index: i as u8,
-            step: on.then(|| Step {
-                note: RIFF[i],
-                vel: 108,
+            step: st.map(|(note, vel)| Step {
+                note,
+                vel,
                 gate: 0.55,
             }),
         });
