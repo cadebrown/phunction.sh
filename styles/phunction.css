@@ -1367,3 +1367,48 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
   background: oklch(0.68 0.16 calc(var(--enclosure, 280) * 1deg));
   box-shadow: 0 0 6px oklch(0.68 0.16 calc(var(--enclosure, 280) * 1deg) / 0.7);
 }
+
+/* ── the pages around the instrument ──────────────────────────────────── */
+.page {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 4.5rem 1.5rem 6rem;
+  position: relative;
+  z-index: 1;
+}
+.page h1 {
+  font-size: 2.2rem;
+  margin-bottom: 0.6rem;
+}
+.page-lede {
+  color: oklch(0.72 0.05 300);
+  margin-bottom: 2.5rem;
+}
+.entry {
+  border-left: 3px solid oklch(0.55 0.13 280 / 0.8);
+  padding: 0.2rem 0 0.4rem 1.2rem;
+  margin-bottom: 2rem;
+}
+.entry-date {
+  font-family: var(--font-mono, "Iosevka Web", monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  color: oklch(0.6 0.08 190);
+}
+.entry h2 { margin: 0.3rem 0 0.6rem; font-size: 1.3rem; }
+.entry-link {
+  font-family: var(--font-mono, "Iosevka Web", monospace);
+  font-size: 0.78rem;
+  color: oklch(0.7 0.12 190);
+}
+.page-note { color: oklch(0.55 0.04 300); font-style: italic; }
+.info-grid { display: grid; grid-template-columns: 9rem 1fr; gap: 1rem 1.4rem; }
+.info-grid dt {
+  font-family: var(--font-mono, "Iosevka Web", monospace);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: oklch(0.65 0.1 280);
+  padding-top: 0.15rem;
+}
+.info-grid dd a, .entry a { color: oklch(0.75 0.11 190); }

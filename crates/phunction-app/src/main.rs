@@ -11,6 +11,7 @@ mod fun;
 mod gfx_gate;
 mod hud;
 mod mic;
+mod pages;
 mod patchbay;
 mod phasor_hero;
 mod phazor_panel;
@@ -56,6 +57,8 @@ fn App() -> impl IntoView {
                 <Route path=path!("/phazor") view=phazor_panel::PhazorPage />
                 <Route path=path!("/design") view=design_lab::DesignLab />
                 <Route path=path!("/studio") view=studio::Studio />
+                <Route path=path!("/blog") view=pages::Blog />
+                <Route path=path!("/info") view=pages::Info />
             </Routes>
             <hud::DebugHud />
         </Router>

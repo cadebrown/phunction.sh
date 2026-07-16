@@ -121,9 +121,9 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
       nodes, panes. HTML5 DnD is banned (no touch support).
 - [x] Keyboard: space play/stop, esc panic, z zen, ` debug — all real.
       *Test: dispatch each key, observe the effect.*
-- [ ] Arrow-key nudge + Home/End on focused knobs/faders; visible focus
-      order that follows the pane layout. *Test: keyboard-only session can
-      play, patch, and mix.*
+- [~] Arrow-key nudge + Home/End on focused knobs/faders — landed and
+      verified (tempo nudged by keys). Remaining: focus order audit.
+      *Test: keyboard-only session can play, patch, and mix.*
 - [ ] Gamepad → bus (see IV). MIDI-in as a stretch.
 - [ ] Real-device touch pass on iPad + Android Chromium.
       *Test: all gesture suites pass on touch emulation at minimum.*
@@ -141,8 +141,9 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 - [~] Dense + straightforward: compact panes, smaller controls, everything
       visible without hunting. *Remaining: inline numeric entry on every
       control; per-pane compact/expanded modes; clearer grouping labels.*
-- [ ] Robustness: pointer capture on ALL drags, Escape cancels any
-      in-flight gesture, hit targets ≥ 24px, aria labels audited.
+- [~] Robustness: Escape cancels any in-flight gesture (verified: mid-drag
+      cable dies cleanly, then panic). Remaining: pointer capture on node
+      drags, hit-target ≥ 24px sweep, aria audit.
       *Test: gesture-interrupt suite (drag + Escape, drag off-window).*
 - [ ] No layout shift while performing; panes never jump under the hand.
       *Test: CLS ≈ 0 during interaction recording.*
@@ -158,7 +159,8 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
 
 ## X · The site around the instrument
 
-- [ ] `/blog` and `/info` exist (secondary to /phazor, same canon).
+- [x] `/blog` and `/info` exist (secondary to /phazor, same canon —
+      theorem voice, honest about how early they are).
 - [x] Production deploys on every push to main (Workers static assets,
       COOP/COEP correct). *Test: CI green, phunction.sh serves the build.*
 
