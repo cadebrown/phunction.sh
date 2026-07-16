@@ -65,6 +65,9 @@ const proc = spawn(chrome, [
   "--remote-debugging-port=0",
   "--no-sandbox",
   "--disable-gpu-sandbox",
+  // CI runners mount a small /dev/shm; without this Chrome can die or hang
+  // at startup under memory pressure
+  "--disable-dev-shm-usage",
   "--autoplay-policy=no-user-gesture-required",
   "--user-data-dir=/tmp/phunction-smoke-profile",
   "about:blank",
@@ -76,7 +79,8 @@ const wsUrl = await new Promise((resolve, reject) => {
     const m = buf.match(/DevTools listening on (ws:\/\/\S+)/);
     if (m) resolve(m[1]);
   });
-  setTimeout(() => reject(new Error("chrome did not start")), 20000);
+  // cold CI runners have taken >20s to first paint the DevTools banner
+  setTimeout(() => reject(new Error(`chrome did not start: ${buf.slice(-400)}`)), 60000);
 });
 
 const ws = new WebSocket(wsUrl);
