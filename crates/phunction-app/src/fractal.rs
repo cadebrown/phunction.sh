@@ -278,9 +278,9 @@ pub fn CitadelRack(
                         &[
                             now,
                             met.beats as f32,
-                            coarse(0, 4),
-                            coarse(4, 8),
-                            coarse(12, 16),
+                            coarse(0, 24),
+                            coarse(24, 48),
+                            coarse(72, 96),
                             rms,
                         ],
                     );

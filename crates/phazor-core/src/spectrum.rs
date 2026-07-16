@@ -1,14 +1,16 @@
-//! A 16-band spectrum analyzer that lives on the audio thread.
+//! A full-resolution spectrum analyzer that lives on the audio thread.
 //!
-//! Sixteen Goertzel resonators at log-spaced centers (60 Hz → 12 kHz),
+//! Ninety-six Goertzel resonators at log-spaced centers (50 Hz → 14 kHz),
 //! evaluated per block and smoothed with fast-attack/slow-release — the
-//! classic analyzer ballistics. Cost: 16 × `block_len` multiply-adds, far
-//! inside the realtime budget, and no FFT scratch memory at all.
+//! classic analyzer ballistics. Cost: 96 × `block_len` multiply-adds
+//! (~50k ops/block), still far inside the realtime budget, and no FFT
+//! scratch memory at all.
 
 use crate::Sample;
 
-/// Number of analyzer bands (one per sequencer step — the wheel again).
-pub const BANDS: usize = 16;
+/// Number of analyzer bands — an eighth-octave grid, dense enough that the
+/// UI draws a curve instead of a bar chart.
+pub const BANDS: usize = 96;
 
 /// Per-band Goertzel coefficients + smoothed magnitudes.
 #[derive(Debug, Clone)]
@@ -23,8 +25,8 @@ impl Spectrum {
     pub fn new(sample_rate: f32) -> Self {
         let mut coeff = [0.0f32; BANDS];
         for (k, c) in coeff.iter_mut().enumerate() {
-            // log spacing 60 Hz → 12 kHz across BANDS bands
-            let f = 60.0 * (12_000.0f32 / 60.0).powf(k as f32 / (BANDS - 1) as f32);
+            // log spacing 50 Hz → 14 kHz across BANDS bands
+            let f = 50.0 * (14_000.0f32 / 50.0).powf(k as f32 / (BANDS - 1) as f32);
             *c = 2.0 * (core::f32::consts::TAU * f / sample_rate).cos();
         }
         Self {
@@ -98,9 +100,9 @@ mod tests {
             .max_by(|a, b| a.1.total_cmp(b.1))
             .map(|(i, _)| i)
             .unwrap();
-        // 440 Hz ≈ band index round(ln(440/60)/ln(12000/60) * 15) = 6
+        // 440 Hz ≈ band index round(ln(440/50)/ln(14000/50) * 95) = 37
         assert!(
-            (5..=7).contains(&brightest),
+            (34..=40).contains(&brightest),
             "440 Hz lit band {brightest}, levels {levels:?}"
         );
         assert!(levels[brightest] > 0.2);

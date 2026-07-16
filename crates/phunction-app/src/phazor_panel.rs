@@ -446,6 +446,31 @@ pub fn PhazorPage() -> impl IntoView {
         pts
     };
 
+    // Full-res analyzer: 96 log-spaced bands drawn as one smooth curve
+    // (area + line), not a bar chart — insanely detailed, zero DOM churn.
+    let analyzer_line = move || {
+        let b = meters.get().bands;
+        let mut d = String::with_capacity(b.len() * 12);
+        for (i, v) in b.iter().enumerate() {
+            use core::fmt::Write;
+            let y = 32.0 - (v * 40.0).clamp(0.0, 31.0);
+            let _ = write!(d, "{}{i},{y:.1} ", if i == 0 { "M" } else { "L" });
+        }
+        d
+    };
+    let analyzer_fill = move || {
+        let b = meters.get().bands;
+        let mut d = String::with_capacity(b.len() * 12 + 24);
+        d.push_str("M0,32 ");
+        for (i, v) in b.iter().enumerate() {
+            use core::fmt::Write;
+            let y = 32.0 - (v * 40.0).clamp(0.0, 31.0);
+            let _ = write!(d, "L{i},{y:.1} ");
+        }
+        d.push_str("L95,32 Z");
+        d
+    };
+
     // A knob that owns a Cv signal and a ParamId, so presets stay truthful.
     macro_rules! cv_knob {
         ($label:literal, $sig:expr, $id:expr, $min:literal, $max:literal, $hue:literal) => {{
@@ -624,23 +649,28 @@ pub fn PhazorPage() -> impl IntoView {
                         </span>
                     </RackPanel>
 
-                    <RackPanel title="spectrum · 60 Hz → 12 kHz" class="span12">
-                        <div class="spectrum-row">
-                            {(0..phazor_core::BANDS)
-                                .map(|i| {
-                                    view! {
-                                        <div class="spec-band" style=("--i", i.to_string())>
-                                            <div
-                                                class="spec-fill"
-                                                style=("height", move || {
-                                                    format!("{:.1}%", (meters.get().bands[i] * 130.0).min(100.0))
-                                                })
-                                            ></div>
-                                        </div>
-                                    }
-                                })
-                                .collect_view()}
-                        </div>
+                    <RackPanel title="spectrum · 50 Hz → 14 kHz · 96 bands" class="span12">
+                        <svg
+                            class="analyzer"
+                            viewBox="0 0 95 32"
+                            preserveAspectRatio="none"
+                            aria-label="full-resolution spectrum analyzer"
+                        >
+                            <defs>
+                                <linearGradient id="specgrad" x1="0" y1="0" x2="1" y2="0">
+                                    <stop offset="0%" stop-color="oklch(0.72 0.19 10)"></stop>
+                                    <stop offset="14%" stop-color="oklch(0.75 0.17 55)"></stop>
+                                    <stop offset="28%" stop-color="oklch(0.78 0.16 100)"></stop>
+                                    <stop offset="43%" stop-color="oklch(0.76 0.17 145)"></stop>
+                                    <stop offset="57%" stop-color="oklch(0.74 0.15 190)"></stop>
+                                    <stop offset="71%" stop-color="oklch(0.7 0.16 235)"></stop>
+                                    <stop offset="85%" stop-color="oklch(0.68 0.17 280)"></stop>
+                                    <stop offset="100%" stop-color="oklch(0.7 0.18 325)"></stop>
+                                </linearGradient>
+                            </defs>
+                            <path class="an-fill" d=analyzer_fill></path>
+                            <path class="an-line" d=analyzer_line></path>
+                        </svg>
                     </RackPanel>
 
                     <RackPanel title="sequence · your riff over the weather">
