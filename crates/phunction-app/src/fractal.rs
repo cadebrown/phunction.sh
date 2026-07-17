@@ -522,7 +522,7 @@ pub fn CitadelRack(
             aria-label="the mind field: fractal, gyroid, neural field, or your own kaleidoscoped camera, wall to wall"
         ></canvas>
         {move || error.get().map(|e| view! { <p class="gfx-error">"✗ " {e}</p> })}
-        <RackPanel title="mind controls" class="span5" hue=235.0>
+        <RackPanel title="mind controls" class="span5" folded=true hue=235.0>
             {move || {
                 let l = labels.get();
                 view! {

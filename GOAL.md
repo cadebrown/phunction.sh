@@ -265,6 +265,24 @@ hermetic formalism, running entirely in the browser as Rust→WASM.
       stored_float clamps to innerWidth/Height margins by construction;
       panel height 232→198px measured.*
 
+- [x] **Field-first boot + modular chrome** ("simplify — brutally
+      efficient to use live; I can't see the background"): every pane
+      boots FOLDED to a slim latch rail, so a fresh session is the field
+      wall-to-wall with one dense topbar — every surface is one tap away
+      and 1/2/3 still snap whole layouts. Glass lightened (alpha 0.5,
+      blur 18) so open panes read the field through themselves. The
+      chrome is now clean modules: topbar.rs (the strip) and presets.rs
+      (worlds) extracted from the phazor_panel monolith. Review catches
+      fixed: the fold gate (.rack-body.hidden) had been silently
+      overridden by the DAW-grid display rule since it landed — every
+      fresh boot rendered all panels OPEN; layout presets referenced
+      retired panels (transport/mind); the zen keyboard branch duplicated
+      toggle_zen inline; a CSS-hidden decorative jack still rendered.
+      *Tested: fresh-profile probe shows all panels folded at t=3s AND
+      t=8s with the field visible wall-to-wall; the Playwright suite
+      (fixed to guard on VISIBILITY, not element count — folded bodies
+      are rendered-but-hidden) is 7/7; full check green.*
+
 ## IX · The canon (aesthetics are load-bearing)
 
 - [x] Hermetic formalism: midnight purple, eight stations, Redaction +

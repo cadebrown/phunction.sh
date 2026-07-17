@@ -7,16 +7,11 @@
 //! what will let external controllers drive the same surface later.
 
 use crate::fractal::CitadelRack;
-use crate::rack::{Jack, Knob, Led, LedMeter, RackPanel};
+use crate::presets::{apply_preset, PRESETS, RIFF};
+use crate::rack::{Knob, Led, LedMeter, RackPanel};
 use leptos::prelude::*;
 use phazor_core::meter::SCOPE;
 use phazor_core::{Command, ParamId, Scale, Step, StepSequencer};
-
-/// Pad notes for the user pattern (A-minor pentatonic with octave drops).
-/// The pads ride the arp layer *on top of* the generative score.
-const RIFF: [u8; 16] = [
-    45, 57, 48, 57, 45, 55, 48, 60, 45, 57, 52, 57, 43, 55, 48, 62,
-];
 
 /// MIDI note → display name ("a2", "c#3") — lowercase, the machine's voice.
 fn note_name(n: u8) -> String {
@@ -29,19 +24,19 @@ fn note_name(n: u8) -> String {
 /// Live telemetry mirrored into signals for display.
 #[derive(Clone, Copy)]
 pub(crate) struct Meters {
-    peak_l: f32,
-    peak_r: f32,
-    rms_l: f32,
-    rms_r: f32,
-    beats: f64,
-    voices: u8,
-    playing: bool,
+    pub(crate) peak_l: f32,
+    pub(crate) peak_r: f32,
+    pub(crate) rms_l: f32,
+    pub(crate) rms_r: f32,
+    pub(crate) beats: f64,
+    pub(crate) voices: u8,
+    pub(crate) playing: bool,
     /// Commands dropped because the ring was full (debug HUD surfaces this).
-    dropped: u32,
+    pub(crate) dropped: u32,
     /// 16-band spectrum mirror.
-    bands: [f32; phazor_core::BANDS],
+    pub(crate) bands: [f32; phazor_core::BANDS],
     /// Oscilloscope trace mirror.
-    scope: [f32; SCOPE],
+    pub(crate) scope: [f32; SCOPE],
 }
 
 // Hand-written: `Default` for arrays stops at 32 elements (the scope is 64).
@@ -65,26 +60,26 @@ impl Default for Meters {
 /// Every continuous control's UI-side truth, so presets can rewrite the
 /// whole surface and every cap still points where the engine actually is.
 #[derive(Clone, Copy)]
-struct Cv {
-    cutoff: RwSignal<f32>,
-    resonance: RwSignal<f32>,
-    brightness: RwSignal<f32>,
-    master: RwSignal<f32>,
-    delay_mix: RwSignal<f32>,
-    delay_fb: RwSignal<f32>,
-    verb_mix: RwSignal<f32>,
-    verb_size: RwSignal<f32>,
-    drive: RwSignal<f32>,
-    drone: RwSignal<f32>,
-    arps: RwSignal<f32>,
-    lead: RwSignal<f32>,
-    density: RwSignal<f32>,
-    seed: RwSignal<u32>,
-    scale: RwSignal<u8>,
+pub(crate) struct Cv {
+    pub(crate) cutoff: RwSignal<f32>,
+    pub(crate) resonance: RwSignal<f32>,
+    pub(crate) brightness: RwSignal<f32>,
+    pub(crate) master: RwSignal<f32>,
+    pub(crate) delay_mix: RwSignal<f32>,
+    pub(crate) delay_fb: RwSignal<f32>,
+    pub(crate) verb_mix: RwSignal<f32>,
+    pub(crate) verb_size: RwSignal<f32>,
+    pub(crate) drive: RwSignal<f32>,
+    pub(crate) drone: RwSignal<f32>,
+    pub(crate) arps: RwSignal<f32>,
+    pub(crate) lead: RwSignal<f32>,
+    pub(crate) density: RwSignal<f32>,
+    pub(crate) seed: RwSignal<u32>,
+    pub(crate) scale: RwSignal<u8>,
 }
 
 impl Cv {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         let d = ParamId::default_value;
         Self {
             cutoff: RwSignal::new(d(ParamId::FilterCutoff)),
@@ -308,27 +303,19 @@ pub fn PhazorPage() -> impl IntoView {
                     return;
                 }
                 match ev.key().as_str() {
-                    "z" => {
-                        if let Some(root) = web_sys::window()
-                            .and_then(|w| w.document())
-                            .and_then(|d| d.document_element())
-                        {
-                            let _ = root.class_list().toggle("zen");
-                        }
-                    }
+                    "z" => crate::topbar::toggle_zen(),
+                    // layouts name PANELS; transport/minds/worlds live in
+                    // the topbar now and need no slot here
                     "1" => crate::rack::reorder::apply_layout(&[
-                        "transport",
-                        "mind",
                         "weather · the score writes itself",
+                        "mind controls",
                     ]),
                     "2" => crate::rack::reorder::apply_layout(&[
                         "patchbay · the constructive graph",
                         "expr · a little language",
                         "shader · live wgsl",
-                        "transport",
                     ]),
                     "3" => crate::rack::reorder::apply_layout(&[
-                        "transport",
                         "voice",
                         "mix",
                         "weather · the score writes itself",
@@ -358,17 +345,7 @@ pub fn PhazorPage() -> impl IntoView {
         on_key.forget();
     }
 
-    #[cfg(target_arch = "wasm32")]
-    let toggle_zen = move |_ev: web_sys::MouseEvent| {
-        if let Some(root) = web_sys::window()
-            .and_then(|w| w.document())
-            .and_then(|d| d.document_element())
-        {
-            let _ = root.class_list().toggle("zen");
-        }
-    };
-    #[cfg(not(target_arch = "wasm32"))]
-    let toggle_zen = move |_ev: leptos::ev::MouseEvent| {};
+    let toggle_zen = move |_ev: leptos::ev::MouseEvent| crate::topbar::toggle_zen();
 
     // Every control change writes the machine state down; a reload is a
     // set change, not a reset (the live-performance invariant, UI side).
@@ -596,64 +573,10 @@ pub fn PhazorPage() -> impl IntoView {
                     </button>
                 }
             >
-                <header class="phz-topbar">
-                    <div class="phz-titlerow">
-                        <div class="phz-left">
-                            <span class="phz-name">"phazor"</span>
-                            <span class="phz-lcd">{move || format!("beat {:>7.2}", meters.get().beats)}</span>
-                            <span class="phz-lcd">{move || format!("vox {:>2}", meters.get().voices)}</span>
-                            <span class="phz-lcd" class:warn={move || meters.get().dropped > 0}>
-                                {move || format!("drop {}", meters.get().dropped)}
-                            </span>
-                        </div>
-                        <div class="phz-corner">
-                            <button class="ctrl-btn" on:click=toggle_zen>"zen"</button>
-                        </div>
-                    </div>
-                    <div class="phz-controls">
-                        <button
-                            class="ctrl-btn hot"
-                            class:lit=move || meters.get().playing
-                            on:click=move |_| wiring::send(Command::Play)
-                        >"▶"</button>
-                        <button class="ctrl-btn" on:click=move |_| wiring::send(Command::Stop)>"■"</button>
-                        <button class="ctrl-btn panic" on:click=move |_| wiring::send(Command::AllNotesOff)>"✕"</button>
-                        <span class="phz-sep"></span>
-                        <button class="ctrl-btn" on:click=move |_| {
-                            let t = (tempo.get_untracked() - 4.0).max(50.0);
-                            tempo.set(t);
-                            wiring::send(Command::SetTempo(f64::from(t)));
-                        }>"−"</button>
-                        <span class="phz-lcd">{move || format!("{:>3.0} bpm", tempo.get())}</span>
-                        <button class="ctrl-btn" on:click=move |_| {
-                            let t = (tempo.get_untracked() + 4.0).min(200.0);
-                            tempo.set(t);
-                            wiring::send(Command::SetTempo(f64::from(t)));
-                        }>"+"</button>
-                        <span class="phz-sep"></span>
-                        {crate::fractal::MINDS.map(|(id, label, _)| view! {
-                            <button
-                                class="ctrl-btn"
-                                class:lit=move || mind.get() == id
-                                on:click=move |_| crate::fractal::request_mind(id)
-                            >{label}</button>
-                        })}
-                        <span class="phz-sep"></span>
-                        {PRESETS.iter().map(|preset| {
-                            let name = preset.name;
-                            view! {
-                                <button
-                                    class="ctrl-btn world"
-                                    on:click=move |_| apply_preset(preset, steps, citadel, tempo, cv)
-                                >{name}</button>
-                            }
-                        }).collect_view()}
-                    </div>
-                </header>
+                <crate::topbar::Topbar meters=meters tempo=tempo mind=mind steps=steps citadel=citadel cv=cv />
                 <div class="rack">
                     <div class="ws-col">
                     <RackPanel title="voice" class="span5" folded=true hue=145.0>
-                        <Jack label="cv" />
                         <Knob
                             label="cutoff"
                             min=20.0 max=18000.0 init=3200.0 log=true hue=235.0
@@ -688,7 +611,7 @@ pub fn PhazorPage() -> impl IntoView {
                         />
                     </RackPanel>
 
-                    <RackPanel title="weather · the score writes itself" class="span5" hue=280.0>
+                    <RackPanel title="weather · the score writes itself" class="span5" folded=true hue=280.0>
                         {cv_knob!("drone", cv.drone, ParamId::DroneLevel, 0.0, 1.0, 280.0)}
                         {cv_knob!("arps", cv.arps, ParamId::ArpLevel, 0.0, 1.0, 145.0)}
                         {cv_knob!("lead", cv.lead, ParamId::LeadLevel, 0.0, 1.0, 55.0)}
@@ -770,7 +693,7 @@ pub fn PhazorPage() -> impl IntoView {
                     <div class="ws-col">
                     <CitadelRack params=citadel mind=mind />
 
-                    <RackPanel title="scope" class="span3" hue=145.0>
+                    <RackPanel title="scope" class="span3" folded=true hue=145.0>
                         <svg class="scope-lcd" viewBox="0 0 64 32" preserveAspectRatio="none" aria-label="oscilloscope: the master bus waveform">
                             <line class="scope-axis" x1="0" y1="16" x2="64" y2="16"></line>
                             <polyline class="scope-trace" points=scope_points></polyline>
@@ -778,7 +701,7 @@ pub fn PhazorPage() -> impl IntoView {
                         <Led on=Signal::derive(move || meters.get().rms_l + meters.get().rms_r > 0.005) hue=145.0 label="sig" />
                     </RackPanel>
 
-                    <RackPanel title="spectrum · 50 Hz → 14 kHz · 96 bands" class="span12" hue=325.0>
+                    <RackPanel title="spectrum · 50 Hz → 14 kHz · 96 bands" class="span12" folded=true hue=325.0>
                         <svg
                             class="analyzer"
                             viewBox="0 0 95 32"
@@ -815,193 +738,6 @@ pub fn PhazorPage() -> impl IntoView {
             </Show>
         </main>
     }
-}
-
-/// One whole-machine state: score, tempo, voice, space, minds. VISION calls
-/// these worlds; each is a different weather system over the same machine.
-pub struct Preset {
-    name: &'static str,
-    tempo: f64,
-    pattern: [bool; 16],
-    cutoff: f32,
-    resonance: f32,
-    brightness: f32,
-    master: f32,
-    delay_mix: f32,
-    delay_fb: f32,
-    verb_mix: f32,
-    verb_size: f32,
-    drive: f32,
-    drone: f32,
-    arps: f32,
-    lead: f32,
-    density: f32,
-    seed: u32,
-    scale: u8,
-    citadel: crate::fractal::CitadelParams,
-    mind: &'static str,
-    patch: &'static str,
-}
-
-/// The shipped worlds. Dark by default — the machine should loom, not chirp.
-pub static PRESETS: [Preset; 3] = [
-    Preset {
-        name: "undervoid",
-        tempo: 66.0,
-        pattern: [false; 16],
-        cutoff: 1800.0,
-        resonance: 1.4,
-        brightness: 0.25,
-        master: 0.85,
-        delay_mix: 0.3,
-        delay_fb: 0.55,
-        verb_mix: 0.55,
-        verb_size: 0.9,
-        drive: 0.3,
-        drone: 0.95,
-        arps: 0.5,
-        lead: 0.55,
-        density: 0.35,
-        seed: 0xC0FF_EE00,
-        scale: 0, // phrygian: the flat second looms
-        citadel: crate::fractal::CitadelParams {
-            scale: 0.38,
-            warp: 0.42,
-            hue: 0.82,
-            dolly: 0.3,
-            auto: true,
-            gen: 0,
-        },
-        mind: "silk",
-        patch: "k = knob 0.3\nl = lfo rate=k depth=0.35\nl -> mind.hue\nb = beat\ns = slew in=b amount=0.95\ns -> mind.warp",
-    },
-    Preset {
-        name: "pale arps",
-        tempo: 84.0,
-        pattern: [
-            true, false, false, false, false, false, true, false, false, false, true, false, false,
-            false, false, false,
-        ],
-        cutoff: 3400.0,
-        resonance: 2.2,
-        brightness: 0.5,
-        master: 0.8,
-        delay_mix: 0.45,
-        delay_fb: 0.5,
-        verb_mix: 0.4,
-        verb_size: 0.7,
-        drive: 0.2,
-        drone: 0.6,
-        arps: 0.85,
-        lead: 0.5,
-        density: 0.45,
-        seed: 0x0000_7331,
-        scale: 1, // aeolian
-        citadel: crate::fractal::CitadelParams {
-            scale: 0.36,
-            warp: 0.45,
-            hue: 0.12,
-            dolly: 0.28,
-            auto: true,
-            gen: 0,
-        },
-        mind: "gyroid",
-        patch: "a = audio-in\ns = slew in=a amount=0.9\ns -> mind.warp",
-    },
-    Preset {
-        name: "black rain",
-        tempo: 106.0,
-        pattern: [
-            true, false, true, false, false, true, false, false, true, false, true, false, false,
-            true, false, false,
-        ],
-        cutoff: 5200.0,
-        resonance: 3.8,
-        brightness: 0.8,
-        master: 0.9,
-        delay_mix: 0.5,
-        delay_fb: 0.6,
-        verb_mix: 0.35,
-        verb_size: 0.6,
-        drive: 0.5,
-        drone: 0.7,
-        arps: 0.75,
-        lead: 0.85,
-        density: 0.8,
-        seed: 0x0000_DEAD,
-        scale: 2, // dorian: one candle lit
-        citadel: crate::fractal::CitadelParams {
-            scale: 0.5,
-            warp: 0.72,
-            hue: 0.5,
-            dolly: 0.5,
-            auto: true,
-            gen: 0,
-        },
-        mind: "gasket",
-        patch: "a = audio-in\ne = expr \"a*0.6 + 0.2*tri(t*0.05)\" a=a\ne -> mind.dolly",
-    },
-];
-
-/// Rewrite the whole machine to a preset: engine commands + fractal state
-/// + every Cv signal, so every cap and needle tells the truth.
-fn apply_preset(
-    p: &'static Preset,
-    steps: RwSignal<[Option<(u8, u8)>; 16]>,
-    citadel: RwSignal<crate::fractal::CitadelParams>,
-    tempo: RwSignal<f32>,
-    cv: Cv,
-) {
-    #[allow(clippy::cast_possible_truncation)]
-    tempo.set(p.tempo as f32);
-    wiring::send(Command::SetTempo(p.tempo));
-    let mut pat = [None; 16];
-    for (i, &on) in p.pattern.iter().enumerate() {
-        pat[i] = on.then_some((RIFF[i], 108));
-    }
-    steps.set(pat);
-    for (i, st) in pat.iter().enumerate() {
-        #[allow(clippy::cast_possible_truncation)]
-        wiring::send(Command::SetStep {
-            index: i as u8,
-            step: st.map(|(note, vel)| Step {
-                note,
-                vel,
-                gate: 0.55,
-            }),
-        });
-    }
-    for (sig, id, value) in [
-        (cv.cutoff, ParamId::FilterCutoff, p.cutoff),
-        (cv.resonance, ParamId::FilterQ, p.resonance),
-        (cv.brightness, ParamId::OscBrightness, p.brightness),
-        (cv.master, ParamId::MasterGain, p.master),
-        (cv.delay_mix, ParamId::DelayMix, p.delay_mix),
-        (cv.delay_fb, ParamId::DelayFeedback, p.delay_fb),
-        (cv.verb_mix, ParamId::ReverbMix, p.verb_mix),
-        (cv.verb_size, ParamId::ReverbSize, p.verb_size),
-        (cv.drive, ParamId::Drive, p.drive),
-        (cv.drone, ParamId::DroneLevel, p.drone),
-        (cv.arps, ParamId::ArpLevel, p.arps),
-        (cv.lead, ParamId::LeadLevel, p.lead),
-        (cv.density, ParamId::LeadDensity, p.density),
-    ] {
-        sig.set(value);
-        wiring::send(Command::SetParam { id, value });
-    }
-    cv.seed.set(p.seed);
-    wiring::send(Command::SetSeed(p.seed));
-    cv.scale.set(p.scale);
-    wiring::send(Command::SetScale(p.scale));
-    wiring::send(Command::Play);
-    citadel.update(|c| {
-        let gen = c.gen + 1;
-        *c = p.citadel;
-        c.gen = gen;
-    });
-    // a world rewrites the WHOLE machine — the mind and the patch too
-    crate::fractal::request_mind(p.mind);
-    crate::patchbay::request_patch(p.patch);
 }
 
 /// The expr rack: a text field that is a patch cable. Type a formula in

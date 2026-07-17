@@ -1787,7 +1787,6 @@ body:has(.panel) .transmission { display: none; }
 /* ornament off: screws, rack rails, CV socket — a workstation, not a prop */
 .panel .screw { display: none; }
 .panel .rack::before, .panel .rack::after { display: none; }
-.panel .jack { display: none; }
 .panel .rack { padding: 0; }
 .panel .step {
   background: oklch(0.14 0.02 290 / 0.7);
@@ -1834,3 +1833,23 @@ body:has(.panel) .transmission { display: none; }
   pointer-events: none;
 }
 .step.on::before { opacity: calc(0.35 + 0.65 * var(--vel, 0.8)); }
+
+/* ── field-first: lighter glass, slimmer latches — the visuals READ ──── */
+.panel .rack-panel {
+  background: oklch(0.15 0.02 300 / 0.5);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+/* a folded pane is just its latch — a slim rail, not a box */
+.panel .rack-panel.folded {
+  background: oklch(0.14 0.02 300 / 0.42);
+  padding: 2px 8px 3px;
+}
+.phz-topbar { background: linear-gradient(180deg, oklch(0.17 0.03 300 / 0.88), oklch(0.15 0.028 300 / 0.82)); }
+/* keyhints melt away until hovered — chrome earns its pixels */
+.keyhints { opacity: 0.26; transition: opacity 0.25s ease; }
+.keyhints:hover { opacity: 0.85; }
+/* the fold gate: class:hidden must beat ANY later display rule (the DAW
+   grid resurrected folded bodies at equal specificity) — this utility is
+   the one place !important is the honest tool */
+.rack-body.hidden { display: none !important; }

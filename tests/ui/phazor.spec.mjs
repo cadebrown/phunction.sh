@@ -11,12 +11,14 @@ async function powerOn(page) {
   await expect(page.locator(".phz-topbar")).toBeVisible({ timeout: 20_000 });
 }
 
-/** Unfold the sequence panel if it booted folded. */
+/** Unfold the sequence panel if it booted folded. Folded bodies are
+ * rendered but hidden, so the guard must be VISIBILITY, not count. */
 async function openSequencer(page) {
-  if ((await page.locator(".step").count()) === 0) {
+  const first = page.locator(".step").first();
+  if (!(await first.isVisible().catch(() => false))) {
     await page.locator(".rack-latch", { hasText: "sequence" }).click();
   }
-  await expect(page.locator(".step").first()).toBeVisible();
+  await expect(first).toBeVisible();
 }
 
 test("boots and the clock advances", async ({ page }) => {

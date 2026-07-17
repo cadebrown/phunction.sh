@@ -16,11 +16,13 @@ mod pages;
 mod patchbay;
 mod phasor_hero;
 mod phazor_panel;
+mod presets;
 mod rack;
 mod raf;
 mod sigil;
 mod studio;
 mod substrate;
+mod topbar;
 mod trace;
 
 use leptos::prelude::*;
