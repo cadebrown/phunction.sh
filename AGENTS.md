@@ -13,6 +13,10 @@ This file is the map and the non-negotiables. Detail lives in `docs/`:
 - [`docs/gfx.md`](docs/gfx.md) — the phunctor harness; how to add a visual
 - [`docs/crates-policy.md`](docs/crates-policy.md) — how dependencies get admitted
 - [`docs/review-guidelines.md`](docs/review-guidelines.md) — the quality bar for every change
+- [`docs/design/ethos.md`](docs/design/ethos.md) — the design ethos; test UI changes against it
+- [`docs/decisions/`](docs/decisions/) — decision records (engineering + design); add one when a choice will need explaining later
+- [`docs/journal.md`](docs/journal.md) — the narrative build record; append at milestones
+- [`docs/design/gallery/`](docs/design/gallery/) — dated milestone screenshots of the UI eras
 - [`docs/deploy.md`](docs/deploy.md) — CI/CD, Cloudflare, domain runbook
 
 ## The one diagram
